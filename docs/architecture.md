@@ -1,72 +1,140 @@
 # architecture.md — 시스템 구조
 
-> 새 파일/모듈을 만들기 전에 읽는다. 스택 상세는 [tech-stack.md](tech-stack.md).
+> 새 파일·모듈을 만들기 전에 읽는다. 스택 상세는 [tech-stack.md](tech-stack.md),
+> 데이터 의미는 [data-sources.md](data-sources.md), 작업 순서는 [work-plan.md](work-plan.md)가 SSOT다.
 
-## 전체 구조 (웹 코어 + WebView 셸)
-
-```
-[농업인 브라우저 / WebView 앱 셸]
-        │  HTTPS
-        ▼
-[Next.js on Vercel]
-  ├─ UI (App Router 페이지: 온보딩/지역설정/메인/상세)
-  ├─ API Routes (/api/*)
-  │    ├─ /api/reservoir   저수율 시계열 (캐시 적용)
-  │    ├─ /api/forecast    예측 + 도달 예상일
-  │    └─ /api/coach       LLM 행동요령 생성
-  ├─ lib/prediction        예측 순수 함수 (UI·API에서 공용)
-  └─ lib/data              공공데이터 페치·정규화
-        │
-        ▼
-[한국농어촌공사 공공데이터]           [LLM API]
-  · 저수지 수위 API (실시간 축)        · 행동요령 문장 생성
-  · 일별 저수율 / 논가뭄지도 /
-    가뭄예경보 (CSV → 정적 JSON 파이프라인)
-```
-
-## 모듈 경계 (의존 방향 — 위반 금지)
+## 전체 구조
 
 ```
-types → lib/data → lib/prediction → api routes → UI 컴포넌트
+[Next.js 웹]                         [Android 네이티브 앱]
+  App Router + CSS Modules            Kotlin + Jetpack Compose
+  localStorage                        DataStore
+          │ HTTPS                           │ HTTPS
+          └──────────────┬──────────────────┘
+                         ▼
+                 [Next.js on Vercel]
+                   ├─ Web UI
+                   ├─ Route Handlers (/api/v1/*)
+                   │    ├─ regions/search   주소 후보 검색
+                   │    ├─ regions/resolve  시군구·대표 저수지 결정
+                   │    ├─ status           현재 저수율·공식 단계
+                   │    ├─ forecast         추세 예측·도달 가능 시점
+                   │    └─ coach            제한된 행동 코칭
+                   ├─ lib/data              페치·정규화·대표지 결정·캐시
+                   └─ lib/prediction        결정적인 순수 함수
+                         │
+          ┌──────────────┼──────────────────┐
+          ▼              ▼                  ▼
+ [KRC 공공데이터 5종] [Supabase PostgreSQL] [LLM 어댑터]
+  API(XML)+연간 CSV    공개 데이터 스냅샷     정적 폴백 우선
+                       예측·코치 캐시
 ```
 
-- UI는 `lib/*`를 직접 import하지 않고 API Route를 거치는 것이 기본.
-  (예외: 순수 표시 유틸은 UI에서 직접 사용 가능)
-- `lib/prediction`은 **순수 함수만**: `(시계열, 옵션) → {예측배열, 도달일, 오차}`.
-  네트워크·시간·랜덤 접근 금지 → 백테스트와 단위테스트가 결정적이 된다.
-- 외부 데이터는 `lib/data`의 정규화를 거치지 않고는 어디서도 사용 금지
-  (필드명·단위를 한 곳에서만 안다).
+- Android는 웹을 감싼 앱이 아니라 독립적인 Compose 네이티브 클라이언트다.
+- UI 코드는 공유하지 않는다. 디자인 토큰, OpenAPI 계약, 도메인 용어를 공유한다.
+- 예측·단계 판정·KRC 정규화·LLM 호출은 서버에서 한 번만 구현한다.
+- 로그인·회원가입·Supabase Auth는 사용하지 않는다.
 
-## 데이터 흐름 전략
-
-- **실시간 축**: 저수지 수위 API를 API Route에서 호출, 60분 캐시(revalidate).
-  API 장애 시 마지막 캐시 + "업데이트 지연" 표시로 폴백 (화면이 죽지 않는다).
-- **정적 축**: CSV 3종(일별 저수율·논가뭄지도·가뭄예경보)은 스크립트로 내려받아
-  `data/*.json`으로 커밋(파이프라인: `scripts/build-data.*`). 하루 1회 갱신이면 충분.
-- 클라이언트 저장: `localStorage` — 키는 `mulsigye.regions`, `mulsigye.consent`.
-  스키마 변경 시 키에 버전 접미사(`.v2`)를 붙이고 마이그레이션 코드를 남긴다.
-
-## 폴더 구조 규칙 (스캐폴드 시 이 형태를 따른다)
+## 서버 모듈 경계
 
 ```
-app/            페이지 (스플래시/온보딩은 클라이언트 상태로 분기)
-app/api/        API Routes
-components/     UI 컴포넌트 (도메인 접두어: Gauge*, Coach*, Region*)
-lib/data/       페치·정규화·캐시
-lib/prediction/ 모델·백테스트 공용 로직
-data/           빌드된 정적 JSON (스크립트 산출물)
-scripts/        데이터 파이프라인·백테스트 CLI
-docs/           지식 베이스 (이 디렉터리)
-prototype/      디자인 스펙 원본 HTML
+types → lib/data → lib/prediction → app/api/v1 → UI
+```
+
+- 웹 UI와 Android는 모두 `/api/v1/*`만 호출한다. KRC·Supabase·LLM에 직접 연결하지 않는다.
+- `lib/data` 밖에서 원천 필드명을 직접 해석하거나 단계 기준을 복제하지 않는다.
+- `lib/prediction`은 `(시계열, 옵션) → { 예측값, 도달일, 오차 }`인 순수 함수다.
+  네트워크·현재 시간·랜덤에 접근하지 않아 단위 테스트와 백테스트가 재현 가능해야 한다.
+- Route Handler는 DTO 변환, 캐시 정책, 오류 매핑을 담당한다. UI 문구를 데이터 소스에 넣지 않는다.
+
+## 웹 ↔ Android 브릿지 전략
+
+브릿지는 WebView JavaScript 인터페이스가 아니라 **버전이 고정된 HTTPS API 계약**이다.
+
+- 계약 SSOT: `contracts/openapi.yaml`(OpenAPI 3.1). DTO, enum, ISO 8601 날짜, `%`와 `%p`,
+  nullable, 오류 형식을 정의한다.
+- 호환성을 깨는 변경은 `/api/v2`처럼 새 버전으로 낸다. 기존 응답 의미를 조용히 바꾸지 않는다.
+- 웹은 동일 출처 Route Handler를 `fetch`, Android는 Retrofit/OkHttp와
+  kotlinx.serialization로 같은 JSON 계약을 소비한다.
+- Android 기준 URL은 `BuildConfig`에 주입한다. 프로덕션은 Vercel, 개발은 로컬·프리뷰 URL이다.
+- App Links는 **P1**이다. 핵심 플로우가 완성된 뒤 안정된 웹 경로와 Compose 화면을 연결한다.
+  앱이 없으면 같은 웹 경로로 열린다.
+- 디자인 토큰은 [design-system.md](design-system.md)에서 CSS 변수와 Compose Theme로 각각 옮긴다.
+
+## API 책임
+
+| 경로 | 입력 | 책임 | 주의 |
+|---|---|---|---|
+| `GET /api/v1/regions/search` | 주소 검색어 | 주소 API 결과를 최소 필드로 정규화 | 원문을 로그·DB에 저장하지 않음 |
+| `POST /api/v1/regions/resolve` | 선택 주소의 행정코드 | 시군구와 대표 저수지를 결정 | 수혜면적 최대, 동률은 시설코드 오름차순 |
+| `GET /api/v1/status` | `sigunCode` | 대표 저수지 원저수율 + 지역 `avgRatio` + 공식 단계 | 두 저수율의 의미를 분리 |
+| `GET /api/v1/forecast` | `sigunCode` | 14일 예측, 오차, 도달 가능 시점, 공식 전망 | 참고 표현만 반환 |
+| `GET /api/v1/coach` | `sigunCode` | 서버가 상태를 조회해 허용 행동 안에서 코칭 | 임의 프롬프트 입력 금지 |
+
+### 공통 응답·오류 원칙
+
+- 성공 응답에는 `asOf`, `sources`, `stale`을 포함한다.
+- 외부 API 장애 때 마지막 정상 데이터가 있으면 `stale: true`와 지연 안내를 반환한다.
+- 복구 불가능한 오류는 `{ code, message, retryable }`와 알맞은 HTTP 상태를 반환한다.
+- 클라이언트는 서버의 단계·예측 결과를 그대로 표시하고 자체 기준을 만들지 않는다.
+
+## 데이터 흐름
+
+1. 주소 검색 결과에서 행정 시군구 코드를 얻는다. 주소 원문은 응답 후 폐기한다.
+2. `reservoirs`에서 같은 시군구의 수혜면적 최대 시설을 대표 저수지로 결정한다.
+3. KRC 수위 API(XML)에서 대표 저수지의 현재 원저수율을 조회하고 60분 캐시한다.
+4. `regional_drought_daily`의 최신 `avgRatio`와 공식 단계를 조회한다.
+5. 같은 지역 `avgRatio` 시계열을 예측 함수에 넣고 공식 전망을 병기한다.
+6. 상태와 허용 행동 목록으로 코치 응답을 만들며, LLM 장애 시 정적 문구를 반환한다.
+
+정적 CSV는 연간 갱신 데이터다. 프로젝트 시작과 최종 제출 직전에 수동 적재·검증하고,
+원천 갱신일이 바뀐 경우에만 다시 적재한다. 의미 없는 일일 cron을 만들지 않는다.
+
+## Supabase 스키마 경계
+
+| 테이블 | 핵심 키·값 | 용도 |
+|---|---|---|
+| `reservoirs` | `fac_code` PK, 이름, 시군구 코드, 주소, 수혜면적 | 대표 저수지 결정 |
+| `reservoir_observations` | `fac_code + observed_on`, 원저수율·수위 | 현재 조회 스냅샷·폴백 |
+| `regional_drought_daily` | `sigun_code + observed_on`, 통합·평년·평년대비·공식 단계 | 예측과 단계의 주계열 |
+| `official_outlooks` | `sigun_code + published_on`, 현재·1/2/3개월 전망 | 자체 예측 옆 공식 근거 |
+| `forecast_runs` | 지역·기준일·모델 버전, 예측·오차 | 재계산 방지·재현성 |
+| `coach_cache` | 상태 해시·문구 버전, 행동 응답 | LLM 중복 호출 방지 |
+
+- 사용자 주소, 등록 지역, 동의 내역은 Supabase에 저장하지 않는다.
+- 웹은 `localStorage`, Android는 DataStore에 지역 코드·대표 시설 코드·동의 버전만 저장한다.
+- Next.js 서버만 `SUPABASE_SECRET_KEY`로 접근한다. 클라이언트 번들에는 Supabase 키를 넣지 않는다.
+- 마이그레이션은 `supabase/migrations/`에 추가하며 적용 순서를 되돌려 쓰지 않는다.
+
+## 폴더 구조
+
+```
+app/            Next.js 페이지
+app/api/v1/     버전이 고정된 Route Handlers
+components/     UI 컴포넌트(Gauge*, Coach*, Region*)
+lib/data/       외부 페치·XML/CSV 정규화·대표지 결정·캐시
+lib/prediction/ 모델·도달일 계산 순수 함수
+contracts/      OpenAPI 계약
+data/           제출 시점의 검증된 정적 스냅샷
+scripts/        데이터 적재·백테스트 CLI
+supabase/       DB 마이그레이션
+android/        Kotlin + Compose 프로젝트
+docs/           지식 베이스
+prototype/      인터랙티브 시각 참고물
 ```
 
 ## 배포
 
-- Vercel 프로젝트 1개, `main` 브랜치 = 프로덕션. PR마다 프리뷰 배포.
-- 환경변수: `DATA_GO_KR_API_KEY`, `LLM_API_KEY` — Vercel 대시보드에만 저장.
-- 제출용 URL은 커스텀 도메인 불필요, `*.vercel.app` 허용. **9/10까지 프로젝트 삭제 금지.**
+- Vercel 프로젝트 1개, `main` = 프로덕션, PR 브랜치 = 프리뷰 배포다.
+- Supabase 프로젝트 1개를 사용하고 스키마는 마이그레이션으로 관리한다.
+- 서버 환경변수: `DATA_GO_KR_API_KEY`, `JUSO_API_KEY`, `LLM_API_KEY`,
+  `SUPABASE_URL`, `SUPABASE_SECRET_KEY`.
+- Android는 같은 application ID와 서명키로 release APK와 Play용 AAB를 만든다.
+- keystore, 비밀번호, `keystore.properties`, `local.properties`는 커밋하지 않는다.
+- 7/31 제출물의 서비스 URL·QR에서 웹과 설치 가능한 Android 결과물로 접근할 수 있게 한다.
+- Vercel 서비스 URL은 발표 심사일인 9/10까지 유지한다.
 
-## 미결정 사항 (결정 시 이 문서를 갱신하라)
+## 남은 비차단 결정
 
-- [ ] LLM 제공자·모델 선택 (coach 문장 생성) — 비용/속도 비교 후 확정
-- [ ] CSV 3종 자동 갱신 주기(수동 스크립트 vs GitHub Actions cron)
+- [ ] LLM 제공자·모델: 7/22까지 비용·속도 비교 후 선택. 미선택이어도 정적 코치로 개발·시연 가능.
+- [ ] Android App Links: 핵심 화면 경로가 고정된 뒤 P1에서 연결.

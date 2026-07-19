@@ -4,9 +4,19 @@
 
 ## 브랜치
 
-- `main` = 항상 배포 가능. Vercel 프로덕션이 물려 있다.
+- `main` = 항상 배포 가능. Vercel 프로덕션이 물려 있고 Android debug 빌드가 통과해야 한다.
 - 작업 브랜치: `feat/<주제>`, `fix/<주제>`, `docs/<주제>`, `chore/<주제>` (케밥케이스).
 - 마감 특성상 브랜치 수명은 하루 이내를 목표로 한다. 오래 끌지 말고 쪼개서 머지.
+
+## 작업 완료와 전달
+
+- **기본값:** 사용자가 문서 또는 소스 변경을 요청하고 전달 방식을 따로 말하지 않으면,
+  작업 브랜치에서 검증 → 커밋 → 원격 푸시 → `main` 대상 PR 생성까지 완료한다.
+- **직접 반영:** 사용자가 "바로 main에 push", "main에 바로 넣어"처럼 명시한 경우에만
+  최신 `origin/main`을 확인하고 검증 → 커밋 → `git push origin main`으로 완료한다.
+- "커밋하지 마라", "로컬 변경만"처럼 사용자가 범위를 제한하면 그 지시가 우선한다.
+- 히스토리 재작성, 강제 푸시, 비밀값 회전, 데이터 삭제는 직접 반영 지시와 별개로 다시 확인한다.
+- 어떤 경로든 작업을 검증되지 않은 로컬 변경 상태로 끝내지 않는다.
 
 ## 커밋 (Conventional Commits, 제목은 한국어 허용)
 
@@ -27,7 +37,8 @@ chore: pnpm lockfile 갱신
   ```
   - [ ] docs/testing-and-feedback.md 의 검증 명령 통과
   - [ ] 관련 docs 갱신함 (해당 없으면 사유)
-  - [ ] 4개 상태(정상/가뭄/심각/장마) 깨짐 없음 (UI 변경 시)
+  - [ ] 웹·Android 4개 상태(정상/가뭄/심각/장마) 깨짐 없음 (UI 변경 시)
+  - [ ] OpenAPI 계약과 두 클라이언트 DTO가 일치함 (API 변경 시)
   ```
 
 ## 코드 스타일
@@ -49,6 +60,8 @@ chore: pnpm lockfile 갱신
 | 모델·지표·표현 규칙 변경 | prediction-model.md |
 | 토큰·컴포넌트 패턴 변경 | design-system.md + prototype/ |
 | 검증 명령 변경 | testing-and-feedback.md |
+| 공모전 제출·심사 조건 변경 | contest-rules.md + milestones.md |
+| 작업 의존성·우선순위 변경 | work-plan.md + milestones.md |
 
 - 문서에 없는 결정을 코드에 넣어야 한다면: 코드에 `TODO(decide):` 주석 + 문서의
   '미결정' 절에 항목 추가 후 사람에게 묻는다. **추측으로 확정하지 않는다.**
@@ -56,4 +69,5 @@ chore: pnpm lockfile 갱신
 ## 비밀값
 
 `.env.local`만 사용, `.env.example` 커밋. 키가 실수로 커밋되면 즉시 회전(재발급)하고
-히스토리에서 제거한다.
+히스토리에서 제거한다. Android keystore·서명 비밀번호·`keystore.properties`는
+저장소 밖에서 관리하고 CI에서는 secret으로만 주입한다.

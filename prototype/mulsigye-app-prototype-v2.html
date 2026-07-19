@@ -390,7 +390,7 @@ body{
   <!-- 개발용 컨트롤 (앱 화면 아님) -->
   <aside class="devbar">
     <h1>프로토타입 컨트롤</h1>
-    <p>APP(WebView) 기준 · 화면 속 수치는 예시</p>
+    <p>웹 · Android 네이티브 공통 시각 참고 · 수치는 예시</p>
     <h2>물 상황 시나리오</h2>
     <div class="seg" id="seg">
       <button data-scen="normal" aria-pressed="false">정상</button>
@@ -399,7 +399,7 @@ body{
       <button data-scen="flood" aria-pressed="false">장마</button>
     </div>
     <button class="restart" id="restart">↺ 처음부터 다시 보기</button>
-    <p class="note">지역·동의 상태는 데모용 메모리에 저장됩니다. 실서비스는 로컬스토리지(WebView) 사용 예정.</p>
+    <p class="note">데모 상태는 메모리에만 저장됩니다. 실서비스는 웹 localStorage와 Android DataStore에 지역 코드만 저장해요.</p>
   </aside>
 
   <!-- 디바이스 -->
@@ -457,7 +457,7 @@ body{
       <div class="scroll">
         <div class="pagehead">
           <h2>어느 지역의 물 사정이<br>궁금하세요?</h2>
-          <p>주소를 등록하면 가장 가까운 저수지를 연결해드려요</p>
+          <p>주소의 시군구에서 우리 지역 대표 저수지를 연결해드려요</p>
         </div>
         <div id="regionArea"></div>
       </div>
@@ -492,7 +492,7 @@ body{
           <p class="addr" id="confirmAddr"></p>
           <div class="res">
             <svg viewBox="0 0 24 24"><path d="M12 2C12 2 5 10.2 5 15a7 7 0 0 0 14 0C19 10.2 12 2 12 2Z"/></svg>
-            <span>가장 가까운 저수지 · <b id="confirmRes"></b></span>
+            <span>우리 지역 대표 저수지 · <b id="confirmRes"></b></span>
           </div>
         </div>
         <div style="height:1rem"></div>
@@ -555,24 +555,18 @@ body{
             🌧 <b>참고</b> · 최근 비로 저수율이 만수위에 가까워요. 방류·하류 안내는 <b>공식 재난 문자</b>를 확인하세요.
           </div>
 
-          <!-- 오늘 우리 저수지 -->
+          <!-- 우리 지역 대표 저수지 -->
           <section class="card">
-            <p class="eyebrow">오늘 우리 저수지</p>
+            <p class="eyebrow">우리 지역 대표 저수지</p>
             <div class="hero">
               <div class="hero-info">
                 <div class="rate-line"><span class="rate" id="rate">57</span><span class="rate-unit">%</span></div>
-                <p class="avg">평년의 <b id="avg">74%</b> 수준</p>
+                <p class="avg">지역 평년 대비 <b id="avg">68%</b></p>
                 <span class="stagechip" id="stage">관심</span>
                 <p class="headline" id="headline">물이 평소보다 조금 부족해요</p>
               </div>
               <div class="gauge-zone" aria-hidden="true">
                 <div class="gauge"><div class="water" id="water"><span class="wave"></span><span class="wave w2"></span></div></div>
-                <div class="ticks">
-                  <span style="bottom:70%">관심</span>
-                  <span style="bottom:60%">주의</span>
-                  <span style="bottom:50%">경계</span>
-                  <span style="bottom:40%">심각</span>
-                </div>
               </div>
             </div>
           </section>
@@ -585,9 +579,9 @@ body{
             <span class="conf" id="conf">예측 오차(최근 14일) ±1.9%p</span>
           </section>
 
-          <!-- 저수율 흐름 -->
+          <!-- 지역 평년 대비 저수율 흐름 -->
           <section class="card">
-            <p class="eyebrow">저수율 흐름 · 지난 30일과 앞으로 14일</p>
+            <p class="eyebrow">지역 평년 대비 저수율 · 지난 30일과 앞으로 14일</p>
             <button class="morebtn" data-go="s-detail">자세히 <svg class="chev sm" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>
             <div id="chart"></div>
             <div class="chart-legend">
@@ -610,7 +604,7 @@ body{
           <section class="card src-card">
             <b>이 화면의 근거</b> — 가뭄 단계는 농어촌공사 공인 기준(평년 대비 70·60·50·40%)을 그대로 써요. ‘며칠 뒤’ 예측은 참고용이며, 공식 가뭄 예·경보가 항상 우선이에요.
             <div class="src-chips">
-              <span>저수지 수위정보 API</span><span>전국 저수지 일별 저수율</span><span>논가뭄지도</span><span>가뭄예경보</span>
+              <span>저수지 수위정보 API</span><span>전국 저수지 일별 저수율</span><span>논가뭄지도</span><span>가뭄예경보</span><span>저수지 시설제원</span>
             </div>
           </section>
 
@@ -624,11 +618,11 @@ body{
         <button class="back" data-go="s-main" data-back="1" aria-label="뒤로">
           <svg class="chev" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>
         </button>
-        <span class="title">저수율 흐름</span>
+        <span class="title">지역 평년 대비 흐름</span>
       </header>
       <div class="scroll">
         <div class="pagehead" style="padding-bottom:.4rem">
-          <h2 id="detailTitle">나주호 저수율</h2>
+          <h2 id="detailTitle">빛가람동 지역 평년 대비 저수율</h2>
           <p id="detailSub">지난 30일 실측과 앞으로 14일 예측이에요</p>
         </div>
         <div class="sec"><div id="chartBig"></div>
@@ -649,7 +643,7 @@ body{
         <div class="sec">
           <h3>예측은 이렇게 계산해요</h3>
           <div class="method">
-            최근 30일 저수율의 <b>변화 추세</b>로 앞으로 14일을 내다봐요. 여러 방법(전일 유지·평균·선형 추세·지수평활)을 과거 데이터로 시험해 <b>오차가 가장 낮은 모델</b>을 골라 써요.<br><br>
+            최근 30일 지역 평년 대비 저수율의 <b>변화 추세</b>로 앞으로 14일을 내다봐요. 여러 방법(전일 유지·평균·선형 추세·지수평활)을 과거 데이터로 시험해 <b>오차가 가장 낮은 모델</b>을 골라 써요.<br><br>
             현재 예측 오차는 <b id="methodConf">±1.9%p</b>(최근 14일 기준)예요. 예측은 참고용이며, <b>공식 가뭄 예·경보가 항상 우선</b>이에요.
           </div>
         </div>
@@ -662,7 +656,7 @@ body{
     <div class="sheet" id="consentSheet" role="dialog" aria-label="약관 동의">
       <div class="grab"></div>
       <h3>물시계를 시작하려면<br>동의가 필요해요</h3>
-      <p class="sub">위치는 가까운 저수지를 찾는 데만 사용해요</p>
+      <p class="sub">주소는 시군구와 대표 저수지를 정한 뒤 저장하지 않아요</p>
       <button class="agree-all" id="agreeAll">
         <span class="ck"><svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg></span>
         모두 동의합니다
@@ -670,7 +664,6 @@ body{
       <ul class="agree-list">
         <li><button data-req="1"><span class="ck"><svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg></span><span style="flex:1">위치기반 서비스 이용 동의</span><span class="tag req">필수</span></button></li>
         <li><button data-req="1"><span class="ck"><svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg></span><span style="flex:1">서비스 이용약관</span><span class="tag req">필수</span></button></li>
-        <li><button><span class="ck"><svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg></span><span style="flex:1">물 상황 알림 받기</span><span class="tag">선택</span></button></li>
       </ul>
       <button class="cta" id="consentOk" disabled>동의하고 시작하기</button>
     </div>
@@ -692,24 +685,24 @@ const STAGE = {
 };
 
 const SCEN = {
-  normal:{rate:84,avg:103,stage:'정상',trend:-0.12,reach:null,
-    reachTxt:'2주 안에 단계가 내려갈 신호가 없어요',
+  normal:{rate:84,avg:103,stage:'정상',trend:-0.12,rateTrend:-0.05,reach:null,
+    reachTxt:'현재 추세로는 30일 안에 다음 단계 가능성이 낮아요',
     headline:'물 사정이 넉넉해요',conf:'예측 오차(최근 14일) ±1.4%p',
-    coach:'평년보다 물이 넉넉해요. 지금처럼 관리하시면 충분해요. 단계가 바뀌면 바로 알려드릴게요.',
-    todo:[['현행 급수 일정 유지','평년 대비 103% 수준이에요'],['수로 상태 가볍게 점검','다음 영농기를 미리 대비해요'],['알림 켜두기','단계가 바뀌면 바로 알려드려요']],
+    coach:'평년보다 물이 넉넉해요. 지금처럼 관리하면서 수로 상태를 가볍게 살펴봐 주세요.',
+    todo:[['현행 급수 일정 유지','지역 평년 대비 103% 수준이에요'],['수로 상태 가볍게 점검','막히거나 새는 곳이 없는지 봐주세요'],['공식 전망 확인','농어촌공사의 최신 가뭄 전망이 우선이에요']],
     banner:false},
-  watch:{rate:57,avg:74,stage:'관심',trend:-0.55,reach:{days:18,stage:'주의'},
+  watch:{rate:57,avg:68,stage:'관심',trend:-0.45,rateTrend:-0.35,reach:{days:18,stage:'주의'},
     headline:'물이 평소보다 조금 부족해요',conf:'예측 오차(최근 14일) ±1.9%p',
-    coach:'지금 속도면 18일 뒤 ‘주의’로 내려가요. 급하진 않지만, 이번 주에 세 가지만 미리 챙겨두세요.',
+    coach:'지금 추세가 이어지면 18일 뒤 ‘주의’에 들어설 가능성이 있어요. 이번 주에 세 가지만 미리 챙겨두세요.',
     todo:[['논물 새는 곳 점검','물꼬·수로 누수만 막아도 손실이 크게 줄어요'],['공동 급수 일정 확인','이장님·수리계와 미리 맞춰두세요'],['아껴 쓰는 관개 시작','얕게 자주보다, 깊게 드물게가 좋아요']],
     banner:false},
-  severe:{rate:33,avg:46,stage:'경계',trend:-0.82,reach:{days:9,stage:'심각'},
+  severe:{rate:33,avg:46,stage:'경계',trend:-0.67,rateTrend:-0.52,reach:{days:9,stage:'심각'},
     headline:'물 부족이 빠르게 진행 중이에요',conf:'예측 오차(최근 14일) ±2.6%p',
-    coach:'상황이 빠르게 나빠지고 있어요. 9일 뒤 ‘심각’ 진입 가능성이 있어요. 이번 주 안에 아래 준비를 마쳐두세요.',
+    coach:'지금 추세가 이어지면 9일 뒤 ‘심각’에 들어설 가능성이 있어요. 이번 주 안에 아래 준비를 마쳐두세요.',
     todo:[['제한급수 대비','급수 일정 변경 안내를 꼭 확인하세요'],['대체수원 확인','관정·양수장 위치와 사용 가능 여부를 봐두세요'],['공식 안내 따르기','공사·지자체 안내가 우선이에요']],
     banner:false},
-  flood:{rate:96,avg:118,stage:'정상',trend:+0.85,reach:null,
-    reachTxt:'저수율이 만수위에 가까워요 · 위 참고 알림 확인',
+  flood:{rate:96,avg:118,stage:'정상',trend:+0.85,rateTrend:+0.42,reach:null,
+    reachTxt:'현재 추세로는 30일 안에 다음 가뭄 단계 가능성이 낮아요',
     headline:'비가 많아 물은 충분해요',conf:'예측 오차(최근 14일) ±1.6%p',
     coach:'비 덕분에 물 걱정은 없어요. 다만 만수위에 가까우니, 논 주변 배수로만 한 번 살펴봐 주세요.',
     todo:[['배수로 막힘 점검','낙엽·흙으로 막힌 곳을 미리 뚫어두세요'],['저지대 농기계 이동','침수 우려 지역은 미리 옮겨두세요'],['공식 안내 확인','방류·하류 안내는 재난 문자를 따르세요']],
@@ -717,12 +710,12 @@ const SCEN = {
 };
 
 const MOCKADDR = [
-  {road:'전남 나주시 빛가람로 20',jibun:'빛가람동 358',dong:'빛가람동',res:'나주호',dist:'4.2km',off:0},
-  {road:'전남 나주시 그린로 20',jibun:'빛가람동 358-1',dong:'빛가람동',res:'나주호',dist:'4.5km',off:0},
-  {road:'강원 강릉시 사임당로 9',jibun:'죽헌동 201',dong:'죽헌동',res:'오봉저수지',dist:'6.1km',off:4},
-  {road:'강원 강릉시 경강로 2111',jibun:'옥천동 27',dong:'옥천동',res:'오봉저수지',dist:'7.8km',off:4},
-  {road:'충남 예산군 벚꽃로 145',jibun:'예산읍 산성리 55',dong:'예산읍',res:'예당지',dist:'3.4km',off:-3},
-  {road:'충남 예산군 예당관광로 90',jibun:'응봉면 후사리 12',dong:'응봉면',res:'예당지',dist:'1.9km',off:-3}
+  {road:'전남 나주시 빛가람로 20',jibun:'빛가람동 358',dong:'빛가람동',res:'나주호',off:0},
+  {road:'전남 나주시 그린로 20',jibun:'빛가람동 358-1',dong:'빛가람동',res:'나주호',off:0},
+  {road:'강원 강릉시 사임당로 9',jibun:'죽헌동 201',dong:'죽헌동',res:'오봉저수지',off:4},
+  {road:'강원 강릉시 경강로 2111',jibun:'옥천동 27',dong:'옥천동',res:'오봉저수지',off:4},
+  {road:'충남 예산군 벚꽃로 145',jibun:'예산읍 산성리 55',dong:'예산읍',res:'예당지',off:-3},
+  {road:'충남 예산군 예당관광로 90',jibun:'응봉면 후사리 12',dong:'응봉면',res:'예당지',off:-3}
 ];
 
 /* ═══ 헬퍼 ═══ */
@@ -810,7 +803,7 @@ const regionArea = $('#regionArea');
 function renderRegions(){
   if(state.regions.length===0){
     regionArea.innerHTML = `
-      <div class="empty"><b>아직 등록한 지역이 없어요</b>주소를 등록하면 가까운 저수지를 찾아드려요</div>
+      <div class="empty"><b>아직 등록한 지역이 없어요</b>주소의 시군구에서 대표 저수지를 연결해드려요</div>
       <div class="list-pad">
         <button class="add-row" id="addBtn">＋ 지역 추가하기</button>
       </div>`;
@@ -820,7 +813,7 @@ function renderRegions(){
         <div class="region-row ${i===state.cur?'sel':''}">
           <button class="rmain" data-i="${i}">
             <span class="ricon"><svg viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7Zm0 9.5A2.5 2.5 0 1 1 12 6a2.5 2.5 0 0 1 0 5.5Z"/></svg></span>
-            <span class="rtxt"><b>${r.dong}</b><small>${r.road}</small></span>
+            <span class="rtxt"><b>${r.dong}</b><small>우리 지역 대표 저수지</small></span>
             <span class="rres">${r.res}</span>
           </button>
           <button class="rdel" data-i="${i}" aria-label="${r.dong} 삭제">
@@ -884,7 +877,7 @@ function renderAddrResults(q){
       const a = MOCKADDR[+b.dataset.i];
       state.pendingAddr = a;
       $('#confirmAddr').textContent = a.road;
-      $('#confirmRes').textContent = `${a.res} · ${a.dist}`;
+      $('#confirmRes').textContent = a.res;
       confirmBox.classList.add('on'); addBtnCta.disabled = false;
       confirmBox.scrollIntoView({behavior:reduce?'auto':'smooth',block:'nearest'});
     }));
@@ -906,7 +899,7 @@ addBtnCta.addEventListener('click',()=>{
   addBtnCta.classList.add('busy');
   addBtnCta.innerHTML = '<span class="spinner white"></span>';
   setTimeout(()=>{
-    state.regions.push(state.pendingAddr);
+    state.regions.push({dong:state.pendingAddr.dong,res:state.pendingAddr.res,off:state.pendingAddr.off});
     state.cur = state.regions.length-1;
     state.mainDirty = true;
     addBtnCta.classList.remove('busy');
@@ -940,7 +933,7 @@ function animateNum(el, to){
 }
 function renderMain(){
   const r = state.regions[state.cur];
-  els.regionLabel.textContent = r ? `${r.dong} · ${r.res}` : '지역을 설정해주세요';
+  els.regionLabel.textContent = r ? `${r.dong} · 대표 ${r.res}` : '지역을 설정해주세요';
   els.stamp.textContent = nowStamp();
   const s = curScen();
 
@@ -954,7 +947,7 @@ function renderMain(){
 
   if(s.reach){
     els.reachBig.innerHTML = `${s.reach.days}<span class="suf">일 뒤</span>`;
-    els.reachDesc.innerHTML = `<b style="color:${STAGE[s.reach.stage].fg}">‘${s.reach.stage}’</b> 단계에 들어설 것으로 보여요`;
+    els.reachDesc.innerHTML = `<b style="color:${STAGE[s.reach.stage].fg}">‘${s.reach.stage}’</b> 단계에 들어설 가능성이 있어요`;
   }else{
     els.reachBig.innerHTML = `안정`;
     els.reachDesc.textContent = s.reachTxt;
@@ -982,11 +975,11 @@ $('#logoBtn').addEventListener('click',()=>{
 function series(s){
   const past=[],fut=[];
   for(let i=0;i<30;i++){
-    const v = s.rate - s.trend*(29-i) + Math.sin(i*0.9)*0.9 + Math.cos(i*0.37)*0.5;
-    past.push(Math.max(2,Math.min(99,v)));
+    const v = s.avg - s.trend*(29-i) + Math.sin(i*0.9)*0.9 + Math.cos(i*0.37)*0.5;
+    past.push(Math.max(0,Math.min(150,v)));
   }
-  past[29]=s.rate;
-  for(let j=1;j<=14;j++) fut.push(Math.max(2,Math.min(99,s.rate+s.trend*j)));
+  past[29]=s.avg;
+  for(let j=1;j<=14;j++) fut.push(Math.max(0,Math.min(150,s.avg+s.trend*j)));
   return {past,fut};
 }
 function renderChart(s, mount, H){
@@ -994,28 +987,25 @@ function renderChart(s, mount, H){
   const W=640,L=34,R=12,T=14,B=26;
   let lo=Math.min(...all),hi=Math.max(...all);
   [70,60,50,40].forEach(t=>{ if(t>lo-8&&t<hi+8){lo=Math.min(lo,t);hi=Math.max(hi,t);} });
-  lo=Math.max(0,Math.floor(lo-5)); hi=Math.min(100,Math.ceil(hi+5));
+  lo=Math.max(0,Math.floor(lo-5)); hi=Math.min(150,Math.ceil(hi+5));
   const X=i=>L+(W-L-R)*(i/(past.length+fut.length-1));
   const Y=v=>T+(H-T-B)*(1-(v-lo)/(hi-lo));
   const pPast=past.map((v,i)=>`${i?'L':'M'}${X(i).toFixed(1)},${Y(v).toFixed(1)}`).join('');
   let pFut=`M${X(29).toFixed(1)},${Y(past[29]).toFixed(1)}`;
   fut.forEach((v,j)=>{ pFut+=`L${X(30+j).toFixed(1)},${Y(v).toFixed(1)}`; });
-  const up=fut.map((v,j)=>`${j?'L':'M'}${X(30+j).toFixed(1)},${Y(Math.min(99,v+0.6+j*0.28)).toFixed(1)}`).join('');
+  const up=fut.map((v,j)=>`${j?'L':'M'}${X(30+j).toFixed(1)},${Y(Math.min(150,v+0.6+j*0.28)).toFixed(1)}`).join('');
   const dn=fut.map((v,j)=>[X(30+j),Y(Math.max(1,v-0.6-j*0.28))]).reverse()
     .map(p=>`L${p[0].toFixed(1)},${p[1].toFixed(1)}`).join('');
   const TH=[['관심',70,'var(--watch-fg)'],['주의',60,'var(--care-fg)'],['경계',50,'var(--alert-fg)'],['심각',40,'var(--crit-fg)']]
     .filter(([,v])=>v>=lo&&v<=hi)
     .map(([n,v,c])=>`<line x1="${L}" x2="${W-R}" y1="${Y(v)}" y2="${Y(v)}" stroke="#E5E8EB" stroke-dasharray="3 5"/>
       <text x="${W-R}" y="${Y(v)-4}" text-anchor="end" font-size="9.5" font-weight="700" fill="${c}">${n}</text>`).join('');
-  const full=(s.rate>=90&&s.trend>0&&95>=lo&&95<=hi)
-    ? `<line x1="${L}" x2="${W-R}" y1="${Y(95)}" y2="${Y(95)}" stroke="#3182F6" stroke-dasharray="2 4"/>
-       <text x="${W-R}" y="${Y(95)-4}" text-anchor="end" font-size="9.5" font-weight="700" fill="#3182F6">만수위 부근</text>`:'';
   const tx=X(29);
   mount.innerHTML=
-  `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="저수율 흐름 그래프" style="width:100%;height:auto;display:block">
+  `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="지역 평년 대비 저수율 흐름 그래프" style="width:100%;height:auto;display:block">
     <text x="${L-6}" y="${Y(hi)+4}" text-anchor="end" font-size="9.5" fill="#B0B8C1">${hi}%</text>
     <text x="${L-6}" y="${Y(lo)+4}" text-anchor="end" font-size="9.5" fill="#B0B8C1">${lo}%</text>
-    ${TH}${full}
+    ${TH}
     <line x1="${tx}" x2="${tx}" y1="${T}" y2="${H-B}" stroke="#F2F4F6" stroke-width="1.6"/>
     <text x="${tx}" y="${H-9}" text-anchor="middle" font-size="10" font-weight="700" fill="#4E5968">오늘</text>
     <text x="${L}" y="${H-9}" font-size="10" fill="#B0B8C1">30일 전</text>
@@ -1023,14 +1013,14 @@ function renderChart(s, mount, H){
     <path d="${up} ${dn} Z" fill="#D6E8FF" opacity=".7"/>
     <path d="${pPast}" fill="none" stroke="#3182F6" stroke-width="2.8" stroke-linecap="round"/>
     <path d="${pFut}" fill="none" stroke="#1B64DA" stroke-width="2.3" stroke-dasharray="5 6" stroke-linecap="round"/>
-    <circle cx="${tx}" cy="${Y(s.rate)}" r="4.6" fill="#1B64DA" stroke="#fff" stroke-width="2"/>
+    <circle cx="${tx}" cy="${Y(s.avg)}" r="4.6" fill="#1B64DA" stroke="#fff" stroke-width="2"/>
   </svg>`;
 }
 
 /* ═══ 5 상세 ═══ */
 function renderDetail(){
   const r = state.regions[state.cur], s = curScen();
-  $('#detailTitle').textContent = (r? r.res : '저수지') + ' 저수율';
+  $('#detailTitle').textContent = (r? r.dong : '우리 지역') + ' 평년 대비 저수율';
   $('#methodConf').textContent = s.conf.replace('예측 오차(최근 14일) ','');
   renderChart(s, $('#chartBig'), 300);
 }

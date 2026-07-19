@@ -1,0 +1,41 @@
+# Environment and local secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+coverage/
+.pnpm-store/
+*.tsbuildinfo
+*.log
+.vercel/
+
+# Local public-data downloads (validated snapshots under data/ remain tracked)
+data/raw/
+
+# Supabase local state
+supabase/.branches/
+supabase/.temp/
+
+# Android / Gradle / signing
+android/.gradle/
+android/**/build/
+android/local.properties
+local.properties
+keystore.properties
+*.jks
+*.keystore
+*.aab
+*.apk
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+desktop.ini
