@@ -1,0 +1,22 @@
+{
+  "name": "@mulsigye/contracts",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "generate": "pnpm dlx openapi-typescript@7.13.0 openapi.yaml -o src/generated/openapi.ts",
+    "lint": "redocly lint --skip-rule=no-empty-servers --skip-rule=security-defined openapi.yaml",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "build": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@redocly/cli": "2.39.0",
+    "openapi-typescript": "7.13.0",
+    "typescript": "7.0.2",
+    "vitest": "4.1.10"
+  }
+}

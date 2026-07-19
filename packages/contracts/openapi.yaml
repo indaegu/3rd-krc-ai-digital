@@ -1,0 +1,79 @@
+openapi: 3.1.0
+info:
+  title: Mulsigye API
+  version: 1.0.0
+  description: 물시계 웹과 Android가 함께 소비하는 버전 고정 API 계약
+paths:
+  /api/v1/health:
+    get:
+      operationId: getHealth
+      summary: 공개 API 프로세스 상태 확인
+      responses:
+        "200":
+          description: API가 요청을 받을 수 있음
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+              examples:
+                ok:
+                  value:
+                    schemaVersion: "1"
+                    service: mulsigye-api
+                    status: ok
+                    asOf: "2026-07-19T00:00:00.000Z"
+                    sources: []
+                    stale: false
+        "503":
+          description: API 프로세스가 요청을 처리할 수 없음
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+components:
+  schemas:
+    HealthResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - schemaVersion
+        - service
+        - status
+        - asOf
+        - sources
+        - stale
+      properties:
+        schemaVersion:
+          type: string
+          const: "1"
+        service:
+          type: string
+          const: mulsigye-api
+        status:
+          type: string
+          const: ok
+        asOf:
+          type: string
+          format: date-time
+        sources:
+          type: array
+          items:
+            type: string
+        stale:
+          type: boolean
+    ApiError:
+      type: object
+      additionalProperties: false
+      required:
+        - code
+        - message
+        - retryable
+      properties:
+        code:
+          type: string
+          minLength: 1
+        message:
+          type: string
+          minLength: 1
+        retryable:
+          type: boolean
