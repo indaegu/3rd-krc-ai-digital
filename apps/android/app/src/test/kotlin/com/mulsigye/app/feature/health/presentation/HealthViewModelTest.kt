@@ -94,6 +94,8 @@ private class QueueHealthRepository(
 
     override suspend fun load(): HealthResult {
         callCount += 1
-        return results.removeFirst()
+        // removeFirst()는 compileSdk 36에서 API 35+의 List 멤버로 바인딩되어
+        // JDK 17 테스트 JVM에서 NoSuchMethodError가 난다. removeAt(0)을 쓴다.
+        return results.removeAt(0)
     }
 }
