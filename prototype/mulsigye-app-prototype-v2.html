@@ -1,0 +1,1057 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>물시계 · 앱 프로토타입 v2</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<style>
+/* ═══ 토큰 (Toss·카카오뱅크 계열) ═══ */
+:root{
+  --ink:#191F28; --ink2:#4E5968; --ink3:#8B95A1; --ink4:#B0B8C1;
+  --bg:#FFFFFF; --gray50:#F9FAFB; --gray100:#F2F4F6; --gray200:#E5E8EB;
+  --blue:#3182F6; --blue-deep:#1B64DA; --blue-tint:#E8F3FF; --blue-soft:#D6E8FF;
+  --ok-fg:#159570; --ok-bg:#E6F6F0;
+  --watch-fg:#9A6700; --watch-bg:#FFF3D6;
+  --care-fg:#D9510C; --care-bg:#FFEBDE;
+  --alert-fg:#E5372F; --alert-bg:#FDEBEA;
+  --crit-fg:#A11C1C; --crit-bg:#F8E2E2;
+  --r-lg:24px; --r-md:18px; --r-sm:12px;
+  --font:'Pretendard Variable',Pretendard,-apple-system,'Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+input{font-family:inherit}
+body{
+  font-family:var(--font);color:var(--ink);background:#EDEFF2;
+  line-height:1.5;-webkit-font-smoothing:antialiased;
+}
+:focus-visible{outline:3px solid var(--blue);outline-offset:2px;border-radius:8px}
+
+/* ═══ 작업대 레이아웃 ═══ */
+.workbench{
+  display:flex;gap:1.4rem;justify-content:center;align-items:flex-start;
+  padding:1.4rem 1rem 3rem;max-width:1100px;margin:0 auto;
+}
+@media (max-width:820px){.workbench{flex-direction:column;align-items:center}}
+
+/* 개발용 컨트롤 */
+.devbar{
+  width:230px;background:#fff;border-radius:16px;padding:1rem;flex:none;
+  box-shadow:0 2px 10px rgba(25,31,40,.06);position:sticky;top:1rem;
+}
+@media (max-width:820px){.devbar{position:static;width:100%;max-width:400px;order:2}}
+.devbar h1{font-size:.86rem;font-weight:800}
+.devbar p{font-size:.72rem;color:var(--ink3);margin:.25rem 0 .8rem}
+.devbar h2{font-size:.68rem;font-weight:700;color:var(--ink3);letter-spacing:.06em;margin:.9rem 0 .4rem}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:.35rem}
+.seg button{
+  font-size:.78rem;font-weight:700;color:var(--ink2);background:var(--gray100);
+  border-radius:10px;padding:.5rem .3rem;
+}
+.seg button[aria-pressed="true"]{background:var(--ink);color:#fff}
+.devbar .restart{
+  width:100%;margin-top:.9rem;font-size:.8rem;font-weight:700;color:var(--blue-deep);
+  background:var(--blue-tint);border-radius:10px;padding:.55rem;
+}
+.devbar .note{font-size:.68rem;color:var(--ink4);margin-top:.7rem;line-height:1.5}
+
+/* ═══ 디바이스 프레임 ═══ */
+.device{
+  width:390px;height:min(92vh,820px);background:var(--bg);border-radius:36px;
+  box-shadow:0 24px 60px rgba(25,31,40,.18),0 0 0 1px rgba(25,31,40,.05);
+  position:relative;overflow:hidden;flex:none;
+}
+@media (max-width:440px){.device{width:100%;border-radius:28px;height:88vh}}
+
+/* ═══ 화면 라우팅 ═══ */
+.screen{
+  position:absolute;inset:0;background:var(--bg);
+  display:flex;flex-direction:column;
+  opacity:0;transform:translateX(7%);pointer-events:none;
+  transition:opacity .3s ease,transform .34s cubic-bezier(.3,.8,.3,1);
+}
+.screen.on{opacity:1;transform:none;pointer-events:auto;z-index:2}
+.screen.exit{opacity:0;transform:translateX(-5%);z-index:1}
+@media (prefers-reduced-motion:reduce){
+  .screen,.sheet,.dim,.water{transition:none!important}
+  .wave,.logo-btn .drop svg,.sk::after{animation:none!important}
+}
+
+.scroll{flex:1;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+
+/* 앱 공통 헤더 */
+.apphead{
+  flex:none;display:flex;align-items:center;gap:.4rem;
+  padding:1.05rem 1.1rem .8rem;background:var(--bg);z-index:5;
+}
+.apphead .back{width:38px;height:38px;margin-left:-.55rem;display:flex;align-items:center;justify-content:center;border-radius:50%}
+.apphead .back:active{background:var(--gray100)}
+.apphead .title{font-size:1.02rem;font-weight:800;letter-spacing:-.01em}
+.chev{width:20px;height:20px;stroke:var(--ink2);stroke-width:2.2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.chev.sm{width:16px;height:16px;stroke:var(--ink4)}
+
+/* CTA */
+.cta-wrap{flex:none;padding:.8rem 1.1rem calc(1.1rem + env(safe-area-inset-bottom));background:var(--bg)}
+.cta{
+  width:100%;height:56px;border-radius:16px;background:var(--blue);color:#fff;
+  font-size:1.02rem;font-weight:700;letter-spacing:-.01em;
+  display:flex;align-items:center;justify-content:center;
+  transition:transform .1s,background .15s;
+}
+.cta:active{transform:scale(.985);background:var(--blue-deep)}
+.cta:disabled{background:var(--gray200);color:var(--ink4);cursor:default;transform:none}
+.cta.ghost{background:var(--gray100);color:var(--ink2)}
+.cta-sub{display:block;text-align:center;font-size:.78rem;color:var(--ink3);margin-top:.7rem}
+
+/* ═══ 1. 스플래시 ═══ */
+#s-splash{align-items:center;justify-content:center;gap:1rem;transform:none}
+#s-splash .mark{width:84px;height:84px;border-radius:26px;background:var(--blue-tint);display:flex;align-items:center;justify-content:center;animation:pop .7s cubic-bezier(.2,.9,.3,1.3) both}
+#s-splash .mark svg{width:44px;height:44px;fill:var(--blue)}
+#s-splash .word{font-size:1.7rem;font-weight:900;letter-spacing:-.03em;animation:rise .6s .15s ease both}
+#s-splash .cap{font-size:.85rem;color:var(--ink3);animation:rise .6s .3s ease both}
+@keyframes pop{from{transform:scale(.6);opacity:0}to{transform:scale(1);opacity:1}}
+@keyframes rise{from{transform:translateY(8px);opacity:0}to{transform:none;opacity:1}}
+
+/* ═══ 2. 온보딩 ═══ */
+.carousel{flex:1;display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}
+.carousel::-webkit-scrollbar{display:none}
+.slide{
+  flex:0 0 100%;scroll-snap-align:center;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:1.6rem;padding:1rem 2rem 0;text-align:center;
+}
+.slide .art{width:120px;height:120px;border-radius:34px;display:flex;align-items:center;justify-content:center}
+.slide .art svg{width:60px;height:60px}
+.slide h2{font-size:1.42rem;font-weight:800;letter-spacing:-.02em;line-height:1.35}
+.slide p{font-size:.92rem;color:var(--ink2);margin-top:-.7rem}
+.dots{flex:none;display:flex;gap:.45rem;justify-content:center;padding:1.1rem 0 .3rem}
+.dots i{width:7px;height:7px;border-radius:50%;background:var(--gray200);transition:.25s}
+.dots i.on{background:var(--ink);width:20px;border-radius:99px}
+
+/* ═══ 시트(동의) ═══ */
+.dim{position:absolute;inset:0;background:rgba(25,31,40,.45);opacity:0;pointer-events:none;transition:.3s;z-index:20}
+.dim.on{opacity:1;pointer-events:auto}
+.sheet{
+  position:absolute;left:0;right:0;bottom:0;background:#fff;border-radius:24px 24px 0 0;
+  padding:.6rem 1.3rem 1.2rem;transform:translateY(102%);transition:transform .38s cubic-bezier(.3,.8,.3,1);z-index:21;
+}
+.sheet.on{transform:none}
+.sheet .grab{width:40px;height:4px;border-radius:99px;background:var(--gray200);margin:.3rem auto 1rem}
+.sheet h3{font-size:1.15rem;font-weight:800;letter-spacing:-.01em;margin-bottom:.2rem}
+.sheet .sub{font-size:.82rem;color:var(--ink3);margin-bottom:1rem}
+.agree-all{
+  display:flex;align-items:center;gap:.7rem;width:100%;text-align:left;
+  background:var(--gray50);border-radius:14px;padding:.85rem .9rem;font-size:.98rem;font-weight:800;
+}
+.agree-list{list-style:none;padding:.4rem .35rem 0}
+.agree-list button{
+  display:flex;align-items:center;gap:.7rem;width:100%;text-align:left;
+  padding:.6rem .4rem;font-size:.88rem;font-weight:600;color:var(--ink2);
+}
+.agree-list .tag{font-size:.68rem;font-weight:700;color:var(--ink4)}
+.agree-list .tag.req{color:var(--blue)}
+.ck{width:22px;height:22px;border-radius:50%;flex:none;border:1.6px solid var(--gray200);display:flex;align-items:center;justify-content:center;transition:.15s}
+.ck svg{width:12px;height:12px;stroke:#fff;stroke-width:3;fill:none;stroke-linecap:round;stroke-linejoin:round;opacity:0}
+.on>.ck,.ck.on{background:var(--blue);border-color:var(--blue)}
+.on>.ck svg,.ck.on svg{opacity:1}
+.sheet .cta{margin-top:1rem}
+
+/* ═══ 3. 지역 설정 ═══ */
+.pagehead{padding:1.4rem 1.3rem .9rem}
+.pagehead h2{font-size:1.5rem;font-weight:800;letter-spacing:-.02em;line-height:1.3}
+.pagehead p{font-size:.88rem;color:var(--ink3);margin-top:.35rem}
+.list-pad{padding:0 1.1rem 1rem;display:flex;flex-direction:column;gap:.7rem}
+.empty{
+  margin:2.2rem 1.1rem;padding:2.4rem 1rem;background:var(--gray50);border-radius:20px;
+  text-align:center;color:var(--ink3);font-size:.9rem;line-height:1.6;
+}
+.empty b{display:block;color:var(--ink2);font-size:1rem;margin-bottom:.2rem}
+.region-row{
+  display:flex;align-items:center;gap:.2rem;
+  background:var(--gray50);border-radius:18px;padding:.55rem .55rem .55rem .5rem;transition:.15s;
+  border:1.6px solid transparent;
+}
+.region-row.sel{border-color:var(--blue);background:var(--blue-tint)}
+.rmain{
+  flex:1;min-width:0;display:flex;align-items:center;gap:.8rem;text-align:left;
+  padding:.45rem .3rem .45rem .45rem;border-radius:14px;transition:transform .1s;
+}
+.rmain:active{transform:scale(.99)}
+.rdel{
+  flex:none;width:32px;height:32px;border-radius:50%;margin-right:.15rem;
+  display:flex;align-items:center;justify-content:center;color:var(--ink4);
+}
+.rdel:active{background:var(--gray200);color:var(--ink2)}
+.rdel svg{width:14px;height:14px;stroke:currentColor;stroke-width:2.4;fill:none;stroke-linecap:round}
+.ricon{width:42px;height:42px;border-radius:14px;background:var(--blue-tint);color:var(--blue);flex:none;display:flex;align-items:center;justify-content:center}
+.region-row.sel .ricon{background:#fff}
+.ricon svg{width:22px;height:22px;fill:currentColor}
+.rtxt{flex:1;min-width:0}
+.rtxt b{display:block;font-size:.98rem;font-weight:800}
+.rtxt small{display:block;font-size:.76rem;color:var(--ink3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rres{font-size:.7rem;font-weight:700;color:var(--blue-deep);background:var(--blue-soft);border-radius:99px;padding:.2rem .55rem;flex:none}
+.add-row{
+  display:flex;align-items:center;justify-content:center;gap:.4rem;width:100%;
+  border:1.6px dashed var(--gray200);border-radius:18px;padding:1rem;
+  font-size:.92rem;font-weight:700;color:var(--ink2);
+}
+.add-row:active{background:var(--gray50)}
+
+/* ═══ 3b. 주소 검색 ═══ */
+.searchbox{
+  margin:0 1.1rem;display:flex;align-items:center;gap:.6rem;
+  background:var(--gray100);border-radius:14px;padding:.85rem .95rem;
+}
+.searchbox svg{width:18px;height:18px;stroke:var(--ink3);stroke-width:2.2;fill:none;stroke-linecap:round}
+.searchbox input{flex:1;border:none;background:none;font-size:.95rem;font-weight:600;color:var(--ink)}
+.searchbox input::placeholder{color:var(--ink4);font-weight:500}
+.api-cap{font-size:.72rem;color:var(--ink4);margin:.55rem 1.3rem 0}
+.chips{display:flex;gap:.4rem;flex-wrap:wrap;padding:.8rem 1.1rem .2rem}
+.chips button{font-size:.76rem;font-weight:600;color:var(--ink2);background:var(--gray100);border-radius:99px;padding:.35rem .7rem}
+.addr-list{list-style:none;padding:.5rem .4rem}
+.addr-list button{
+  display:flex;align-items:center;gap:.8rem;width:100%;text-align:left;padding:.85rem .8rem;border-radius:14px;
+}
+.addr-list button:active{background:var(--gray50)}
+.addr-list b{display:block;font-size:.92rem;font-weight:700}
+.addr-list small{display:block;font-size:.75rem;color:var(--ink3)}
+.addr-list .body{flex:1}
+.confirm{
+  margin:0 1.1rem;background:var(--gray50);border-radius:20px;padding:1.1rem;display:none;
+}
+.confirm.on{display:block;animation:rise .3s ease both}
+.confirm .lbl{font-size:.74rem;font-weight:700;color:var(--ink3);margin-bottom:.35rem}
+.confirm .addr{font-size:1rem;font-weight:800;line-height:1.4}
+.confirm .res{
+  display:flex;align-items:center;gap:.5rem;margin-top:.7rem;background:#fff;
+  border-radius:12px;padding:.6rem .7rem;font-size:.82rem;font-weight:600;color:var(--ink2);
+}
+.confirm .res b{color:var(--blue-deep)}
+.confirm .res svg{width:16px;height:16px;fill:var(--blue)}
+
+/* ═══ 4. 메인 ═══ */
+.mainhead{
+  flex:none;display:flex;align-items:center;padding:1rem 1.1rem .7rem;gap:.5rem;background:var(--bg);
+}
+.logo-btn{display:flex;align-items:center;gap:.4rem;padding:.2rem .3rem;border-radius:10px}
+.logo-btn:active{background:var(--gray50)}
+.logo-btn .drop{width:26px;height:26px;border-radius:9px;background:var(--blue-tint);display:flex;align-items:center;justify-content:center;overflow:hidden}
+.logo-btn .drop svg{width:15px;height:15px;fill:var(--blue)}
+.logo-btn.raining .drop svg{animation:rainfall .62s linear infinite}
+@keyframes rainfall{
+  0%{transform:translateY(-24px)}
+  100%{transform:translateY(24px)}
+}
+.logo-btn b{font-size:1.08rem;font-weight:900;letter-spacing:-.02em}
+.region-btn{
+  margin-left:auto;display:flex;align-items:center;gap:.15rem;
+  font-size:.85rem;font-weight:700;color:var(--ink2);
+  background:var(--gray100);border-radius:99px;padding:.45rem .6rem .45rem .85rem;
+}
+.region-btn:active{background:var(--gray200)}
+.stamp{font-size:.72rem;color:var(--ink4);padding:0 1.3rem .2rem}
+
+.feed{padding:.4rem 1.1rem 2rem;display:flex;flex-direction:column;gap:24px} /* 모듈 간격 24px */
+.card{background:var(--gray50);border-radius:var(--r-lg);padding:1.25rem;position:relative}
+.card .eyebrow{font-size:.78rem;font-weight:700;color:var(--ink3);margin-bottom:.7rem;letter-spacing:-.01em}
+.card .morebtn{
+  position:absolute;top:1rem;right:1rem;display:flex;align-items:center;gap:.05rem;
+  font-size:.76rem;font-weight:600;color:var(--ink3);padding:.3rem .4rem;border-radius:8px;
+}
+.card .morebtn:active{background:var(--gray100)}
+
+/* 배너(장마) */
+.banner{display:none;background:var(--blue-tint);border-radius:18px;padding:.85rem 1rem;font-size:.85rem;line-height:1.55;color:#0E4DA4}
+.banner.show{display:block}
+.banner b{font-weight:800}
+
+/* 오늘 우리 저수지 */
+.hero{display:flex;gap:1rem;align-items:center}
+.hero-info{flex:1;display:flex;flex-direction:column;gap:.35rem}
+.rate-line{display:flex;align-items:baseline;gap:.2rem}
+.rate{font-size:3.1rem;font-weight:900;letter-spacing:-.04em;line-height:1;font-variant-numeric:tabular-nums}
+.rate-unit{font-size:1.2rem;font-weight:800;color:var(--ink3)}
+.avg{font-size:.86rem;color:var(--ink2)}
+.avg b{font-weight:800}
+.stagechip{display:inline-flex;align-self:flex-start;border-radius:8px;padding:.28rem .6rem;font-size:.8rem;font-weight:800;margin-top:.2rem}
+.headline{font-size:.9rem;font-weight:600;color:var(--ink2);margin-top:.15rem}
+/* 게이지 + 바깥 눈금 */
+.gauge-zone{flex:none;display:flex;align-items:center;gap:.45rem}
+.gauge{
+  width:74px;height:196px;border-radius:16px;background:#fff;
+  border:1.6px solid var(--gray200);position:relative;overflow:hidden;
+}
+.water{
+  position:absolute;left:0;right:0;bottom:0;height:0%;
+  background:linear-gradient(180deg,#98CBFF,#7EB6FA);
+  transition:height 1.6s cubic-bezier(.25,.8,.3,1);
+}
+.water .wave{
+  position:absolute;top:-101px;left:50%;
+  width:220px;height:220px;border-radius:41%;
+  background:#98CBFF;
+  animation:slosh 7s linear infinite;
+}
+.water .wave.w2{
+  top:-104px;border-radius:37% 43% 40% 44%;
+  background:#BFE0FF;opacity:.75;
+  animation:slosh 11s linear infinite reverse;
+}
+@keyframes slosh{
+  from{transform:translateX(-50%) rotate(0deg)}
+  to{transform:translateX(-50%) rotate(360deg)}
+}
+.ticks{position:relative;height:196px;width:34px}
+.ticks span{
+  position:absolute;right:0;transform:translateY(50%);display:flex;align-items:center;gap:.25rem;
+  font-size:.66rem;font-weight:700;color:var(--ink3);white-space:nowrap;
+}
+.ticks span::before{content:"";width:8px;height:2px;border-radius:2px;background:var(--gray200)}
+
+/* 이 추세라면 — 단색 카드 */
+.reach .big{font-size:2.7rem;font-weight:900;letter-spacing:-.04em;line-height:1.1;color:var(--blue-deep);font-variant-numeric:tabular-nums}
+.reach .big .suf{font-size:1.15rem;font-weight:800;color:var(--ink2);margin-left:.2rem;letter-spacing:-.02em}
+.reach .desc{font-size:.95rem;font-weight:600;color:var(--ink2);margin-top:.3rem}
+.reach .desc b{font-weight:800} /* 밑줄 제거, 색만 */
+.conf{display:inline-block;margin-top:.75rem;font-size:.73rem;font-weight:600;color:var(--ink3);background:#fff;border-radius:99px;padding:.28rem .65rem}
+
+/* 그래프 */
+.chart-legend{display:flex;gap:.9rem;flex-wrap:wrap;font-size:.7rem;color:var(--ink3);margin-top:.6rem}
+.chart-legend i{display:inline-block;width:15px;height:0;border-top:3px solid var(--blue);margin-right:.28rem;vertical-align:middle;border-radius:2px}
+.chart-legend .dash{border-top-style:dashed;border-top-color:var(--blue-deep)}
+.chart-legend .band{width:15px;height:8px;background:var(--blue-soft);border:none;border-radius:2px}
+
+/* 코치 */
+.coach .who{display:flex;align-items:center;gap:.6rem;margin-bottom:.7rem}
+.coach .face{width:38px;height:38px;border-radius:50%;background:var(--blue-tint);flex:none;display:flex;align-items:center;justify-content:center}
+.coach .face svg{width:19px;height:19px;fill:var(--blue)}
+.coach .who b{font-size:.92rem;font-weight:800}
+.coach .who small{display:block;font-size:.72rem;color:var(--ink3);font-weight:500}
+.bubble{background:#fff;border-radius:6px 16px 16px 16px;padding:.85rem .95rem;font-size:.9rem;line-height:1.6;color:var(--ink2)}
+.todo{list-style:none;margin-top:.7rem;display:flex;flex-direction:column;gap:.5rem}
+.todo li{display:flex;gap:.65rem;align-items:flex-start;background:#fff;border-radius:14px;padding:.75rem .8rem}
+.todo .n{flex:none;width:1.45rem;height:1.45rem;border-radius:50%;background:var(--blue-tint);color:var(--blue-deep);font-size:.74rem;font-weight:800;display:flex;align-items:center;justify-content:center;margin-top:.05rem}
+.todo b{display:block;font-size:.88rem;font-weight:700}
+.todo small{display:block;font-size:.76rem;color:var(--ink3);font-weight:500;margin-top:.1rem}
+.ask{width:100%;margin-top:.8rem;padding:.75rem;border-radius:14px;background:var(--gray100);color:var(--ink3);font-size:.85rem;font-weight:700}
+
+/* 출처 */
+.src-card{font-size:.75rem;color:var(--ink3);line-height:1.65}
+.src-card b{color:var(--ink2)}
+.src-chips{display:flex;flex-wrap:wrap;gap:.35rem;margin-top:.5rem}
+.src-chips span{background:#fff;border-radius:99px;padding:.2rem .6rem;font-size:.68rem;font-weight:600;color:var(--ink2)}
+
+/* ═══ 5. 상세 ═══ */
+.sec{padding:0 1.3rem 1.6rem}
+.sec h3{font-size:1.05rem;font-weight:800;letter-spacing:-.01em;margin-bottom:.7rem}
+.stage-guide{list-style:none;display:flex;flex-direction:column;gap:.5rem}
+.stage-guide li{display:flex;align-items:center;gap:.7rem;background:var(--gray50);border-radius:14px;padding:.75rem .85rem}
+.stage-guide .chip{flex:none;width:56px;text-align:center;border-radius:8px;padding:.3rem 0;font-size:.78rem;font-weight:800}
+.stage-guide .body{flex:1}
+.stage-guide b{display:block;font-size:.85rem;font-weight:700}
+.stage-guide small{display:block;font-size:.74rem;color:var(--ink3)}
+.method{background:var(--gray50);border-radius:18px;padding:1rem 1.05rem;font-size:.85rem;color:var(--ink2);line-height:1.65}
+.method b{color:var(--ink);font-weight:800}
+
+/* 로딩 스피너 */
+.spinner{width:24px;height:24px;border-radius:50%;border:3px solid var(--blue-soft);border-top-color:var(--blue);animation:spin .7s linear infinite}
+.spinner.sm{width:15px;height:15px;border-width:2.5px}
+.spinner.white{width:22px;height:22px;border-color:rgba(255,255,255,.35);border-top-color:#fff}
+@keyframes spin{to{transform:rotate(360deg)}}
+/* 스켈레톤 로딩 */
+.sk{position:relative;overflow:hidden;background:#E7EBEF;border-radius:8px}
+.sk::after{
+  content:"";position:absolute;inset:0;transform:translateX(-100%);
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.7),transparent);
+  animation:shimmer 1.3s ease infinite;
+}
+@keyframes shimmer{to{transform:translateX(100%)}}
+.sk-feed{display:none}
+.sk-feed.on{display:flex}
+.feed.hide{display:none}
+.sk-row{display:flex;gap:1rem;align-items:center}
+.addr-loading{display:flex;justify-content:center;padding:1.8rem 0}
+.stamp .spinner.sm{display:inline-block;vertical-align:-3px;margin-right:6px}
+
+/* 토스트 */
+.toast{
+  position:absolute;left:50%;bottom:96px;transform:translate(-50%,16px);z-index:40;
+  background:rgba(25,31,40,.92);color:#fff;font-size:.84rem;font-weight:600;
+  border-radius:99px;padding:.6rem 1.1rem;opacity:0;pointer-events:none;transition:.3s;white-space:nowrap;
+}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+</style>
+</head>
+<body>
+
+<div class="workbench">
+
+  <!-- 개발용 컨트롤 (앱 화면 아님) -->
+  <aside class="devbar">
+    <h1>프로토타입 컨트롤</h1>
+    <p>APP(WebView) 기준 · 화면 속 수치는 예시</p>
+    <h2>물 상황 시나리오</h2>
+    <div class="seg" id="seg">
+      <button data-scen="normal" aria-pressed="false">정상</button>
+      <button data-scen="watch" aria-pressed="true">가뭄 진행</button>
+      <button data-scen="severe" aria-pressed="false">심각</button>
+      <button data-scen="flood" aria-pressed="false">장마</button>
+    </div>
+    <button class="restart" id="restart">↺ 처음부터 다시 보기</button>
+    <p class="note">지역·동의 상태는 데모용 메모리에 저장됩니다. 실서비스는 로컬스토리지(WebView) 사용 예정.</p>
+  </aside>
+
+  <!-- 디바이스 -->
+  <div class="device" id="device">
+
+    <!-- 1. 스플래시 -->
+    <section class="screen on" id="s-splash">
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem">
+        <div class="mark"><svg viewBox="0 0 24 24"><path d="M12 2C12 2 5 10.2 5 15a7 7 0 0 0 14 0C19 10.2 12 2 12 2Z"/></svg></div>
+        <div class="word">물시계</div>
+        <div class="cap">우리 동네 물 사정, 며칠 앞서</div>
+      </div>
+    </section>
+
+    <!-- 2. 온보딩 -->
+    <section class="screen" id="s-onboard">
+      <div class="carousel" id="carousel">
+        <div class="slide">
+          <div class="art" style="background:var(--blue-tint)">
+            <svg viewBox="0 0 24 24" fill="var(--blue)"><path d="M12 2C12 2 5 10.2 5 15a7 7 0 0 0 14 0C19 10.2 12 2 12 2Z"/></svg>
+          </div>
+          <h2>우리 동네 물 사정을<br>며칠 앞서 알려드려요</h2>
+          <p>저수지 데이터로 보는 물관리 코치, 물시계</p>
+        </div>
+        <div class="slide">
+          <div class="art" style="background:#EAF7F1">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#159570" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M8 2v4M16 2v4M3 9h18"/><path d="M9 15.5l2 2 4-4"/></svg>
+          </div>
+          <h2>지금 몇 %가 아니라<br>‘며칠 뒤’를 알려드려요</h2>
+          <p>이 추세라면 언제 다음 단계인지 미리 계산해요</p>
+        </div>
+        <div class="slide">
+          <div class="art" style="background:#FFF3D6">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#9A6700" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h10M4 12h10M4 18h10"/><path d="M17 5.5l1.5 1.5L21 4.5M17 11.5l1.5 1.5L21 10.5M17 17.5l1.5 1.5L21 16.5"/></svg>
+          </div>
+          <h2>오늘 해야 할 물관리,<br>딱 3가지로 정리해드려요</h2>
+          <p>어려운 그래프 대신, 지금 할 일부터</p>
+        </div>
+      </div>
+      <div class="dots" id="dots"><i class="on"></i><i></i><i></i></div>
+      <div class="cta-wrap">
+        <button class="cta" id="goRegionSetup">내 지역 설정하기</button>
+        <span class="cta-sub">가입 없이 바로 시작해요</span>
+      </div>
+    </section>
+
+    <!-- 3. 지역 설정 -->
+    <section class="screen" id="s-region">
+      <header class="apphead">
+        <button class="back" id="regionBack" aria-label="뒤로">
+          <svg class="chev" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>
+        </button>
+        <span class="title">지역 설정</span>
+      </header>
+      <div class="scroll">
+        <div class="pagehead">
+          <h2>어느 지역의 물 사정이<br>궁금하세요?</h2>
+          <p>주소를 등록하면 가장 가까운 저수지를 연결해드려요</p>
+        </div>
+        <div id="regionArea"></div>
+      </div>
+      <div class="cta-wrap" id="regionCtaWrap" style="display:none">
+        <button class="cta" id="startMain">물시계 시작하기</button>
+      </div>
+    </section>
+
+    <!-- 3b. 주소 검색 -->
+    <section class="screen" id="s-address">
+      <header class="apphead">
+        <button class="back" data-go="s-region" data-back="1" aria-label="뒤로">
+          <svg class="chev" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>
+        </button>
+        <span class="title">지역 추가</span>
+      </header>
+      <div class="scroll">
+        <div style="height:.4rem"></div>
+        <div class="searchbox">
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
+          <input id="addrInput" type="text" placeholder="도로명, 건물명으로 검색" autocomplete="off">
+        </div>
+        <p class="api-cap">도로명주소 검색 API 연동 예정 · 아래는 예시 결과예요</p>
+        <div class="chips">
+          <button data-q="빛가람로">나주 빛가람로</button>
+          <button data-q="사임당로">강릉 사임당로</button>
+          <button data-q="벚꽃로">예산 벚꽃로</button>
+        </div>
+        <ul class="addr-list" id="addrList"></ul>
+        <div class="confirm" id="confirmBox">
+          <p class="lbl">이 주소로 등록할까요?</p>
+          <p class="addr" id="confirmAddr"></p>
+          <div class="res">
+            <svg viewBox="0 0 24 24"><path d="M12 2C12 2 5 10.2 5 15a7 7 0 0 0 14 0C19 10.2 12 2 12 2Z"/></svg>
+            <span>가장 가까운 저수지 · <b id="confirmRes"></b></span>
+          </div>
+        </div>
+        <div style="height:1rem"></div>
+      </div>
+      <div class="cta-wrap">
+        <button class="cta" id="addRegionBtn" disabled>등록하기</button>
+      </div>
+    </section>
+
+    <!-- 4. 메인 -->
+    <section class="screen" id="s-main">
+      <header class="mainhead">
+        <button class="logo-btn" id="logoBtn" aria-label="새로고침">
+          <span class="drop"><svg viewBox="0 0 24 24"><path d="M12 2C12 2 5 10.2 5 15a7 7 0 0 0 14 0C19 10.2 12 2 12 2Z"/></svg></span>
+          <b>물시계</b>
+        </button>
+        <button class="region-btn" id="regionBtn">
+          <span id="regionLabel">빛가람동 · 나주호</span>
+          <svg class="chev sm" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg>
+        </button>
+      </header>
+      <p class="stamp" id="stamp">오늘 오후 2:43 기준</p>
+
+      <div class="scroll">
+        <div class="feed sk-feed" id="skFeed" aria-hidden="true">
+          <section class="card">
+            <div class="sk" style="width:96px;height:14px;margin-bottom:14px"></div>
+            <div class="sk-row">
+              <div style="flex:1;display:flex;flex-direction:column;gap:10px">
+                <div class="sk" style="width:120px;height:44px"></div>
+                <div class="sk" style="width:90px;height:14px"></div>
+                <div class="sk" style="width:64px;height:24px"></div>
+                <div class="sk" style="width:150px;height:14px"></div>
+              </div>
+              <div class="sk" style="width:74px;height:196px;border-radius:16px"></div>
+            </div>
+          </section>
+          <section class="card">
+            <div class="sk" style="width:70px;height:14px;margin-bottom:14px"></div>
+            <div class="sk" style="width:150px;height:40px;margin-bottom:10px"></div>
+            <div class="sk" style="width:200px;height:14px"></div>
+          </section>
+          <section class="card">
+            <div class="sk" style="width:180px;height:14px;margin-bottom:14px"></div>
+            <div class="sk" style="width:100%;height:180px;border-radius:12px"></div>
+          </section>
+          <section class="card">
+            <div class="sk-row" style="margin-bottom:12px;gap:.6rem">
+              <div class="sk" style="width:38px;height:38px;border-radius:50%"></div>
+              <div class="sk" style="width:110px;height:14px"></div>
+            </div>
+            <div class="sk" style="width:100%;height:64px;border-radius:14px;margin-bottom:10px"></div>
+            <div class="sk" style="width:100%;height:48px;border-radius:14px;margin-bottom:8px"></div>
+            <div class="sk" style="width:100%;height:48px;border-radius:14px"></div>
+          </section>
+        </div>
+        <div class="feed" id="realFeed">
+
+          <div class="banner" id="banner">
+            🌧 <b>참고</b> · 최근 비로 저수율이 만수위에 가까워요. 방류·하류 안내는 <b>공식 재난 문자</b>를 확인하세요.
+          </div>
+
+          <!-- 오늘 우리 저수지 -->
+          <section class="card">
+            <p class="eyebrow">오늘 우리 저수지</p>
+            <div class="hero">
+              <div class="hero-info">
+                <div class="rate-line"><span class="rate" id="rate">57</span><span class="rate-unit">%</span></div>
+                <p class="avg">평년의 <b id="avg">74%</b> 수준</p>
+                <span class="stagechip" id="stage">관심</span>
+                <p class="headline" id="headline">물이 평소보다 조금 부족해요</p>
+              </div>
+              <div class="gauge-zone" aria-hidden="true">
+                <div class="gauge"><div class="water" id="water"><span class="wave"></span><span class="wave w2"></span></div></div>
+                <div class="ticks">
+                  <span style="bottom:70%">관심</span>
+                  <span style="bottom:60%">주의</span>
+                  <span style="bottom:50%">경계</span>
+                  <span style="bottom:40%">심각</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- 이 추세라면 -->
+          <section class="card reach">
+            <p class="eyebrow">이 추세라면</p>
+            <p class="big" id="reachBig">18<span class="suf">일 뒤</span></p>
+            <p class="desc" id="reachDesc"></p>
+            <span class="conf" id="conf">예측 오차(최근 14일) ±1.9%p</span>
+          </section>
+
+          <!-- 저수율 흐름 -->
+          <section class="card">
+            <p class="eyebrow">저수율 흐름 · 지난 30일과 앞으로 14일</p>
+            <button class="morebtn" data-go="s-detail">자세히 <svg class="chev sm" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>
+            <div id="chart"></div>
+            <div class="chart-legend">
+              <span><i></i>실측</span><span><i class="dash"></i>예측</span><span><i class="band"></i>불확실 구간</span>
+            </div>
+          </section>
+
+          <!-- 물시계 코치 -->
+          <section class="card coach">
+            <div class="who">
+              <span class="face"><svg viewBox="0 0 24 24"><path d="M12 2C12 2 5 10.2 5 15a7 7 0 0 0 14 0C19 10.2 12 2 12 2Z"/></svg></span>
+              <span><b>물시계 코치</b><small>우리 지역 물 사정을 쉬운 말로</small></span>
+            </div>
+            <p class="bubble" id="coachMsg"></p>
+            <ul class="todo" id="todo"></ul>
+            <button class="ask">코치에게 물어보기 · 준비 중</button>
+          </section>
+
+          <!-- 출처 -->
+          <section class="card src-card">
+            <b>이 화면의 근거</b> — 가뭄 단계는 농어촌공사 공인 기준(평년 대비 70·60·50·40%)을 그대로 써요. ‘며칠 뒤’ 예측은 참고용이며, 공식 가뭄 예·경보가 항상 우선이에요.
+            <div class="src-chips">
+              <span>저수지 수위정보 API</span><span>전국 저수지 일별 저수율</span><span>논가뭄지도</span><span>가뭄예경보</span>
+            </div>
+          </section>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. 상세: 저수율 흐름 -->
+    <section class="screen" id="s-detail">
+      <header class="apphead">
+        <button class="back" data-go="s-main" data-back="1" aria-label="뒤로">
+          <svg class="chev" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>
+        </button>
+        <span class="title">저수율 흐름</span>
+      </header>
+      <div class="scroll">
+        <div class="pagehead" style="padding-bottom:.4rem">
+          <h2 id="detailTitle">나주호 저수율</h2>
+          <p id="detailSub">지난 30일 실측과 앞으로 14일 예측이에요</p>
+        </div>
+        <div class="sec"><div id="chartBig"></div>
+          <div class="chart-legend" style="padding:0 .2rem">
+            <span><i></i>실측</span><span><i class="dash"></i>예측</span><span><i class="band"></i>불확실 구간</span>
+          </div>
+        </div>
+        <div class="sec">
+          <h3>가뭄 단계 기준</h3>
+          <ul class="stage-guide">
+            <li><span class="chip" style="background:var(--ok-bg);color:var(--ok-fg)">정상</span><span class="body"><b>평년 대비 70% 초과</b><small>평소처럼 관리하면 돼요</small></span></li>
+            <li><span class="chip" style="background:var(--watch-bg);color:var(--watch-fg)">관심</span><span class="body"><b>평년 대비 70% 이하</b><small>물 사용을 조금씩 아껴요</small></span></li>
+            <li><span class="chip" style="background:var(--care-bg);color:var(--care-fg)">주의</span><span class="body"><b>평년 대비 60% 이하</b><small>공동 급수 일정을 확인해요</small></span></li>
+            <li><span class="chip" style="background:var(--alert-bg);color:var(--alert-fg)">경계</span><span class="body"><b>평년 대비 50% 이하</b><small>제한급수·대체수원을 준비해요</small></span></li>
+            <li><span class="chip" style="background:var(--crit-bg);color:var(--crit-fg)">심각</span><span class="body"><b>평년 대비 40% 이하</b><small>관계기관 안내에 따라요</small></span></li>
+          </ul>
+        </div>
+        <div class="sec">
+          <h3>예측은 이렇게 계산해요</h3>
+          <div class="method">
+            최근 30일 저수율의 <b>변화 추세</b>로 앞으로 14일을 내다봐요. 여러 방법(전일 유지·평균·선형 추세·지수평활)을 과거 데이터로 시험해 <b>오차가 가장 낮은 모델</b>을 골라 써요.<br><br>
+            현재 예측 오차는 <b id="methodConf">±1.9%p</b>(최근 14일 기준)예요. 예측은 참고용이며, <b>공식 가뭄 예·경보가 항상 우선</b>이에요.
+          </div>
+        </div>
+        <div style="height:1.5rem"></div>
+      </div>
+    </section>
+
+    <!-- 동의 시트 -->
+    <div class="dim" id="dim"></div>
+    <div class="sheet" id="consentSheet" role="dialog" aria-label="약관 동의">
+      <div class="grab"></div>
+      <h3>물시계를 시작하려면<br>동의가 필요해요</h3>
+      <p class="sub">위치는 가까운 저수지를 찾는 데만 사용해요</p>
+      <button class="agree-all" id="agreeAll">
+        <span class="ck"><svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg></span>
+        모두 동의합니다
+      </button>
+      <ul class="agree-list">
+        <li><button data-req="1"><span class="ck"><svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg></span><span style="flex:1">위치기반 서비스 이용 동의</span><span class="tag req">필수</span></button></li>
+        <li><button data-req="1"><span class="ck"><svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg></span><span style="flex:1">서비스 이용약관</span><span class="tag req">필수</span></button></li>
+        <li><button><span class="ck"><svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg></span><span style="flex:1">물 상황 알림 받기</span><span class="tag">선택</span></button></li>
+      </ul>
+      <button class="cta" id="consentOk" disabled>동의하고 시작하기</button>
+    </div>
+
+    <div class="toast" id="toast"></div>
+  </div>
+</div>
+
+<script>
+/* ═══ 상태 (데모: 메모리 저장 · 실서비스: 로컬스토리지) ═══ */
+const state = { consented:false, regions:[], cur:-1, scen:'watch', pendingAddr:null, mainDirty:true };
+
+const STAGE = {
+  '정상':{fg:'var(--ok-fg)',bg:'var(--ok-bg)'},
+  '관심':{fg:'var(--watch-fg)',bg:'var(--watch-bg)'},
+  '주의':{fg:'var(--care-fg)',bg:'var(--care-bg)'},
+  '경계':{fg:'var(--alert-fg)',bg:'var(--alert-bg)'},
+  '심각':{fg:'var(--crit-fg)',bg:'var(--crit-bg)'}
+};
+
+const SCEN = {
+  normal:{rate:84,avg:103,stage:'정상',trend:-0.12,reach:null,
+    reachTxt:'2주 안에 단계가 내려갈 신호가 없어요',
+    headline:'물 사정이 넉넉해요',conf:'예측 오차(최근 14일) ±1.4%p',
+    coach:'평년보다 물이 넉넉해요. 지금처럼 관리하시면 충분해요. 단계가 바뀌면 바로 알려드릴게요.',
+    todo:[['현행 급수 일정 유지','평년 대비 103% 수준이에요'],['수로 상태 가볍게 점검','다음 영농기를 미리 대비해요'],['알림 켜두기','단계가 바뀌면 바로 알려드려요']],
+    banner:false},
+  watch:{rate:57,avg:74,stage:'관심',trend:-0.55,reach:{days:18,stage:'주의'},
+    headline:'물이 평소보다 조금 부족해요',conf:'예측 오차(최근 14일) ±1.9%p',
+    coach:'지금 속도면 18일 뒤 ‘주의’로 내려가요. 급하진 않지만, 이번 주에 세 가지만 미리 챙겨두세요.',
+    todo:[['논물 새는 곳 점검','물꼬·수로 누수만 막아도 손실이 크게 줄어요'],['공동 급수 일정 확인','이장님·수리계와 미리 맞춰두세요'],['아껴 쓰는 관개 시작','얕게 자주보다, 깊게 드물게가 좋아요']],
+    banner:false},
+  severe:{rate:33,avg:46,stage:'경계',trend:-0.82,reach:{days:9,stage:'심각'},
+    headline:'물 부족이 빠르게 진행 중이에요',conf:'예측 오차(최근 14일) ±2.6%p',
+    coach:'상황이 빠르게 나빠지고 있어요. 9일 뒤 ‘심각’ 진입 가능성이 있어요. 이번 주 안에 아래 준비를 마쳐두세요.',
+    todo:[['제한급수 대비','급수 일정 변경 안내를 꼭 확인하세요'],['대체수원 확인','관정·양수장 위치와 사용 가능 여부를 봐두세요'],['공식 안내 따르기','공사·지자체 안내가 우선이에요']],
+    banner:false},
+  flood:{rate:96,avg:118,stage:'정상',trend:+0.85,reach:null,
+    reachTxt:'저수율이 만수위에 가까워요 · 위 참고 알림 확인',
+    headline:'비가 많아 물은 충분해요',conf:'예측 오차(최근 14일) ±1.6%p',
+    coach:'비 덕분에 물 걱정은 없어요. 다만 만수위에 가까우니, 논 주변 배수로만 한 번 살펴봐 주세요.',
+    todo:[['배수로 막힘 점검','낙엽·흙으로 막힌 곳을 미리 뚫어두세요'],['저지대 농기계 이동','침수 우려 지역은 미리 옮겨두세요'],['공식 안내 확인','방류·하류 안내는 재난 문자를 따르세요']],
+    banner:true}
+};
+
+const MOCKADDR = [
+  {road:'전남 나주시 빛가람로 20',jibun:'빛가람동 358',dong:'빛가람동',res:'나주호',dist:'4.2km',off:0},
+  {road:'전남 나주시 그린로 20',jibun:'빛가람동 358-1',dong:'빛가람동',res:'나주호',dist:'4.5km',off:0},
+  {road:'강원 강릉시 사임당로 9',jibun:'죽헌동 201',dong:'죽헌동',res:'오봉저수지',dist:'6.1km',off:4},
+  {road:'강원 강릉시 경강로 2111',jibun:'옥천동 27',dong:'옥천동',res:'오봉저수지',dist:'7.8km',off:4},
+  {road:'충남 예산군 벚꽃로 145',jibun:'예산읍 산성리 55',dong:'예산읍',res:'예당지',dist:'3.4km',off:-3},
+  {road:'충남 예산군 예당관광로 90',jibun:'응봉면 후사리 12',dong:'응봉면',res:'예당지',dist:'1.9km',off:-3}
+];
+
+/* ═══ 헬퍼 ═══ */
+const $ = s => document.querySelector(s);
+const $$ = s => document.querySelectorAll(s);
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+let toastTimer;
+function toast(msg){
+  const t = $('#toast'); t.textContent = msg; t.classList.add('on');
+  clearTimeout(toastTimer); toastTimer = setTimeout(()=>t.classList.remove('on'),1800);
+}
+function nowStamp(){
+  const d = new Date();
+  const h = d.getHours(), ap = h<12?'오전':'오후', hh = ((h+11)%12)+1;
+  return `오늘 ${ap} ${hh}:${String(d.getMinutes()).padStart(2,'0')} 기준`;
+}
+
+/* ═══ 라우터 ═══ */
+function go(id){
+  const cur = $('.screen.on'), nxt = document.getElementById(id);
+  if(cur === nxt) return;
+  if(cur){ cur.classList.remove('on'); cur.classList.add('exit');
+    setTimeout(()=>cur.classList.remove('exit'), 360); }
+  nxt.classList.add('on');
+  if(id==='s-region') renderRegions();
+  if(id==='s-main') enterMain();
+  if(id==='s-detail') renderDetail();
+}
+function enterMain(){
+  if(state.mainDirty){ loadMain(); }
+  else{ renderMain(); }
+}
+function loadMain(after){
+  const sk = $('#skFeed'), real = $('#realFeed');
+  sk.classList.add('on'); real.classList.add('hide');
+  els.water.style.height = '0%';
+  els.stamp.textContent = '불러오는 중…';
+  setTimeout(()=>{
+    sk.classList.remove('on'); real.classList.remove('hide');
+    void real.offsetHeight; /* 리플로우 후 높이를 올려 물이 차오르게 */
+    renderMain();
+    state.mainDirty = false;
+    if(after) after();
+  }, 950);
+}
+$$('[data-go]').forEach(b=>b.addEventListener('click',()=>go(b.dataset.go)));
+
+/* ═══ 1→2 스플래시 ═══ */
+let splashTimer = setTimeout(()=>go('s-onboard'), 1500);
+
+/* ═══ 2 온보딩 캐러셀 ═══ */
+const car = $('#carousel'), dots = $$('#dots i');
+car.addEventListener('scroll',()=>{
+  const i = Math.round(car.scrollLeft / car.clientWidth);
+  dots.forEach((d,k)=>d.classList.toggle('on',k===i));
+},{passive:true});
+$('#goRegionSetup').addEventListener('click',()=>{
+  go('s-region');
+  if(!state.consented) setTimeout(openSheet, 350);
+});
+
+/* ═══ 동의 시트 ═══ */
+const sheet = $('#consentSheet'), dim = $('#dim'), okBtn = $('#consentOk');
+const items = $$('.agree-list button'), allBtn = $('#agreeAll');
+function openSheet(){ dim.classList.add('on'); sheet.classList.add('on'); }
+function closeSheet(){ dim.classList.remove('on'); sheet.classList.remove('on'); }
+function syncConsent(){
+  const reqOk = [...items].filter(b=>b.dataset.req).every(b=>b.classList.contains('on'));
+  const allOk = [...items].every(b=>b.classList.contains('on'));
+  allBtn.querySelector('.ck').classList.toggle('on', allOk);
+  okBtn.disabled = !reqOk;
+}
+items.forEach(b=>b.addEventListener('click',()=>{ b.classList.toggle('on'); syncConsent(); }));
+allBtn.addEventListener('click',()=>{
+  const turnOn = ![...items].every(b=>b.classList.contains('on'));
+  items.forEach(b=>b.classList.toggle('on', turnOn)); syncConsent();
+});
+okBtn.addEventListener('click',()=>{
+  state.consented = true; closeSheet(); toast('동의가 완료됐어요');
+});
+dim.addEventListener('click',()=>{ if(state.consented) closeSheet(); });
+
+/* ═══ 3 지역 목록 ═══ */
+const regionArea = $('#regionArea');
+function renderRegions(){
+  if(state.regions.length===0){
+    regionArea.innerHTML = `
+      <div class="empty"><b>아직 등록한 지역이 없어요</b>주소를 등록하면 가까운 저수지를 찾아드려요</div>
+      <div class="list-pad">
+        <button class="add-row" id="addBtn">＋ 지역 추가하기</button>
+      </div>`;
+  }else{
+    regionArea.innerHTML = `<div class="list-pad">` +
+      state.regions.map((r,i)=>`
+        <div class="region-row ${i===state.cur?'sel':''}">
+          <button class="rmain" data-i="${i}">
+            <span class="ricon"><svg viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7Zm0 9.5A2.5 2.5 0 1 1 12 6a2.5 2.5 0 0 1 0 5.5Z"/></svg></span>
+            <span class="rtxt"><b>${r.dong}</b><small>${r.road}</small></span>
+            <span class="rres">${r.res}</span>
+          </button>
+          <button class="rdel" data-i="${i}" aria-label="${r.dong} 삭제">
+            <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>
+          </button>
+        </div>`).join('') +
+      `<button class="add-row" id="addBtn">＋ 지역 추가하기</button></div>`;
+    regionArea.querySelectorAll('.rmain').forEach(b=>
+      b.addEventListener('click',()=>{
+        state.cur = +b.dataset.i;
+        state.mainDirty = true;
+        renderRegions();
+        toast(`${state.regions[state.cur].res} 기준으로 보여드려요`);
+      }));
+    regionArea.querySelectorAll('.rdel').forEach(b=>
+      b.addEventListener('click',()=>{
+        const i = +b.dataset.i;
+        const name = state.regions[i].dong;
+        state.regions.splice(i,1);
+        if(state.cur === i) state.cur = state.regions.length ? 0 : -1;
+        else if(state.cur > i) state.cur--;
+        state.mainDirty = true;
+        renderRegions();
+        toast(`${name}을(를) 삭제했어요`);
+      }));
+  }
+  const addBtn = $('#addBtn');
+  if(addBtn) addBtn.addEventListener('click',()=>{
+    resetAddress(); go('s-address');
+    setTimeout(()=>$('#addrInput').focus(), 380);
+  });
+  $('#regionCtaWrap').style.display = state.regions.length ? 'block' : 'none';
+}
+$('#startMain').addEventListener('click',()=>{ if(state.cur<0) state.cur=0; go('s-main'); });
+$('#regionBack').addEventListener('click',()=>{
+  go(state.regions.length && state.cur>=0 ? 's-main' : 's-onboard');
+});
+
+/* ═══ 3b 주소 검색 ═══ */
+const addrInput = $('#addrInput'), addrList = $('#addrList');
+const confirmBox = $('#confirmBox'), addBtnCta = $('#addRegionBtn');
+function resetAddress(){
+  clearTimeout(addrTimer);
+  addrInput.value=''; addrList.innerHTML=''; state.pendingAddr=null;
+  confirmBox.classList.remove('on');
+  addBtnCta.disabled = true; addBtnCta.classList.remove('busy'); addBtnCta.textContent = '등록하기';
+}
+function renderAddrResults(q){
+  state.pendingAddr = null; confirmBox.classList.remove('on'); addBtnCta.disabled = true;
+  if(!q){ addrList.innerHTML=''; return; }
+  const hit = MOCKADDR.filter(a => (a.road+a.jibun+a.dong).includes(q));
+  addrList.innerHTML = hit.length
+    ? hit.map((a,i)=>`
+      <li><button data-i="${MOCKADDR.indexOf(a)}">
+        <span class="body"><b>${a.road}</b><small>지번 · ${a.jibun}</small></span>
+        <svg class="chev sm" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg>
+      </button></li>`).join('')
+    : `<li style="padding:1.2rem 1rem;font-size:.85rem;color:var(--ink3)">검색 결과가 없어요. ‘빛가람로’처럼 도로명으로 검색해보세요.</li>`;
+  addrList.querySelectorAll('button').forEach(b=>
+    b.addEventListener('click',()=>{
+      const a = MOCKADDR[+b.dataset.i];
+      state.pendingAddr = a;
+      $('#confirmAddr').textContent = a.road;
+      $('#confirmRes').textContent = `${a.res} · ${a.dist}`;
+      confirmBox.classList.add('on'); addBtnCta.disabled = false;
+      confirmBox.scrollIntoView({behavior:reduce?'auto':'smooth',block:'nearest'});
+    }));
+}
+let addrTimer;
+function searchAddr(q){
+  clearTimeout(addrTimer);
+  state.pendingAddr = null; confirmBox.classList.remove('on'); addBtnCta.disabled = true;
+  if(!q){ addrList.innerHTML=''; return; }
+  addrList.innerHTML = '<li class="addr-loading"><div class="spinner"></div></li>';
+  addrTimer = setTimeout(()=>renderAddrResults(q), 500);
+}
+addrInput.addEventListener('input',()=>searchAddr(addrInput.value.trim()));
+$$('.chips button').forEach(c=>c.addEventListener('click',()=>{
+  addrInput.value = c.dataset.q; searchAddr(c.dataset.q);
+}));
+addBtnCta.addEventListener('click',()=>{
+  if(!state.pendingAddr || addBtnCta.classList.contains('busy')) return;
+  addBtnCta.classList.add('busy');
+  addBtnCta.innerHTML = '<span class="spinner white"></span>';
+  setTimeout(()=>{
+    state.regions.push(state.pendingAddr);
+    state.cur = state.regions.length-1;
+    state.mainDirty = true;
+    addBtnCta.classList.remove('busy');
+    addBtnCta.textContent = '등록하기'; addBtnCta.disabled = true;
+    toast('지역을 추가했어요');
+    go('s-region');
+  }, 700);
+});
+
+/* ═══ 4 메인 ═══ */
+const els = {
+  water:$('#water'), rate:$('#rate'), avg:$('#avg'), stage:$('#stage'),
+  headline:$('#headline'), reachBig:$('#reachBig'), reachDesc:$('#reachDesc'),
+  conf:$('#conf'), coach:$('#coachMsg'), todo:$('#todo'), banner:$('#banner'),
+  chart:$('#chart'), regionLabel:$('#regionLabel'), stamp:$('#stamp')
+};
+function curScen(){
+  const off = state.cur>=0 ? state.regions[state.cur].off : 0;
+  const b = SCEN[state.scen];
+  return Object.assign({}, b, { rate: Math.max(2, Math.min(99, b.rate + off)) });
+}
+function animateNum(el, to){
+  const from = parseInt(el.textContent,10)||0;
+  if(reduce||from===to){ el.textContent=to; return; }
+  const t0=performance.now();
+  (function step(t){
+    const p=Math.min((t-t0)/600,1), e=1-Math.pow(1-p,3);
+    el.textContent=Math.round(from+(to-from)*e);
+    if(p<1) requestAnimationFrame(step);
+  })(t0);
+}
+function renderMain(){
+  const r = state.regions[state.cur];
+  els.regionLabel.textContent = r ? `${r.dong} · ${r.res}` : '지역을 설정해주세요';
+  els.stamp.textContent = nowStamp();
+  const s = curScen();
+
+  els.water.style.height = s.rate+'%';
+  animateNum(els.rate, s.rate);
+  els.avg.textContent = s.avg+'%';
+  els.stage.textContent = s.stage;
+  els.stage.style.color = STAGE[s.stage].fg;
+  els.stage.style.background = STAGE[s.stage].bg;
+  els.headline.textContent = s.headline;
+
+  if(s.reach){
+    els.reachBig.innerHTML = `${s.reach.days}<span class="suf">일 뒤</span>`;
+    els.reachDesc.innerHTML = `<b style="color:${STAGE[s.reach.stage].fg}">‘${s.reach.stage}’</b> 단계에 들어설 것으로 보여요`;
+  }else{
+    els.reachBig.innerHTML = `안정`;
+    els.reachDesc.textContent = s.reachTxt;
+  }
+  els.conf.textContent = s.conf;
+  els.coach.textContent = s.coach;
+  els.todo.innerHTML = s.todo.map((t,i)=>
+    `<li><span class="n">${i+1}</span><span><b>${t[0]}</b><small>${t[1]}</small></span></li>`).join('');
+  els.banner.classList.toggle('show', !!s.banner);
+
+  renderChart(s, els.chart, 250);
+}
+$('#regionBtn').addEventListener('click',()=>go('s-region'));
+$('#logoBtn').addEventListener('click',()=>{
+  const btn = $('#logoBtn');
+  if(btn.classList.contains('raining')) return;
+  btn.classList.add('raining');
+  loadMain(()=>{
+    btn.classList.remove('raining');
+    toast('최신 정보로 업데이트했어요');
+  });
+});
+
+/* ═══ 차트 ═══ */
+function series(s){
+  const past=[],fut=[];
+  for(let i=0;i<30;i++){
+    const v = s.rate - s.trend*(29-i) + Math.sin(i*0.9)*0.9 + Math.cos(i*0.37)*0.5;
+    past.push(Math.max(2,Math.min(99,v)));
+  }
+  past[29]=s.rate;
+  for(let j=1;j<=14;j++) fut.push(Math.max(2,Math.min(99,s.rate+s.trend*j)));
+  return {past,fut};
+}
+function renderChart(s, mount, H){
+  const {past,fut}=series(s), all=past.concat(fut);
+  const W=640,L=34,R=12,T=14,B=26;
+  let lo=Math.min(...all),hi=Math.max(...all);
+  [70,60,50,40].forEach(t=>{ if(t>lo-8&&t<hi+8){lo=Math.min(lo,t);hi=Math.max(hi,t);} });
+  lo=Math.max(0,Math.floor(lo-5)); hi=Math.min(100,Math.ceil(hi+5));
+  const X=i=>L+(W-L-R)*(i/(past.length+fut.length-1));
+  const Y=v=>T+(H-T-B)*(1-(v-lo)/(hi-lo));
+  const pPast=past.map((v,i)=>`${i?'L':'M'}${X(i).toFixed(1)},${Y(v).toFixed(1)}`).join('');
+  let pFut=`M${X(29).toFixed(1)},${Y(past[29]).toFixed(1)}`;
+  fut.forEach((v,j)=>{ pFut+=`L${X(30+j).toFixed(1)},${Y(v).toFixed(1)}`; });
+  const up=fut.map((v,j)=>`${j?'L':'M'}${X(30+j).toFixed(1)},${Y(Math.min(99,v+0.6+j*0.28)).toFixed(1)}`).join('');
+  const dn=fut.map((v,j)=>[X(30+j),Y(Math.max(1,v-0.6-j*0.28))]).reverse()
+    .map(p=>`L${p[0].toFixed(1)},${p[1].toFixed(1)}`).join('');
+  const TH=[['관심',70,'var(--watch-fg)'],['주의',60,'var(--care-fg)'],['경계',50,'var(--alert-fg)'],['심각',40,'var(--crit-fg)']]
+    .filter(([,v])=>v>=lo&&v<=hi)
+    .map(([n,v,c])=>`<line x1="${L}" x2="${W-R}" y1="${Y(v)}" y2="${Y(v)}" stroke="#E5E8EB" stroke-dasharray="3 5"/>
+      <text x="${W-R}" y="${Y(v)-4}" text-anchor="end" font-size="9.5" font-weight="700" fill="${c}">${n}</text>`).join('');
+  const full=(s.rate>=90&&s.trend>0&&95>=lo&&95<=hi)
+    ? `<line x1="${L}" x2="${W-R}" y1="${Y(95)}" y2="${Y(95)}" stroke="#3182F6" stroke-dasharray="2 4"/>
+       <text x="${W-R}" y="${Y(95)-4}" text-anchor="end" font-size="9.5" font-weight="700" fill="#3182F6">만수위 부근</text>`:'';
+  const tx=X(29);
+  mount.innerHTML=
+  `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="저수율 흐름 그래프" style="width:100%;height:auto;display:block">
+    <text x="${L-6}" y="${Y(hi)+4}" text-anchor="end" font-size="9.5" fill="#B0B8C1">${hi}%</text>
+    <text x="${L-6}" y="${Y(lo)+4}" text-anchor="end" font-size="9.5" fill="#B0B8C1">${lo}%</text>
+    ${TH}${full}
+    <line x1="${tx}" x2="${tx}" y1="${T}" y2="${H-B}" stroke="#F2F4F6" stroke-width="1.6"/>
+    <text x="${tx}" y="${H-9}" text-anchor="middle" font-size="10" font-weight="700" fill="#4E5968">오늘</text>
+    <text x="${L}" y="${H-9}" font-size="10" fill="#B0B8C1">30일 전</text>
+    <text x="${W-R}" y="${H-9}" text-anchor="end" font-size="10" fill="#B0B8C1">+14일</text>
+    <path d="${up} ${dn} Z" fill="#D6E8FF" opacity=".7"/>
+    <path d="${pPast}" fill="none" stroke="#3182F6" stroke-width="2.8" stroke-linecap="round"/>
+    <path d="${pFut}" fill="none" stroke="#1B64DA" stroke-width="2.3" stroke-dasharray="5 6" stroke-linecap="round"/>
+    <circle cx="${tx}" cy="${Y(s.rate)}" r="4.6" fill="#1B64DA" stroke="#fff" stroke-width="2"/>
+  </svg>`;
+}
+
+/* ═══ 5 상세 ═══ */
+function renderDetail(){
+  const r = state.regions[state.cur], s = curScen();
+  $('#detailTitle').textContent = (r? r.res : '저수지') + ' 저수율';
+  $('#methodConf').textContent = s.conf.replace('예측 오차(최근 14일) ','');
+  renderChart(s, $('#chartBig'), 300);
+}
+
+/* ═══ 개발용 컨트롤 ═══ */
+$$('#seg button').forEach(b=>b.addEventListener('click',()=>{
+  state.scen = b.dataset.scen;
+  $$('#seg button').forEach(x=>x.setAttribute('aria-pressed', String(x===b)));
+  if($('#s-main').classList.contains('on')) renderMain();
+  if($('#s-detail').classList.contains('on')) renderDetail();
+}));
+$('#restart').addEventListener('click',()=>{
+  clearTimeout(splashTimer);
+  Object.assign(state,{consented:false,regions:[],cur:-1,pendingAddr:null,mainDirty:true});
+  $('#skFeed').classList.remove('on'); $('#realFeed').classList.remove('hide');
+  $('#logoBtn').classList.remove('raining');
+  items.forEach(b=>b.classList.remove('on')); syncConsent(); closeSheet(); resetAddress();
+  $$('.screen').forEach(sc=>sc.classList.remove('on','exit'));
+  $('#s-splash').classList.add('on');
+  splashTimer = setTimeout(()=>go('s-onboard'), 1500);
+});
+</script>
+</body>
+</html>
