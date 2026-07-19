@@ -19,13 +19,13 @@ coverage/
 data/raw/
 
 # Supabase local state
-supabase/.branches/
-supabase/.temp/
+infra/supabase/.branches/
+infra/supabase/.temp/
 
 # Android / Gradle / signing
-android/.gradle/
-android/**/build/
-android/local.properties
+apps/android/.gradle/
+apps/android/**/build/
+apps/android/local.properties
 local.properties
 keystore.properties
 *.jks

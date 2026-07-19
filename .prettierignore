@@ -1,0 +1,10 @@
+.next
+build
+coverage
+node_modules
+pnpm-lock.yaml
+apps/android/.gradle
+apps/android/gradle/wrapper/gradle-wrapper.jar
+apps/android/**/build
+prototype
+공모전 문서
