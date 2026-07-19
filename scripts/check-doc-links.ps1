@@ -2,7 +2,7 @@ $ErrorActionPreference = 'Stop'
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $markdownFiles = Get-ChildItem -LiteralPath $repoRoot -Recurse -File -Filter '*.md' |
-    Where-Object { $_.FullName -notmatch '[\\/]\.git[\\/]' }
+    Where-Object { $_.FullName -notmatch '[\\/](\.git|node_modules|\.next|\.gradle|build|coverage)[\\/]' }
 
 $missing = [System.Collections.Generic.List[string]]::new()
 $linkPattern = [regex]'\[[^\]]+\]\((?<target>[^)]+)\)'

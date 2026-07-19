@@ -5,7 +5,7 @@ const FORBIDDEN_ASSERTIONS = ["위험합니다", "발생합니다", "됩니다"]
 
 export function validateGeneratedCoachCopy(
   facts: CoachFactPacket,
-  candidate: unknown
+  candidate: unknown,
 ): GeneratedCoachCopy {
   const parsed = generatedCoachCopySchema.parse(candidate);
   const expectedIds = facts.actions.map(({ id }) => id);
@@ -18,7 +18,7 @@ export function validateGeneratedCoachCopy(
   const visibleCopy = [
     parsed.headline,
     parsed.summary,
-    ...parsed.actions.map(({ reason }) => reason)
+    ...parsed.actions.map(({ reason }) => reason),
   ].join(" ");
 
   if (FORBIDDEN_ASSERTIONS.some((word) => visibleCopy.includes(word))) {

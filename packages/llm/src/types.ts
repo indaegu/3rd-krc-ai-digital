@@ -1,10 +1,6 @@
 export type OfficialStage = "정상" | "관심" | "주의" | "경계" | "심각";
 export type Season = "봄" | "여름" | "가을" | "겨울";
-export type ReachBucket =
-  | "none"
-  | "within_7d"
-  | "within_14d"
-  | "within_30d";
+export type ReachBucket = "none" | "within_7d" | "within_14d" | "within_30d";
 export type TrendBucket = "rising" | "stable" | "falling";
 export type ApprovedOutlookCode = string & {
   readonly __brand: "ApprovedOutlookCode";

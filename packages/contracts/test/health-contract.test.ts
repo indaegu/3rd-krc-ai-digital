@@ -12,7 +12,7 @@ describe("health contract fixtures", () => {
       status: "ok",
       asOf: "2026-07-19T00:00:00.000Z",
       sources: [],
-      stale: false
+      stale: false,
     } satisfies HealthResponse;
 
     expectTypeOf(contractFixture).toMatchTypeOf<HealthResponse>();

@@ -1,0 +1,73 @@
+name: verify
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verify-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  javascript:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm harness:check
+      - run: pnpm format:check
+      - run: pnpm openapi:lint
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm build
+      - shell: pwsh
+        run: ./scripts/check-doc-links.ps1
+      - run: node scripts/check-prototype.mjs
+
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: gradle
+      - uses: android-actions/setup-android@v3
+      - run: sdkmanager "platforms;android-36"
+      - run: chmod +x apps/android/gradlew
+      - run: ./apps/android/gradlew -p ./apps/android :app:lintDebug
+      - run: ./apps/android/gradlew -p ./apps/android :app:testDebugUnitTest
+      - run: ./apps/android/gradlew -p ./apps/android :app:assembleDebug
+
+  supabase:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm supabase:start
+      - run: pnpm supabase:reset
+      - run: pnpm supabase:lint
+      - run: pnpm supabase:test
+      - if: always()
+        run: pnpm supabase:stop

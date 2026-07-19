@@ -9,7 +9,7 @@ export function createHealthResponse(now: Date): HealthResponse {
     status: "ok",
     asOf: now.toISOString(),
     sources: [],
-    stale: false
+    stale: false,
   };
 }
 
@@ -17,7 +17,7 @@ export function GET(): Response {
   return Response.json(createHealthResponse(new Date()), {
     status: 200,
     headers: {
-      "Cache-Control": "no-store"
-    }
+      "Cache-Control": "no-store",
+    },
   });
 }

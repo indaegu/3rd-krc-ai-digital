@@ -27,7 +27,7 @@
 - 웹은 전역 CSS 변수, Android는 의미가 같은 Compose `ColorScheme`·shape 토큰으로 옮긴다.
 - 이름을 번역 구현하더라도 `ok/watch/care/alert/crit` 의미와 값은 바꾸지 않는다.
 - Pretendard Variable을 self-host하며 시스템 고딕으로 폴백한다. 명조·원격 CDN 폰트는 쓰지 않는다.
-- 공식 단계 임계값은 색 문서가 아니라 `lib/data/drought-stage.ts`에만 둔다.
+- 공식 단계 임계값은 색 문서가 아니라 `apps/web/src/lib/data/drought-stage.ts`에만 둔다.
 
 ## 레이아웃·컴포넌트
 

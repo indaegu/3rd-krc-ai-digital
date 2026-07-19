@@ -12,10 +12,19 @@
 가뭄 예·경보가 항상 우선합니다.
 
 - 활용 데이터 5종: 농촌용수 저수지 수위정보 API · 전국 저수지 일별 저수율 · 논가뭄지도 · 가뭄예경보 · 농업기반시설 시설제원_저수지
-- AI: 추세 기반 평년 대비 저수율 예측(백테스트로 모델 선정) + 제한된 행동 목록 안의 LLM 코칭
+- AI: 백테스트로 고른 정량 추세 예측 + 서버가 허용한 행동만 설명하는 Claude Opus 4.7
+  통제형 코치. Claude 장애·예산 초과 때도 정적 코치가 동작합니다.
 - 클라이언트: Next.js 반응형 웹 + Kotlin/Jetpack Compose Android 네이티브 앱
 - 공용 기반: Vercel Route Handler API + Supabase PostgreSQL
 - 개인정보 원칙: 회원가입·로그인 없음, 주소 원문과 지역 설정은 서버에 저장하지 않음
+
+## 모노레포
+
+- `apps/web`: Next.js 웹과 Vercel API
+- `apps/android`: Kotlin/Jetpack Compose 네이티브 앱
+- `packages/contracts`: 웹·Android 공용 OpenAPI 계약
+- `packages/llm`: Claude 서버 경계와 정적 폴백
+- `infra/supabase`: PostgreSQL 마이그레이션과 테스트
 
 ## 문서
 

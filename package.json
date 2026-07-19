@@ -8,6 +8,7 @@
     "pnpm": "10.33.0"
   },
   "scripts": {
+    "harness:check": "node scripts/check-monorepo-layout.mjs",
     "dev": "pnpm --filter @mulsigye/web dev",
     "lint": "pnpm -r --if-present lint",
     "typecheck": "pnpm -r --if-present typecheck",

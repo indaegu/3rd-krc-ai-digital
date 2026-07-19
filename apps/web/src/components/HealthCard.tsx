@@ -19,7 +19,7 @@ export function HealthCard() {
     try {
       const response = await fetch("/api/v1/health", {
         cache: "no-store",
-        signal: signal ?? null
+        signal: signal ?? null,
       });
 
       if (!response.ok) {
@@ -52,7 +52,11 @@ export function HealthCard() {
       <section className={styles.card} aria-live="polite">
         <h2>서버 연결을 확인해 주세요.</h2>
         <p>잠시 후 다시 시도해 주세요.</p>
-        <button className={styles.button} type="button" onClick={() => void load()}>
+        <button
+          className={styles.button}
+          type="button"
+          onClick={() => void load()}
+        >
           다시 시도하기
         </button>
       </section>

@@ -8,8 +8,8 @@ export default tseslint.config(
       "**/coverage/**",
       "**/node_modules/**",
       "packages/contracts/src/generated/**",
-      "prototype/**"
-    ]
+      "prototype/**",
+    ],
   },
-  ...tseslint.configs.recommended
+  ...tseslint.configs.recommended,
 );

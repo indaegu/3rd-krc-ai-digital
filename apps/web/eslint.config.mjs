@@ -7,8 +7,8 @@ export default defineConfig([
   ...nextTypeScript,
   {
     settings: {
-      react: { version: "19.2.7" }
-    }
+      react: { version: "19.2.7" },
+    },
   },
-  globalIgnores([".next/**", "coverage/**", "next-env.d.ts"])
+  globalIgnores([".next/**", "coverage/**", "next-env.d.ts"]),
 ]);

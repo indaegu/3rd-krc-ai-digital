@@ -12,7 +12,7 @@ describe("GET /api/v1/health", () => {
       status: "ok",
       asOf: fixedNow.toISOString(),
       sources: [],
-      stale: false
+      stale: false,
     });
 
     const response = await GET();

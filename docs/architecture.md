@@ -20,8 +20,8 @@
                    │    ├─ status           현재 저수율·공식 단계
                    │    ├─ forecast         추세 예측·도달 가능 시점
                    │    └─ coach            제한된 행동 코칭
-                   ├─ lib/data              페치·정규화·대표지 결정·캐시
-                   └─ lib/prediction        결정적인 순수 함수
+                   ├─ apps/web/src/lib/data        페치·정규화·대표지 결정·캐시
+                   └─ apps/web/src/lib/prediction  결정적인 순수 함수
                          │
           ┌──────────────┼──────────────────┐
           ▼              ▼                  ▼
@@ -37,13 +37,21 @@
 
 ## 서버 모듈 경계
 
-```
-types → lib/data → lib/prediction → app/api/v1 → UI
+```text
+packages/contracts
+      ↑
+packages/llm (server-only policy/provider boundary)
+      ↑
+apps/web/src/lib/data + apps/web/src/lib/prediction
+      ↑
+apps/web/src/app/api/v1
+      ↑ HTTPS
+apps/web browser UI + apps/android
 ```
 
 - 웹 UI와 Android는 모두 `/api/v1/*`만 호출한다. KRC·Supabase·LLM에 직접 연결하지 않는다.
-- `lib/data` 밖에서 원천 필드명을 직접 해석하거나 단계 기준을 복제하지 않는다.
-- `lib/prediction`은 `(시계열, 옵션) → { 예측값, 도달일, 오차 }`인 순수 함수다.
+- `apps/web/src/lib/data` 밖에서 원천 필드명을 직접 해석하거나 단계 기준을 복제하지 않는다.
+- `apps/web/src/lib/prediction`은 `(시계열, 옵션) → { 예측값, 도달일, 오차 }`인 순수 함수다.
   네트워크·현재 시간·랜덤에 접근하지 않아 단위 테스트와 백테스트가 재현 가능해야 한다.
 - Route Handler는 DTO 변환, 캐시 정책, 오류 매핑을 담당한다. UI 문구를 데이터 소스에 넣지 않는다.
 
@@ -51,7 +59,7 @@ types → lib/data → lib/prediction → app/api/v1 → UI
 
 브릿지는 WebView JavaScript 인터페이스가 아니라 **버전이 고정된 HTTPS API 계약**이다.
 
-- 계약 SSOT: `contracts/openapi.yaml`(OpenAPI 3.1). DTO, enum, ISO 8601 날짜, `%`와 `%p`,
+- 계약 SSOT: `packages/contracts/openapi.yaml`(OpenAPI 3.1). DTO, enum, ISO 8601 날짜, `%`와 `%p`,
   nullable, 오류 형식을 정의한다.
 - 호환성을 깨는 변경은 `/api/v2`처럼 새 버전으로 낸다. 기존 응답 의미를 조용히 바꾸지 않는다.
 - 웹은 동일 출처 Route Handler를 `fetch`, Android는 Retrofit/OkHttp와
@@ -99,36 +107,51 @@ types → lib/data → lib/prediction → app/api/v1 → UI
 | `regional_drought_daily` | `sigun_code + observed_on`, 통합·평년·평년대비·공식 단계 | 예측과 단계의 주계열 |
 | `official_outlooks` | `sigun_code + published_on`, 현재·1/2/3개월 전망 | 자체 예측 옆 공식 근거 |
 | `forecast_runs` | 지역·기준일·모델 버전, 예측·오차 | 재계산 방지·재현성 |
-| `coach_cache` | 상태 해시·문구 버전, 행동 응답 | LLM 중복 호출 방지 |
+| `coach_cache` | 상태·정책·모델 버전 hash, 검증 응답, 만료·비용 메타데이터 | 30일 검증 응답 재사용 |
+| `coach_generation_locks` | `cache_key`, `locked_until` | 같은 miss의 중복 Claude 호출 방지 |
+| `llm_usage` | context hash, 모델, 토큰, 비용, 지연, 결과 코드 | USD 5·일일 20회 가드 증거 |
+
+세 LLM 테이블은 RLS를 활성화하고 공개 정책을 만들지 않는다. Next.js 서버의 service role만
+접근하며 사용자 식별자, IP, 주소, 프롬프트·응답 전문을 저장하지 않는다.
 
 - 사용자 주소, 등록 지역, 동의 내역은 Supabase에 저장하지 않는다.
 - 웹은 `localStorage`, Android는 DataStore에 지역 코드·대표 시설 코드·동의 버전만 저장한다.
 - Next.js 서버만 `SUPABASE_SECRET_KEY`로 접근한다. 클라이언트 번들에는 Supabase 키를 넣지 않는다.
-- 마이그레이션은 `supabase/migrations/`에 추가하며 적용 순서를 되돌려 쓰지 않는다.
+- 마이그레이션은 `infra/supabase/migrations/`에 추가하며 적용 순서를 되돌려 쓰지 않는다.
 
 ## 폴더 구조
 
 ```
-app/            Next.js 페이지
-app/api/v1/     버전이 고정된 Route Handlers
-components/     UI 컴포넌트(Gauge*, Coach*, Region*)
-lib/data/       외부 페치·XML/CSV 정규화·대표지 결정·캐시
-lib/prediction/ 모델·도달일 계산 순수 함수
-contracts/      OpenAPI 계약
-data/           제출 시점의 검증된 정적 스냅샷
-scripts/        데이터 적재·백테스트 CLI
-supabase/       DB 마이그레이션
-android/        Kotlin + Compose 프로젝트
-docs/           지식 베이스
-prototype/      인터랙티브 시각 참고물
+apps/web/src/app/            Next.js 페이지
+apps/web/src/app/api/v1/     버전이 고정된 Route Handlers
+apps/web/src/components/     UI 컴포넌트(Gauge*, Coach*, Region*)
+apps/web/src/lib/data/       외부 페치·XML/CSV 정규화·대표지 결정·캐시
+apps/web/src/lib/prediction/ 모델·도달일 계산 순수 함수
+packages/contracts/          OpenAPI 계약
+packages/llm/                서버 전용 코치 provider·검증
+data/                        제출 시점의 검증된 정적 스냅샷
+scripts/                     데이터 적재·백테스트·하네스 검증 CLI
+infra/supabase/              DB 마이그레이션·pgTAP 테스트
+apps/android/                Kotlin + Compose 프로젝트
+docs/                        지식 베이스
+prototype/                   인터랙티브 시각 참고물
 ```
 
 ## 배포
 
 - Vercel 프로젝트 1개, `main` = 프로덕션, PR 브랜치 = 프리뷰 배포다.
 - Supabase 프로젝트 1개를 사용하고 스키마는 마이그레이션으로 관리한다.
-- 서버 환경변수: `DATA_GO_KR_API_KEY`, `JUSO_API_KEY`, `LLM_API_KEY`,
-  `SUPABASE_URL`, `SUPABASE_SECRET_KEY`.
+- 서버 환경변수:
+
+```text
+DATA_GO_KR_API_KEY, JUSO_API_KEY,
+SUPABASE_URL, SUPABASE_SECRET_KEY,
+LLM_ENABLED, ANTHROPIC_API_KEY, ANTHROPIC_MODEL,
+LLM_PROMPT_VERSION, LLM_ACTION_CATALOG_VERSION,
+LLM_TIMEOUT_MS, LLM_MAX_TOKENS,
+LLM_DAILY_LIVE_MISS_LIMIT, LLM_CONTEST_BUDGET_USD
+```
+
 - Android는 같은 application ID와 서명키로 release APK와 Play용 AAB를 만든다.
 - keystore, 비밀번호, `keystore.properties`, `local.properties`는 커밋하지 않는다.
 - 7/31 제출물의 서비스 URL·QR에서 웹과 설치 가능한 Android 결과물로 접근할 수 있게 한다.
@@ -136,5 +159,4 @@ prototype/      인터랙티브 시각 참고물
 
 ## 남은 비차단 결정
 
-- [ ] LLM 제공자·모델: 7/22까지 비용·속도 비교 후 선택. 미선택이어도 정적 코치로 개발·시연 가능.
 - [ ] Android App Links: 핵심 화면 경로가 고정된 뒤 P1에서 연결.

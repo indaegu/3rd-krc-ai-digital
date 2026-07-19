@@ -3,9 +3,32 @@
 > 검증 명령의 SSOT다. “완료”라고 말하기 전에 해당 단계에서 실행 가능한 명령을 직접 실행한다.
 > 아직 스캐폴드되지 않은 명령은 성공한 것처럼 보고하지 않는다.
 
-## 현재 단계: 문서·프로토타입 하네스
+## 현재 단계: 모노레포 부트스트랩
 
-앱 스캐폴드 전에는 아래를 실행한다.
+| 목적 | 명령 |
+|---|---|
+| 하네스 경로 | `pnpm harness:check` |
+| 의존성 설치 | `pnpm install --frozen-lockfile` |
+| 포맷 검사 | `pnpm format:check` |
+| JS 린트 | `pnpm lint` |
+| JS 타입 | `pnpm typecheck` |
+| JS 테스트 | `pnpm test` |
+| JS 빌드 | `pnpm build` |
+| OpenAPI | `pnpm openapi:lint` |
+| Supabase 시작·적용 | `pnpm supabase:start`, `pnpm supabase:reset` |
+| Supabase 검사 | `pnpm supabase:lint`, `pnpm supabase:test` |
+| Android 린트 | `.\apps\android\gradlew.bat -p .\apps\android :app:lintDebug` |
+| Android 테스트 | `.\apps\android\gradlew.bat -p .\apps\android :app:testDebugUnitTest` |
+| Android APK | `.\apps\android\gradlew.bat -p .\apps\android :app:assembleDebug` |
+
+- `supabase:*` 명령은 Docker가 필요하다. 현재 개발 PC에는 Docker가 없으므로 Supabase 런타임
+  검증은 `.github/workflows/verify.yml`의 `supabase` job(GitHub Ubuntu runner)에서 수행하고,
+  로컬에서는 실행했다고 보고하지 않는다.
+- CI는 PR·`main` push마다 `.github/workflows/verify.yml`에서 JS(harness/format/openapi/
+  lint/typecheck/test/build + 문서·프로토타입 검사), Android(lintDebug/testDebugUnitTest/
+  assembleDebug), Supabase(start/reset/lint/pgTAP)를 실행한다.
+
+## 문서·프로토타입 검사
 
 | 목적 | 명령 |
 |---|---|
@@ -18,28 +41,14 @@
 링크 검사는 저장소 안의 모든 Markdown 상대 경로를 확인한다. URL의 외부 생존 여부는 공모전·데이터
 원천을 갱신할 때 별도로 확인한다.
 
-## 스캐폴드 후 고정할 명령
+## 다음 단계에서 고정할 명령
 
 | 목적 | 명령 | 현재 상태 |
 |---|---|---|
-| 의존성 설치 | `pnpm install --frozen-lockfile` | 스캐폴드 대기 |
-| 웹 개발 서버 | `pnpm dev` | 스캐폴드 대기 |
-| 린트·포맷 검사 | `pnpm lint` | 스캐폴드 대기 |
-| 타입 검사 | `pnpm typecheck` | 스캐폴드 대기 |
-| 웹·서버 단위 테스트 | `pnpm test` | 스캐폴드 대기 |
-| 프로덕션 빌드 | `pnpm build` | 스캐폴드 대기 |
-| OpenAPI 린트 | `pnpm openapi:lint` | 계약 생성 대기 |
 | 데이터 적재·검증 | `pnpm build:data` | 적재 코드 대기 |
 | 백테스트 | `pnpm backtest` | 모델 코드 대기 |
-| Android 린트 | `.\android\gradlew.bat :app:lintDebug` | 스캐폴드 대기 |
-| Android 단위 테스트 | `.\android\gradlew.bat :app:testDebugUnitTest` | 스캐폴드 대기 |
-| Android 디버그 APK | `.\android\gradlew.bat :app:assembleDebug` | 스캐폴드 대기 |
-| Android 릴리스 APK | `.\android\gradlew.bat :app:assembleRelease` | 서명 설정 대기 |
-| Play AAB | `.\android\gradlew.bat :app:bundleRelease` | 서명 설정 대기 |
-
-- 실제 스캐폴드와 동시에 `package.json` scripts를 만들고 이 표의 상태를 `동작`으로 바꾼다.
-- CI는 PR마다 웹 `lint + typecheck + test + build + openapi:lint`와 Android
-  `lintDebug + testDebugUnitTest + assembleDebug`를 실행한다. 워크플로 생성 후 경로를 여기에 적는다.
+| Android 릴리스 APK | `.\apps\android\gradlew.bat -p .\apps\android :app:assembleRelease` | 서명 설정 대기 |
+| Play AAB | `.\apps\android\gradlew.bat -p .\apps\android :app:bundleRelease` | 서명 설정 대기 |
 
 ## 단위 테스트 최소 범위
 

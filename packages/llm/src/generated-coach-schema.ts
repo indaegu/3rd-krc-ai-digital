@@ -9,11 +9,11 @@ export const generatedCoachCopySchema = z
         z
           .object({
             id: z.string().min(1),
-            reason: z.string().min(1).max(70)
+            reason: z.string().min(1).max(70),
           })
-          .strict()
+          .strict(),
       )
       .min(1)
-      .max(3)
+      .max(3),
   })
   .strict();

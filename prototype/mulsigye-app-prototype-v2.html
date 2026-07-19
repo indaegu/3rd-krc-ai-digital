@@ -576,7 +576,7 @@ body{
             <p class="eyebrow">이 추세라면</p>
             <p class="big" id="reachBig">18<span class="suf">일 뒤</span></p>
             <p class="desc" id="reachDesc"></p>
-            <span class="conf" id="conf">예측 오차(최근 14일) ±1.9%p</span>
+            <span class="conf" id="conf">예측 오차는 백테스트 후 표시해요</span>
           </section>
 
           <!-- 지역 평년 대비 저수율 흐름 -->
@@ -644,7 +644,7 @@ body{
           <h3>예측은 이렇게 계산해요</h3>
           <div class="method">
             최근 30일 지역 평년 대비 저수율의 <b>변화 추세</b>로 앞으로 14일을 내다봐요. 여러 방법(전일 유지·평균·선형 추세·지수평활)을 과거 데이터로 시험해 <b>오차가 가장 낮은 모델</b>을 골라 써요.<br><br>
-            현재 예측 오차는 <b id="methodConf">±1.9%p</b>(최근 14일 기준)예요. 예측은 참고용이며, <b>공식 가뭄 예·경보가 항상 우선</b>이에요.
+            현재 예측 오차는 <b id="methodConf">백테스트 완료 후 공개해요</b>. 예측은 참고용이며, <b>공식 가뭄 예·경보가 항상 우선</b>이에요.
           </div>
         </div>
         <div style="height:1.5rem"></div>
@@ -687,23 +687,23 @@ const STAGE = {
 const SCEN = {
   normal:{rate:84,avg:103,stage:'정상',trend:-0.12,rateTrend:-0.05,reach:null,
     reachTxt:'현재 추세로는 30일 안에 다음 단계 가능성이 낮아요',
-    headline:'물 사정이 넉넉해요',conf:'예측 오차(최근 14일) ±1.4%p',
+    headline:'물 사정이 넉넉해요',conf:'예측 오차는 백테스트 후 표시해요',
     coach:'평년보다 물이 넉넉해요. 지금처럼 관리하면서 수로 상태를 가볍게 살펴봐 주세요.',
     todo:[['현행 급수 일정 유지','지역 평년 대비 103% 수준이에요'],['수로 상태 가볍게 점검','막히거나 새는 곳이 없는지 봐주세요'],['공식 전망 확인','농어촌공사의 최신 가뭄 전망이 우선이에요']],
     banner:false},
   watch:{rate:57,avg:68,stage:'관심',trend:-0.45,rateTrend:-0.35,reach:{days:18,stage:'주의'},
-    headline:'물이 평소보다 조금 부족해요',conf:'예측 오차(최근 14일) ±1.9%p',
+    headline:'물이 평소보다 조금 부족해요',conf:'예측 오차는 백테스트 후 표시해요',
     coach:'지금 추세가 이어지면 18일 뒤 ‘주의’에 들어설 가능성이 있어요. 이번 주에 세 가지만 미리 챙겨두세요.',
     todo:[['논물 새는 곳 점검','물꼬·수로 누수만 막아도 손실이 크게 줄어요'],['공동 급수 일정 확인','이장님·수리계와 미리 맞춰두세요'],['아껴 쓰는 관개 시작','얕게 자주보다, 깊게 드물게가 좋아요']],
     banner:false},
   severe:{rate:33,avg:46,stage:'경계',trend:-0.67,rateTrend:-0.52,reach:{days:9,stage:'심각'},
-    headline:'물 부족이 빠르게 진행 중이에요',conf:'예측 오차(최근 14일) ±2.6%p',
+    headline:'물 부족이 빠르게 진행 중이에요',conf:'예측 오차는 백테스트 후 표시해요',
     coach:'지금 추세가 이어지면 9일 뒤 ‘심각’에 들어설 가능성이 있어요. 이번 주 안에 아래 준비를 마쳐두세요.',
     todo:[['제한급수 대비','급수 일정 변경 안내를 꼭 확인하세요'],['대체수원 확인','관정·양수장 위치와 사용 가능 여부를 봐두세요'],['공식 안내 따르기','공사·지자체 안내가 우선이에요']],
     banner:false},
   flood:{rate:96,avg:118,stage:'정상',trend:+0.85,rateTrend:+0.42,reach:null,
     reachTxt:'현재 추세로는 30일 안에 다음 가뭄 단계 가능성이 낮아요',
-    headline:'비가 많아 물은 충분해요',conf:'예측 오차(최근 14일) ±1.6%p',
+    headline:'비가 많아 물은 충분해요',conf:'예측 오차는 백테스트 후 표시해요',
     coach:'비 덕분에 물 걱정은 없어요. 다만 만수위에 가까우니, 논 주변 배수로만 한 번 살펴봐 주세요.',
     todo:[['배수로 막힘 점검','낙엽·흙으로 막힌 곳을 미리 뚫어두세요'],['저지대 농기계 이동','침수 우려 지역은 미리 옮겨두세요'],['공식 안내 확인','방류·하류 안내는 재난 문자를 따르세요']],
     banner:true}
@@ -1021,7 +1021,7 @@ function renderChart(s, mount, H){
 function renderDetail(){
   const r = state.regions[state.cur], s = curScen();
   $('#detailTitle').textContent = (r? r.dong : '우리 지역') + ' 평년 대비 저수율';
-  $('#methodConf').textContent = s.conf.replace('예측 오차(최근 14일) ','');
+  $('#methodConf').textContent = '백테스트 완료 후 공개해요';
   renderChart(s, $('#chartBig'), 300);
 }
 
