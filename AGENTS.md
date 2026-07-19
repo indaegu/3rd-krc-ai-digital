@@ -15,19 +15,23 @@
 
 ## 저장소 지도
 
-```
-/                        ← 로컬 루트: C:\workspace\3rd-krc-ai-digital
-├── AGENTS.md            ← (이 파일) 하네스 진입점·목차
-├── CLAUDE.md            ← Claude Code용 포인터 (AGENTS.md 참조)
-├── README.md            ← 사람(심사위원 포함)용 프로젝트 소개
-├── .env.example         ← 서버 환경변수 이름만 공유 (값 금지)
-├── docs/                ← 지식 베이스 (아래 목차 참조)
-├── prototype/           ← 인터랙티브 시각 참고물 (문서 SSOT를 따름)
-├── scripts/             ← 데이터·백테스트·문서 검증 CLI
-├── app/, lib/           ← 스캐폴드 후 Next.js 웹·공용 API 코드
-├── android/             ← 스캐폴드 후 Kotlin/Compose 네이티브 앱
-├── contracts/           ← 웹·Android 공용 OpenAPI 계약
-└── supabase/            ← PostgreSQL 스키마 마이그레이션
+```text
+/                              ← C:\workspace\3rd-krc-ai-digital
+├── apps/
+│   ├── web/                    ← Next.js UI + Vercel Route Handlers
+│   └── android/                ← Kotlin/Jetpack Compose native app
+├── packages/
+│   ├── contracts/              ← OpenAPI 3.1 contract and fixtures
+│   └── llm/                    ← server-only coach providers and validation
+├── infra/
+│   └── supabase/               ← config, migrations, pgTAP tests
+├── data/                       ← validated snapshots and evidence artifacts
+├── docs/                       ← knowledge and operations SSOT
+├── prototype/                  ← interactive visual reference
+├── scripts/                    ← cross-workspace checks and data CLI
+├── package.json                ← pnpm command orchestrator
+├── pnpm-workspace.yaml         ← apps/web + packages/*
+└── AGENTS.md                   ← root task router
 ```
 
 ## 문서 목차 — 무엇을, 언제 읽나
@@ -41,10 +45,22 @@
 | [docs/tech-stack.md](docs/tech-stack.md) | 기술 스택과 선택 이유·금지 사항 | 라이브러리 추가 전 |
 | [docs/data-sources.md](docs/data-sources.md) | KRC 공공데이터 5종·대표지·가뭄단계 기준 | 데이터 페치/가공 코드 전 |
 | [docs/prediction-model.md](docs/prediction-model.md) | 예측 모델·백테스트 프로토콜 | 예측/백테스트 코드 전 |
+| [docs/llm-coach.md](docs/llm-coach.md) | Claude 책임 경계·비용·캐시·폴백·평가 | LLM, 코치 API, 프롬프트, 캐시 작업 전 |
 | [docs/design-system.md](docs/design-system.md) | 디자인 토큰·컴포넌트·애니메이션 규칙 | 웹·Android UI 작업 전 |
 | [docs/conventions.md](docs/conventions.md) | 코드·커밋·브랜치·문서 동기화 규칙 | 첫 커밋 전 필독 |
 | [docs/testing-and-feedback.md](docs/testing-and-feedback.md) | 검증 명령·피드백 루프·QA 시나리오 | PR 올리기 전 |
 | [docs/milestones.md](docs/milestones.md) | 일정·제출물 체크리스트 | 작업 우선순위 판단 시 |
+
+## 작업 라우터
+
+| 작업 대상 | 시작 경로 | 반드시 함께 읽을 문서 | 최소 완료 게이트 |
+|---|---|---|---|
+| 웹 UI·Route Handler | `apps/web/` | product, architecture, tech-stack, design-system | web lint/typecheck/test/build |
+| Android | `apps/android/` | product, architecture, tech-stack, design-system | Gradle lint/test/assemble |
+| HTTP 계약 | `packages/contracts/` | architecture, data-sources | OpenAPI generate/lint/test + 두 DTO |
+| LLM 코치 | `packages/llm/` | llm-coach, prediction-model | schema·semantic·fallback tests |
+| Supabase | `infra/supabase/` | architecture, llm-coach, data-sources | clean reset/lint/pgTAP |
+| 공공데이터·예측 | `apps/web/src/lib/`, `scripts/` | data-sources, prediction-model | fixture tests + backtest |
 
 ## 절대 규칙 (Non-negotiables)
 
@@ -63,6 +79,9 @@
 9. **기본 전달은 `main` 대상 PR이다.** 문서·소스 변경 요청에 별도 전달 지시가 없으면
    작업 브랜치에서 검증·커밋·푸시 후 PR까지 만든다. 사용자가 "바로 main에 넣어라"처럼
    직접 반영을 명시한 경우에만 검증 후 `origin/main`에 직접 푸시한다.
+10. **LLM은 제품 사실을 결정하지 않는다.** 단계·예측·수치·행동 ID와 순서는 서버가
+    확정하고 Claude는 쉬운 설명만 생성한다. 키·캐시·예산·공급자 장애 때도 정적 코치
+    HTTP 200을 유지하며 Claude Max OAuth 자격증명을 배포 런타임에 사용하지 않는다.
 
 ## 기준 우선순위
 

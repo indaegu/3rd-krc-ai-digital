@@ -1,0 +1,5 @@
+{
+  "code": "SERVICE_UNAVAILABLE",
+  "message": "잠시 후 다시 시도해 주세요.",
+  "retryable": true
+}

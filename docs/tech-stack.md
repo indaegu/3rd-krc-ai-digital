@@ -36,14 +36,19 @@
 | 배포 | 동일 서명키의 release APK + Play용 AAB | 심사용 설치와 최종 네이티브 배포를 함께 준비 |
 | 딥링크 | Android App Links(P1) | 앱 설치 시 Compose 화면, 미설치 시 웹 폴백 |
 
-## LLM 코치 전략
+## LLM 코치
 
-- 제공자 선택은 비차단 결정이다. `CoachProvider` 어댑터 뒤에 둬서 나중에 교체한다.
-- 먼저 단계별 정적 행동 세트를 구현한다. LLM이 없거나 실패해도 핵심 시연이 동작해야 한다.
-- LLM에는 지역명·서버가 계산한 단계·도달 가능 시점·허용 행동 ID만 전달한다.
-- 자유 질문, 사용자 임의 프롬프트, 위험 판정, 단계 재판정은 허용하지 않는다.
-- 출력은 Zod로 “인사 1문장 + 행동 최대 3개”를 검증하고 실패하면 정적 문구로 폴백한다.
-- 제공자·모델·프롬프트 버전은 7/22까지 확정해 이 문서와 환경변수 예시를 갱신한다.
+| 영역 | 확정 선택 |
+|---|---|
+| 런타임 제공자 | Anthropic Claude API |
+| 모델 | `claude-opus-4-7` |
+| SDK | `@anthropic-ai/sdk@0.112.3` |
+| 출력 | `output_config.format` JSON Schema + Zod 의미 검증 |
+| 호출 | effort low, 256 tokens, 4초, retry 0, tools/search/RAG/streaming 없음 |
+| 배치 | Anthropic 추론 + Vercel 오케스트레이션 + Supabase 검증 캐시 |
+| 비용 | USD 5 누적, KST 일일 20 live miss, cache/lock 선행 |
+| 개발 구독 | Max는 로컬 평가·사전 생성 전용, 공개 런타임은 Console API key |
+| 장애 | 모든 장애에서 같은 행동의 정적 코치 HTTP 200 |
 
 ## 플랫폼 연결 원칙
 
@@ -71,11 +76,35 @@
 - 플랫폼별 예측·단계·대표 저수지 선정 로직 복제 금지.
 - Auth·로그인·알림 라이브러리를 추가하지 않는다.
 
+## 고정 버전 (모노레포 부트스트랩)
+
+| 도구 | 고정 버전 |
+|---|---|
+| Node.js | 24.x |
+| pnpm | 10.33.0 |
+| Next.js | 16.2.10 |
+| React | 19.2.7 |
+| TypeScript | 루트·`apps/web` 6.0.3 / `packages/contracts`·`packages/llm` 7.0.2 |
+| Vitest | 4.1.10 |
+| Redocly CLI | 2.39.0 |
+| Zod | 4.4.3 |
+| Supabase CLI | 2.109.1 |
+| JDK | 17 (CI·`jvmTarget` 기준, 로컬은 JDK 21에서도 빌드) |
+| Gradle | 8.13 |
+| AGP | 8.13.2 |
+| Kotlin | 2.3.21 |
+| Compose BOM | 2026.06.00 |
+
+- Vercel의 Root Directory는 `apps/web`이다. Turborepo는 사용하지 않는다.
+- TypeScript 7.0.2는 JS API가 없는 네이티브 컴파일러라 Next.js 빌드와 typescript-eslint가
+  도는 루트·`apps/web`에는 6.0.3을 고정한다. `packages/contracts`의 타입 생성은
+  `pnpm dlx openapi-typescript@7.13.0` 격리 실행으로 수행하고 생성 파일을 커밋한다.
+
 ## 버전 고정 원칙
 
 - `package.json`에는 정확한 버전을 쓰고 `pnpm-lock.yaml`을 커밋한다.
 - Node·pnpm 버전은 `package.json`의 `engines`·`packageManager`와 `.nvmrc`에 기록한다.
-- Android 의존성은 `android/gradle/libs.versions.toml`에 정확한 버전으로 모은다.
+- Android 의존성은 `apps/android/gradle/libs.versions.toml`에 정확한 버전으로 모은다.
 - 도구 버전을 올리면 웹 `lint/typecheck/test/build`와 Android `lint/test/assemble`을 모두 실행한다.
 - 새 의존성을 추가하면 이 문서의 선택·이유와 [testing-and-feedback.md](testing-and-feedback.md)의
   검증 명령을 같은 변경에서 갱신한다.

@@ -1,0 +1,32 @@
+{
+  "name": "mulsigye-monorepo",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@10.33.0",
+  "engines": {
+    "node": "24.x",
+    "pnpm": "10.33.0"
+  },
+  "scripts": {
+    "harness:check": "node scripts/check-monorepo-layout.mjs",
+    "dev": "pnpm --filter @mulsigye/web dev",
+    "lint": "pnpm -r --if-present lint",
+    "typecheck": "pnpm -r --if-present typecheck",
+    "test": "pnpm -r --if-present test",
+    "build": "pnpm -r --if-present build",
+    "format:check": "prettier --check \"apps/web/**/*.{ts,tsx,css,json,mjs}\" \"packages/**/*.{ts,json,yaml}\" \"*.{json,yaml,mjs}\"",
+    "openapi:lint": "pnpm --filter @mulsigye/contracts lint",
+    "supabase:start": "supabase --workdir infra/supabase start -x auth,realtime,storage,imgproxy,inbucket,edge-runtime,logflare,vector",
+    "supabase:reset": "supabase --workdir infra/supabase db reset --local",
+    "supabase:lint": "supabase --workdir infra/supabase db lint --local --level error",
+    "supabase:test": "supabase --workdir infra/supabase test db",
+    "supabase:stop": "supabase --workdir infra/supabase stop --no-backup"
+  },
+  "devDependencies": {
+    "eslint": "10.7.0",
+    "prettier": "3.9.5",
+    "supabase": "2.109.1",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.64.0"
+  }
+}

@@ -5,10 +5,16 @@ import { tmpdir } from 'node:os';
 import { pathToFileURL } from 'node:url';
 
 const browserCandidates = [
+  process.env.CHROME_PATH,
   'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
   'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
   'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe',
-];
+  '/usr/bin/google-chrome',
+  '/usr/bin/google-chrome-stable',
+  '/usr/bin/chromium-browser',
+  '/usr/bin/chromium',
+  '/usr/bin/microsoft-edge',
+].filter(Boolean);
 
 const browserPath = browserCandidates.find(existsSync);
 if (!browserPath) {
@@ -25,6 +31,8 @@ const browser = spawn(
     '--no-first-run',
     '--no-default-browser-check',
     '--remote-debugging-port=0',
+    // Ubuntu 24.04 러너는 비특권 user namespace를 제한해 Chrome 샌드박스가 실패한다.
+    ...(process.platform === 'linux' ? ['--no-sandbox'] : []),
     `--user-data-dir=${profileDir}`,
     prototypeUrl,
   ],

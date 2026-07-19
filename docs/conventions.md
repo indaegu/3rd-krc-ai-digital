@@ -62,6 +62,10 @@ chore: pnpm lockfile 갱신
 | 검증 명령 변경 | testing-and-feedback.md |
 | 공모전 제출·심사 조건 변경 | contest-rules.md + milestones.md |
 | 작업 의존성·우선순위 변경 | work-plan.md + milestones.md |
+| API 경로·필드·오류 변경 | packages/contracts/openapi.yaml + 웹·Android DTO/tests |
+| LLM 모델·프롬프트·정책·비용 변경 | llm-coach.md + tech-stack.md + testing-and-feedback.md |
+| DB 테이블·RLS·정책 변경 | architecture.md + infra/supabase tests |
+| 모노레포 경로·루트 명령 변경 | AGENTS.md + architecture.md + testing-and-feedback.md |
 
 - 문서에 없는 결정을 코드에 넣어야 한다면: 코드에 `TODO(decide):` 주석 + 문서의
   '미결정' 절에 항목 추가 후 사람에게 묻는다. **추측으로 확정하지 않는다.**

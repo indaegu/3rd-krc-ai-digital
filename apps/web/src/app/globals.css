@@ -1,0 +1,43 @@
+:root {
+  --ink: #191f28;
+  --ink-secondary: #4e5968;
+  --gray-50: #f9fafb;
+  --blue: #3182f6;
+  --blue-deep: #1b64da;
+  --radius-large: 24px;
+  color: var(--ink);
+  background: #ffffff;
+  font-family:
+    var(--font-pretendard),
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  min-width: 320px;
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+button {
+  min-width: 48px;
+  min-height: 48px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

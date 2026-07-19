@@ -1,0 +1,32 @@
+.main {
+  display: grid;
+  gap: 24px;
+  width: min(100% - 32px, 560px);
+  margin: 0 auto;
+  padding: 48px 0;
+}
+
+.hero {
+  display: grid;
+  gap: 8px;
+}
+
+.hero h1,
+.hero p {
+  margin: 0;
+}
+
+.hero h1 {
+  font-size: clamp(2.5rem, 10vw, 4rem);
+}
+
+.eyebrow {
+  color: var(--blue-deep);
+  font-weight: 700;
+}
+
+.notice {
+  margin: 0;
+  color: var(--ink-secondary);
+  font-size: 0.9375rem;
+}

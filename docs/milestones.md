@@ -9,10 +9,11 @@
 | 날짜 | 마일스톤 | 비고 |
 |---|---|---|
 | 07-19 (일) | 킥오프·주제 확정 | 완료 |
+| 07-19 (일) | LLM 제공자·모델 확정 (Anthropic `claude-opus-4-7`) | 완료 |
 | 07-20 (월) | 데이터 확보(API 키 + 연간 CSV 4종) | 수위 API XML 표본도 저장 |
 | 07-21 (화) | 기획 동결 + 웹·Android·Supabase 스캐폴드 | 이후 범위 추가 금지 |
 | 07-24 (금) | UI 시안 확정 · AI 백테스트(MAE) 완료 | prediction-model.md 결과 절 기록 |
-| 07-28 (화) | 웹·Android 핵심 기능 개발 완료(기능 동결) | 이후 버그픽스·QA만 |
+| 07-28 (화) | 웹·Android 핵심 기능 개발 완료(기능 동결) | 이후 버그픽스·QA만. live provider 연결 전 cache/lock/budget 테스트 통과 필수 |
 | 07-29 (수) | 웹 정식 배포 + Android release APK 확보 | URL·설치 링크·QR 준비 |
 | 07-30 (목) | 기획서(hwp) 완성 | 10페이지 이내 |
 | **07-31 (금)** | **최종 제출 마감** | digital@ekr.or.kr |
