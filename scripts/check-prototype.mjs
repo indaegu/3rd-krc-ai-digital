@@ -146,6 +146,12 @@ try {
   await expectText('#reachBig', '18일 뒤');
   await expectText('#reachDesc', '가능성이 있어요');
 
+  await click('[data-scen="normal"]');
+  await expectText('#avg', '103%');
+  await expectText('#stage', '정상');
+  await expectText('#reachBig', '안정');
+  await expectText('#reachDesc', '30일 안에 다음 단계 가능성이 낮아요');
+
   await click('[data-scen="severe"]');
   await expectText('#avg', '46%');
   await expectText('#reachBig', '9일 뒤');
@@ -168,7 +174,7 @@ try {
     throw new Error(`브라우저 JavaScript 오류:\n${pageErrors.join('\n')}`);
   }
 
-  console.log('Prototype interaction OK (onboarding, consent, region, 3 scenarios, detail).');
+  console.log('Prototype interaction OK (onboarding, consent, region, 4 scenarios, detail).');
 } finally {
   if (socket?.readyState === WebSocket.OPEN) socket.close();
   browser.kill();
