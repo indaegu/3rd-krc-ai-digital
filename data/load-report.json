@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-07-21T13:37:50.207Z",
-  "mode": "skip-upsert",
+  "generatedAt": "2026-07-21T23:22:51.220Z",
+  "mode": "upsert",
   "sources": {
     "droughtMap": {
       "sourceFile": "한국농어촌공사_논가뭄지도_20251231.csv",
@@ -94,7 +94,12 @@
     }
   },
   "upsert": {
-    "performed": false,
-    "rowsByTable": {}
+    "performed": true,
+    "rowsByTable": {
+      "reservoirs": 3422,
+      "reservoir_observations": 1232890,
+      "regional_drought_daily": 56258,
+      "official_outlooks": 2004
+    }
   }
 }

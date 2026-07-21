@@ -75,7 +75,7 @@ apps/web browser UI + apps/android
 |---|---|---|---|
 | `GET /api/v1/regions/search` | 주소 검색어 | 주소 API 결과를 최소 필드로 정규화 | 원문을 로그·DB에 저장하지 않음 |
 | `POST /api/v1/regions/resolve` | 선택 주소의 행정코드 | 시군구와 대표 저수지를 결정 | 수혜면적 최대, 동률은 시설코드 오름차순 |
-| `GET /api/v1/status` | `sigunCode` | 대표 저수지 원저수율 + 지역 `avgRatio` + 공식 단계 | 두 저수율의 의미를 분리 |
+| `GET /api/v1/status` | `sigunCode` | 대표 저수지 원저수율 + 지역 `avgRatio` + 공식 단계 | 두 저수율의 의미를 분리, 3단 폴백으로 HTTP 200 유지 |
 | `GET /api/v1/forecast` | `sigunCode` | 14일 예측, 오차, 도달 가능 시점, 공식 전망 | 참고 표현만 반환 |
 | `GET /api/v1/coach` | `sigunCode` | 서버가 상태를 조회해 허용 행동 안에서 코칭 | 임의 프롬프트 입력 금지 |
 
@@ -90,8 +90,12 @@ apps/web browser UI + apps/android
 
 1. 주소 검색 결과에서 행정 시군구 코드를 얻는다. 주소 원문은 응답 후 폐기한다.
 2. `reservoirs`에서 같은 시군구의 수혜면적 최대 시설을 대표 저수지로 결정한다.
+   Supabase 조회가 실패하면 커밋 스냅샷으로 폴백한다(`stale: true`).
 3. KRC 수위 API(XML)에서 대표 저수지의 현재 원저수율을 조회하고 60분 캐시한다.
-4. `regional_drought_daily`의 최신 `avgRatio`와 공식 단계를 조회한다.
+   status의 관측 폴백 순서는 3단으로 고정한다:
+   **① 수위 API → ② Supabase `reservoir_observations` 최신(`stale: true`) →
+   ③ 커밋 스냅샷(`stale: true`, sources에 스냅샷 기준일 명시)** — 어느 단이든 HTTP 200을 유지한다.
+4. `regional_drought_daily`의 최신 `avgRatio`와 공식 단계를 조회한다(실패 시 커밋 스냅샷).
 5. 같은 지역 `avgRatio` 시계열을 예측 함수에 넣고 공식 전망을 병기한다.
 6. 상태와 허용 행동 목록으로 코치 응답을 만들며, LLM 장애 시 정적 문구를 반환한다.
 
@@ -127,15 +131,21 @@ apps/web/src/app/api/v1/     버전이 고정된 Route Handlers
 apps/web/src/components/     UI 컴포넌트(Gauge*, Coach*, Region*)
 apps/web/src/lib/data/       외부 페치·XML/CSV 정규화·대표지 결정·캐시
 apps/web/src/lib/prediction/ 모델·도달일 계산 순수 함수
+apps/web/scripts/            데이터 적재 CLI(build-data.ts) — lib/data 모듈 재사용
 packages/contracts/          OpenAPI 계약
 packages/llm/                서버 전용 코치 provider·검증
-data/                        제출 시점의 검증된 정적 스냅샷
-scripts/                     데이터 적재·백테스트·하네스 검증 CLI
+data/                        제출 시점의 검증된 정적 스냅샷·적재 리포트
+scripts/                     크로스 워크스페이스 검사(하네스·문서·프로토타입)만
 infra/supabase/              DB 마이그레이션·pgTAP 테스트
 apps/android/                Kotlin + Compose 프로젝트
 docs/                        지식 베이스
 prototype/                   인터랙티브 시각 참고물
 ```
+
+루트 `pnpm build:data`는 `--filter @mulsigye/web`로 `apps/web/scripts/build-data.ts`에
+위임한다(Node 24 네이티브 TS 실행). 정규화·격리·대표지 결정 로직은 전부
+`apps/web/src/lib/data` 모듈에 있고 CLI는 파일 읽기·upsert·리포트 조립만 한다.
+`scripts/`(루트)에는 워크스페이스 밖 검사만 남긴다.
 
 ## 배포
 

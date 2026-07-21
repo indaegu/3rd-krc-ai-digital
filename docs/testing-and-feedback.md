@@ -15,6 +15,8 @@
 | JS 테스트 | `pnpm test` |
 | JS 빌드 | `pnpm build` |
 | OpenAPI | `pnpm openapi:lint` |
+| 데이터 적재·검증 | `pnpm build:data` (`--dry-run`/`--skip-upsert` 지원, upsert는 `.env.local` 필요) |
+| 단계 2 완료 게이트 | `pnpm --filter @mulsigye/web test test/stage2-gate.test.ts` |
 | Supabase 시작·적용 | `pnpm supabase:start`, `pnpm supabase:reset` |
 | Supabase 검사 | `pnpm supabase:lint`, `pnpm supabase:test` |
 | Android 린트 | `.\apps\android\gradlew.bat -p .\apps\android :app:lintDebug` |
@@ -45,7 +47,6 @@
 
 | 목적 | 명령 | 현재 상태 |
 |---|---|---|
-| 데이터 적재·검증 | `pnpm build:data` | 적재 코드 대기 |
 | 백테스트 | `pnpm backtest` | 모델 코드 대기 |
 | Android 릴리스 APK | `.\apps\android\gradlew.bat -p .\apps\android :app:assembleRelease` | 서명 설정 대기 |
 | Play AAB | `.\apps\android\gradlew.bat -p .\apps\android :app:bundleRelease` | 서명 설정 대기 |
