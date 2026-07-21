@@ -1,8 +1,8 @@
 // 가뭄예경보자료(CP949 연간 CSV) → 월별 공식 전망 정규화.
 // 전망 값은 0~4 코드(포털 공식 정의: 0=정상 … 4=심각). 라벨 변환은 drought-stage.ts 한 곳에서만 한다.
-import { parseCsv, parseNumericCell } from "./csv";
-import { decodeCp949 } from "./encoding";
-import { makeQuarantined, type NormalizeResult } from "./quarantine";
+import { parseCsv, parseNumericCell } from "./csv.ts";
+import { decodeCp949 } from "./encoding.ts";
+import { makeQuarantined, type NormalizeResult } from "./quarantine.ts";
 
 export type OfficialOutlookRow = {
   publishedOn: string;

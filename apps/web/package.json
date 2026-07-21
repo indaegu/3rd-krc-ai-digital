@@ -8,6 +8,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "build": "next build",
+    "build:data": "node scripts/build-data.ts",
     "start": "next start"
   },
   "dependencies": {

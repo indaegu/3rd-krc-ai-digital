@@ -1,9 +1,9 @@
 // 전국 저수지 일별 저수율(UTF-8 BOM, wide 연간 CSV) → (facCode, observedOn, rate) long 정규화.
 // 원천에 fac_code가 없어 (저수지명, 위치) ↔ 시설제원 (시설명, 소재지) 정확 일치 조인이 필수다.
-import { parseCsv, parseNumericCell } from "./csv";
-import { decodeUtf8 } from "./encoding";
-import type { ReservoirSpec } from "./normalize-reservoir-spec";
-import { makeQuarantined, type NormalizeResult } from "./quarantine";
+import { parseCsv, parseNumericCell } from "./csv.ts";
+import { decodeUtf8 } from "./encoding.ts";
+import type { ReservoirSpec } from "./normalize-reservoir-spec.ts";
+import { makeQuarantined, type NormalizeResult } from "./quarantine.ts";
 
 export type DailyRateObservation = {
   facCode: string;

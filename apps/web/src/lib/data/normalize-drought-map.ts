@@ -1,13 +1,13 @@
 // 논가뭄지도(CP949 연간 CSV) → 시군별 일자 정규화.
 // 원천 필드명 해석은 이 모듈(apps/web/src/lib/data) 밖에서 하지 않는다.
-import { parseCsv, parseNumericCell } from "./csv";
-import { decodeCp949 } from "./encoding";
+import { parseCsv, parseNumericCell } from "./csv.ts";
+import { decodeCp949 } from "./encoding.ts";
 import {
   stageCodeFromAvgRatio,
   stageCodeFromLabel,
   type DroughtStageLabel,
-} from "./drought-stage";
-import { makeQuarantined, type NormalizeResult } from "./quarantine";
+} from "./drought-stage.ts";
+import { makeQuarantined, type NormalizeResult } from "./quarantine.ts";
 
 export type RegionalDroughtRow = {
   observedOn: string;

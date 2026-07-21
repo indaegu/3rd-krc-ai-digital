@@ -1,6 +1,6 @@
 // 우리 지역 대표 저수지 결정(순수 함수). GPS 거리·인접 지역 폴백을 쓰지 않는다.
 // 규칙: 같은 시군구 후보 중 수혜면적 최대 → 동률이면 facCode 오름차순 → 후보 없으면 null.
-import type { ReservoirSpec } from "./normalize-reservoir-spec";
+import type { ReservoirSpec } from "./normalize-reservoir-spec.ts";
 
 export function pickRepresentativeReservoir(
   sigunCode: string,

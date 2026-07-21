@@ -1,7 +1,7 @@
 // 농촌용수 저수지 수위 API(XML) 응답 파싱. fast-xml-parser + Zod로 경계를 검증한다.
 import { XMLParser } from "fast-xml-parser";
 import { z } from "zod";
-import { parseNumericCell } from "./csv";
+import { parseNumericCell } from "./csv.ts";
 
 export type WaterLevelObservation = {
   facCode: string;

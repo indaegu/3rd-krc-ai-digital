@@ -1,8 +1,8 @@
 // 농업기반시설 시설제원_저수지(CP949 연간 CSV) → 시설 제원 정규화.
 // 시군코드 열이 없어 표준코드 앞 5자리를 유도값으로 쓴다(탑정 4423010045 → 44230 실측).
-import { parseCsv, parseNumericCell } from "./csv";
-import { decodeCp949 } from "./encoding";
-import { makeQuarantined, type NormalizeResult } from "./quarantine";
+import { parseCsv, parseNumericCell } from "./csv.ts";
+import { decodeCp949 } from "./encoding.ts";
+import { makeQuarantined, type NormalizeResult } from "./quarantine.ts";
 
 export type ReservoirSpec = {
   facCode: string;
