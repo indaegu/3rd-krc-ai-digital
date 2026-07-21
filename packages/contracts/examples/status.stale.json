@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "1",
+  "sigunCode": "46170",
+  "sigunName": "나주시",
+  "reservoir": {
+    "facCode": "4617010001",
+    "name": "나주",
+    "rate": null,
+    "waterLevel": null,
+    "observedOn": null
+  },
+  "region": {
+    "observedOn": "2026-07-14",
+    "regionalRate": 91.2,
+    "normalRate": 65.1,
+    "avgRatio": 140.1,
+    "officialStage": {
+      "code": "ok",
+      "label": "정상"
+    }
+  },
+  "asOf": "2026-07-21T00:00:00.000Z",
+  "sources": ["Supabase 스냅샷", "논가뭄지도"],
+  "stale": true
+}

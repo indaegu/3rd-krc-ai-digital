@@ -21,6 +21,57 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/regions/search": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** 주소 검색으로 지역 후보 목록 조회 */
+    get: operations["searchRegions"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/regions/resolve": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** 선택한 주소를 시군구와 우리 지역 대표 저수지로 확정 */
+    post: operations["resolveRegion"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/status": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** 시군구의 대표 저수지 현재값과 공식 가뭄단계 조회 */
+    get: operations["getStatus"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -41,6 +92,93 @@ export interface components {
       code: string;
       message: string;
       retryable: boolean;
+    };
+    RegionCandidate: {
+      /** @description 표시용 도로명주소. 선택 후 폐기하며 서버에 저장하지 않는다 */
+      label: string;
+      /** @description 행정구역코드 10자리 */
+      admCd: string;
+      /** @description bdMgtSn 앞 10자리 법정동코드. admCd가 KRC 시군코드와 불일치할 때 폴백 */
+      legalCode: string;
+    };
+    RegionSearchResponse: {
+      /** @constant */
+      schemaVersion: "1";
+      candidates: components["schemas"]["RegionCandidate"][];
+      /** Format: date-time */
+      asOf: string;
+      sources: string[];
+      stale: boolean;
+    };
+    RegionResolveRequest: {
+      admCd: string;
+      legalCode: string;
+    };
+    /** @description 우리 지역 대표 저수지. 거리 필드는 두지 않는다 */
+    RepresentativeReservoir: {
+      /** @description KRC 시설코드 10자리. 앞 5자리가 시군코드 */
+      facCode: string;
+      name: string;
+    };
+    RegionResolveResponse: {
+      /** @constant */
+      schemaVersion: "1";
+      /** @description KRC 시군 코드 5자리. 판정 불가면 null */
+      sigunCode: string | null;
+      sigunName: string | null;
+      /** @description false면 "이 지역은 준비 중이에요"를 표시한다 */
+      prepared: boolean;
+      reservoir: components["schemas"]["RepresentativeReservoir"] | null;
+      /** Format: date-time */
+      asOf: string;
+      sources: string[];
+      stale: boolean;
+    };
+    /** @description 공식 가뭄단계. code는 UI 토큰, label은 한국어 공식 명칭 */
+    DroughtStage: {
+      /** @enum {string} */
+      code: "ok" | "watch" | "care" | "alert" | "crit";
+      /** @enum {string} */
+      label: "정상" | "관심" | "주의" | "경계" | "심각";
+    };
+    StatusResponse: {
+      /** @constant */
+      schemaVersion: "1";
+      sigunCode: string;
+      sigunName: string;
+      /** @description 우리 지역 대표 저수지의 최신 관측값 */
+      reservoir: {
+        facCode: string;
+        name: string;
+        /** @description 원저수율 %. 100 초과 가능. avgRatio와 섞지 않는다 */
+        rate: number | null;
+        /** @description 수위(m) */
+        waterLevel: number | null;
+        /**
+         * Format: date
+         * @description KST 달력일 YYYY-MM-DD
+         */
+        observedOn: string | null;
+      };
+      /** @description 논가뭄지도 기준 지역 공식 값 */
+      region: {
+        /**
+         * Format: date
+         * @description KST 달력일 YYYY-MM-DD
+         */
+        observedOn: string;
+        /** @description 시군 통합 저수율 % */
+        regionalRate: number | null;
+        /** @description 평년 저수율 % */
+        normalRate: number | null;
+        /** @description 평년 대비 저수율 %. 100 초과 가능(실측 140.1). 일일 변화량은 %p */
+        avgRatio: number;
+        officialStage: components["schemas"]["DroughtStage"];
+      };
+      /** Format: date-time */
+      asOf: string;
+      sources: string[];
+      stale: boolean;
     };
   };
   responses: never;
@@ -70,6 +208,139 @@ export interface operations {
         };
       };
       /** @description API 프로세스가 요청을 처리할 수 없음 */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+    };
+  };
+  searchRegions: {
+    parameters: {
+      query: {
+        /** @description 사용자가 입력한 주소 검색어. 원문은 응답 후 폐기하며 저장하지 않는다. */
+        q: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description 주소 후보 목록. 후보가 없으면 빈 배열 */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["RegionSearchResponse"];
+        };
+      };
+      /** @description 검색어가 없거나 형식이 잘못됨 (retryable=false) */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description 도로명주소 API를 사용할 수 없음 (retryable=true) */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+    };
+  };
+  resolveRegion: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["RegionResolveRequest"];
+      };
+    };
+    responses: {
+      /** @description 시군구·대표 저수지 결정 결과. 후보가 없는 지역은 prepared=false로 HTTP 200을 유지한다 */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["RegionResolveResponse"];
+        };
+      };
+      /** @description admCd·legalCode가 없거나 형식이 잘못됨 (retryable=false) */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description 조회 저장소와 커밋 스냅샷 폴백까지 모두 실패함 (retryable=true) */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+    };
+  };
+  getStatus: {
+    parameters: {
+      query: {
+        /** @description KRC 시군 코드 5자리 */
+        sigunCode: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description 대표 저수지 관측값과 지역 공식 단계. 수위 API 장애 시에도 Supabase·커밋 스냅샷 폴백으로 stale=true HTTP 200을 유지한다 */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["StatusResponse"];
+        };
+      };
+      /** @description sigunCode가 없거나 5자리 숫자가 아님 (retryable=false) */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description 준비되지 않은 시군구 코드 (retryable=false) */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description 수위 API·Supabase·커밋 스냅샷 폴백이 모두 실패함 (retryable=true) */
       503: {
         headers: {
           [name: string]: unknown;
