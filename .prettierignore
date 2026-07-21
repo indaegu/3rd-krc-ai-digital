@@ -6,5 +6,6 @@ pnpm-lock.yaml
 apps/android/.gradle
 apps/android/gradle/wrapper/gradle-wrapper.jar
 apps/android/**/build
+apps/web/test/fixtures
 prototype
 공모전 문서
