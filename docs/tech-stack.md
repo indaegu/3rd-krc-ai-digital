@@ -14,7 +14,7 @@
 | 차트 | 직접 그린 SVG | 실측·예측·불확실 밴드를 작게 정확히 표현 |
 | 검증 | ESLint + Prettier + TypeScript + Vitest | 정적 검사·단위 테스트를 빠르게 반복 |
 | 패키지 | pnpm + Corepack | 단일 lockfile과 재현 가능한 설치 |
-| 데이터 파싱 | `fast-xml-parser` + 내장 CSV 파서 또는 최소 CSV 패키지 | KRC API XML을 명시적으로 파싱; CSV는 스캐폴드 때 표본으로 결정 |
+| 데이터 파싱 | `fast-xml-parser` + 내장 quote-aware CSV 파서(`apps/web/src/lib/data/csv.ts`) | KRC API XML을 명시적으로 파싱; CSV는 실측 표본 기준 내장 구현으로 확정(추가 패키지 없음) |
 | 런타임 검증 | Zod | 외부 XML/CSV·환경변수·Route 응답 경계 검증 |
 | API 계약 | OpenAPI 3.1 + Redocly CLI | 웹·Android DTO와 오류 계약의 SSOT·CI 린트 |
 | 데이터베이스 | Supabase PostgreSQL + `@supabase/supabase-js` + Supabase CLI | 공개 데이터 스냅샷·예측/코치 캐시·마이그레이션 |
@@ -88,6 +88,8 @@
 | Vitest | 4.1.10 |
 | Redocly CLI | 2.39.0 |
 | Zod | 4.4.3 |
+| fast-xml-parser | 5.10.1 |
+| @supabase/supabase-js | 2.110.7 |
 | Supabase CLI | 2.109.1 |
 | JDK | 17 (CI·`jvmTarget` 기준, 로컬은 JDK 21에서도 빌드) |
 | Gradle | 8.13 |

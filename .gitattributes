@@ -21,6 +21,9 @@
 *.ps1 text eol=crlf
 *.bat text eol=crlf
 
+# KRC 원천 CSV 픽스처는 CP949·CRLF 바이트를 그대로 보존해야 한다
+apps/web/test/fixtures/*.csv binary
+
 *.png binary
 *.jpg binary
 *.jpeg binary

@@ -1,0 +1,105 @@
+{
+  "generatedAt": "2026-07-21T23:22:51.220Z",
+  "mode": "upsert",
+  "sources": {
+    "droughtMap": {
+      "sourceFile": "한국농어촌공사_논가뭄지도_20251231.csv",
+      "portalUpdatedOn": "2025-12-31",
+      "sha256": "02d2392898289ab5c473b5c1c6c9220f8ade84bbeed4f4e68507a8da2efad319",
+      "loadedRows": 56258,
+      "quarantinedRows": 4697,
+      "quarantineByReason": {
+        "placeholder_region": 4697,
+        "stage_mismatch": 0,
+        "negative_rate": 0,
+        "no_spec_match": 0,
+        "ambiguous_join": 0,
+        "outlook_out_of_range": 0,
+        "invalid_value": 0,
+        "invalid_row": 0
+      }
+    },
+    "reservoirSpec": {
+      "sourceFile": "한국농어촌공사_농업기반시설 시설제원_저수지_20250925.csv",
+      "portalUpdatedOn": "2025-09-25",
+      "sha256": "c78ea157defc93ad216d36800df6057bd02f5026b47a9cdcde83a7e57644eea8",
+      "loadedRows": 3422,
+      "quarantinedRows": 0,
+      "quarantineByReason": {
+        "placeholder_region": 0,
+        "stage_mismatch": 0,
+        "negative_rate": 0,
+        "no_spec_match": 0,
+        "ambiguous_join": 0,
+        "outlook_out_of_range": 0,
+        "invalid_value": 0,
+        "invalid_row": 0
+      }
+    },
+    "dailyRate": {
+      "sourceFile": "한국농어촌공사_전국 저수지 일별 저수율_20251231.csv",
+      "portalUpdatedOn": "2025-12-31",
+      "sha256": "fca170dc1e2a14be75bae0d4ea93840200be4aeec85ce8d36a652272e5c47a5b",
+      "loadedRows": 1232890,
+      "quarantinedRows": 84,
+      "quarantineByReason": {
+        "placeholder_region": 0,
+        "stage_mismatch": 0,
+        "negative_rate": 0,
+        "no_spec_match": 80,
+        "ambiguous_join": 4,
+        "outlook_out_of_range": 0,
+        "invalid_value": 0,
+        "invalid_row": 0
+      }
+    },
+    "outlook": {
+      "sourceFile": "한국농어촌공사_가뭄예경보자료_20251201.csv",
+      "portalUpdatedOn": "2025-12-01",
+      "sha256": "0dde26022c501c0ee93e67adc9c57796fb6bdc257cd99ea9eef8b5f6772de823",
+      "loadedRows": 2004,
+      "quarantinedRows": 0,
+      "quarantineByReason": {
+        "placeholder_region": 0,
+        "stage_mismatch": 0,
+        "negative_rate": 0,
+        "no_spec_match": 0,
+        "ambiguous_join": 0,
+        "outlook_out_of_range": 0,
+        "invalid_value": 0,
+        "invalid_row": 0
+      }
+    }
+  },
+  "snapshots": {
+    "sigun-index.json": {
+      "rows": 155,
+      "sha256": "6282160eb475ab037fbe00b54424b98eb137f84194c355e7bda80fefc4da93b9"
+    },
+    "reservoirs.json": {
+      "rows": 3422,
+      "sha256": "1957714de6eff8519a120f6ffa37f340481a1981dbaab4c8f2887602f08d0144"
+    },
+    "regional-drought-daily.json": {
+      "rows": 9240,
+      "sha256": "04e8c50f5e435c9266cc6362d2ac753bbed9164cec9a3958f9718d9c98b46c31"
+    },
+    "official-outlooks.json": {
+      "rows": 2004,
+      "sha256": "3283b7890f448244a3edd335d93e15c74918d48f118d7223e59fe4da44267cc6"
+    },
+    "reservoir-observations.json": {
+      "rows": 3469,
+      "sha256": "3229ffd1a250c624ca0890e46a6ecd42602a923982de017a5e926d1455cc0852"
+    }
+  },
+  "upsert": {
+    "performed": true,
+    "rowsByTable": {
+      "reservoirs": 3422,
+      "reservoir_observations": 1232890,
+      "regional_drought_daily": 56258,
+      "official_outlooks": 2004
+    }
+  }
+}

@@ -8,14 +8,18 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "build": "next build",
+    "build:data": "node scripts/build-data.ts",
     "start": "next start"
   },
   "dependencies": {
     "@mulsigye/contracts": "workspace:*",
     "@mulsigye/llm": "workspace:*",
+    "@supabase/supabase-js": "2.110.7",
+    "fast-xml-parser": "5.10.1",
     "next": "16.2.10",
     "react": "19.2.7",
-    "react-dom": "19.2.7"
+    "react-dom": "19.2.7",
+    "zod": "4.4.3"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "6.9.1",

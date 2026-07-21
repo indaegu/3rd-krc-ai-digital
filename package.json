@@ -14,6 +14,7 @@
     "typecheck": "pnpm -r --if-present typecheck",
     "test": "pnpm -r --if-present test",
     "build": "pnpm -r --if-present build",
+    "build:data": "pnpm --filter @mulsigye/web build:data",
     "format:check": "prettier --check \"apps/web/**/*.{ts,tsx,css,json,mjs}\" \"packages/**/*.{ts,json,yaml}\" \"*.{json,yaml,mjs}\"",
     "openapi:lint": "pnpm --filter @mulsigye/contracts lint",
     "supabase:start": "supabase --workdir infra/supabase start -x auth,realtime,storage,imgproxy,inbucket,edge-runtime,logflare,vector",
