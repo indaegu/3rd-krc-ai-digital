@@ -9,6 +9,7 @@
     "test": "vitest run",
     "build": "next build",
     "build:data": "node scripts/build-data.ts",
+    "backtest": "node scripts/backtest.ts",
     "start": "next start"
   },
   "dependencies": {

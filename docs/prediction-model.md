@@ -43,6 +43,15 @@
 7. `data/backtest-report.json`에 원천 체크섬, 실행 시각, git commit, 모델 파라미터,
    표본·origin 수, 전체 지표를 기록한다.
 
+구현 확정(단계 3 플랜 승인): origin은 `lastDate − 14·k (k=1..6)`로 만들어 마지막
+90일 안에서 14일 간격을 이루고, 각 origin 뒤 14일 평가 구간이 시계열 끝을 넘지 않는다.
+7일 지표는 horizon 1~7, 14일 지표는 horizon 1~14 잔차(실측−예측)의 MAE/RMSE다.
+제외 규칙: 유효 관측 180일 미만은 `insufficient_days`, 연속 결측 7일 초과
+(`MAX_GAP_DAYS = 7`)는 `long_gap`. 모든 지표는 소수 4자리로 반올림해 기록한다
+(재실행 재현성 비교의 기준). 엔진은 `apps/web/src/lib/prediction/backtest.ts`의
+순수 함수이고 실행 시각·git commit은 CLI(`apps/web/scripts/backtest.ts`)가 주입한다.
+리포트 형태는 `apps/web/src/lib/prediction/backtest-report.ts`의 Zod 스키마가 단일 출처다.
+
 서비스 출시 전 이 문서의 “결과” 절에 리포트 요약과 채택 근거를 작성한다.
 
 ## 다음 단계 도달 가능 시점
@@ -95,12 +104,34 @@ d < 0 이고 r0 > t 이면 days = ceil((r0 - t) / abs(d))
 행동 ID·개수·순서를 보존한 쉬운 이유만 생성한다. 상세 호출·캐시·비용·평가 규칙은
 `docs/llm-coach.md`를 따른다.
 
-## 결과 — 아직 실행 전
+## 결과 — 2026-07-22 실행 (`pnpm backtest`, 아래 수치는 전부 리포트 실측값)
 
-- [ ] 정규화된 논가뭄지도 스냅샷과 체크섬 기록
-- [ ] 지역·origin 수와 제외 내역 기록
-- [ ] 모델별 7일·14일 MAE/RMSE 표 기록
-- [ ] 채택 모델·파라미터·근거 기록
-- [ ] `data/backtest-report.json` 커밋
+- [x] 원천 체크섬 기록 —
+  `data/raw/한국농어촌공사_논가뭄지도_20251231.csv`(2025-01-01~12-31) SHA-256
+  `02d2392898289ab5c473b5c1c6c9220f8ade84bbeed4f4e68507a8da2efad319`.
+  `normalizeDroughtMap` 정규화 결과 적재 56,258행, 격리 4,697행
+  (placeholder·stage_mismatch 등 — `build:data`와 동일 파이프라인).
+- [x] 지역·origin 수와 제외 내역 기록 — 평가 154개 시군 × origin 6개 = 924 origin,
+  잔차 표본 12,936개(924 × 14 horizon). 제외 1곳: `41450`
+  (`insufficient_days` — 유효 관측 180일 미만). `long_gap` 제외 없음.
+- [x] 모델별 7일·14일 MAE/RMSE 표 기록 (%p, 지역별 지표의 macro average):
+
+  | 모델 | 7일 MAE | 7일 RMSE | 14일 MAE | 14일 RMSE |
+  |---|---|---|---|---|
+  | **naive (채택)** | **1.9168** | **3.6892** | **2.8337** | **5.1504** |
+  | ma7 | 2.4543 | 4.1311 | 3.2911 | 5.4894 |
+  | ses | 2.2878 | 3.9734 | 3.1419 | 5.3672 |
+  | linear | 3.0315 | 4.7909 | 4.4665 | 6.9769 |
+
+- [x] 채택 모델·파라미터·근거 기록 — **naive**(`pred-v1`). 근거: 14일 macro MAE
+  최저(2.8337)를 단독 달성, 2위 ses(3.1419)와 차이 0.3082%p > 0.05%p로 동률 규칙
+  미적용(`rule: "lowest_mae14"`, `tiedWith: []`). 1년 데이터에서는 기준선이 주력
+  후보(linear·ses)보다 오차가 낮았다 — 기준선과 비교한 수치로 선택을 방어한다는
+  이 문서의 원칙 그대로 채택한다. 파라미터: `LINEAR_WINDOW_DAYS=14`,
+  `MA_WINDOW_DAYS=7`, `SES_ALPHA=0.3`, `MIN_VALID_DAYS=180`, `MAX_GAP_DAYS=7`,
+  origin 창 90일·간격 14일, 지표 소수 4자리.
+- [x] `data/backtest-report.json` 커밋 — 채택 모델의 horizon 1~14 잔차 경험적
+  p10/p90 포함(예: h7 −2.60~+7.20, h14 −4.47~+8.27, horizon당 924표본).
+  밴드 산식 메타데이터는 `residual_quantile_p10_p90`.
 
 결과가 채워지기 전에는 발표자료나 UI에 임의 정확도 수치를 쓰지 않는다.
