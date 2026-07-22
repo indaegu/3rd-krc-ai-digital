@@ -1,7 +1,11 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import type { ApiError, StatusResponse } from "@mulsigye/contracts";
+import type {
+  ApiError,
+  ForecastResponse,
+  StatusResponse,
+} from "@mulsigye/contracts";
 import {
   cleanup,
   fireEvent,
@@ -47,10 +51,19 @@ function loadExample<T>(name: string): T {
 
 const NORMAL = loadExample<StatusResponse>("status.normal-demo.json");
 const STALE = loadExample<StatusResponse>("status.stale.json");
+const FORECAST_NORMAL = loadExample<ForecastResponse>(
+  "forecast.normal-demo.json",
+);
 
 const STATUS_UNAVAILABLE: ApiError = {
   code: "status_unavailable",
   message: "저수지 상태를 지금 불러오지 못했어요. 잠시 뒤 다시 시도해 주세요.",
+  retryable: true,
+};
+
+const FORECAST_UNAVAILABLE: ApiError = {
+  code: "forecast_unavailable",
+  message: "흐름 예측을 지금 불러오지 못했어요. 잠시 뒤 다시 시도해 주세요.",
   retryable: true,
 };
 
@@ -59,6 +72,27 @@ function jsonResponse(body: unknown, status = 200): Response {
     status,
     headers: { "content-type": "application/json" },
   });
+}
+
+/**
+ * status·forecast 병렬 페치를 URL로 라우팅하는 fetch 스텁.
+ * 핸들러는 호출마다 새 Response를 만들어야 한다(본문 1회 읽기 제약).
+ */
+function stubApiFetch(handlers: {
+  status: () => Response | Promise<Response>;
+  forecast?: () => Response | Promise<Response>;
+}) {
+  const fetchMock = vi.fn((input: RequestInfo | URL) => {
+    const url = String(input);
+    if (url.includes("/api/v1/forecast")) {
+      return Promise.resolve(
+        (handlers.forecast ?? (() => jsonResponse(FORECAST_NORMAL)))(),
+      );
+    }
+    return Promise.resolve(handlers.status());
+  });
+  vi.stubGlobal("fetch", fetchMock);
+  return fetchMock;
 }
 
 function seedRegion() {
@@ -102,23 +136,20 @@ describe("메인 게이팅", () => {
 describe("메인 로딩 → 데이터 전환", () => {
   it("로딩 중에는 '불러오는 중…'을 보여주고, 데이터가 오면 상태 모듈로 전환한다", async () => {
     seedRegion();
-    let resolveFetch!: (response: Response) => void;
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(
-        () =>
-          new Promise<Response>((resolve) => {
-            resolveFetch = resolve;
-          }),
-      ),
-    );
+    let resolveStatus!: (response: Response) => void;
+    stubApiFetch({
+      status: () =>
+        new Promise<Response>((resolve) => {
+          resolveStatus = resolve;
+        }),
+    });
 
     render(<HomePage />);
 
     expect(await screen.findByText("불러오는 중…")).toBeInTheDocument();
     expect(screen.queryByText("우리 지역 대표 저수지")).not.toBeInTheDocument();
 
-    resolveFetch(jsonResponse(NORMAL));
+    resolveStatus(jsonResponse(NORMAL));
 
     expect(
       await screen.findByText(String(NORMAL.reservoir.rate)),
@@ -133,10 +164,7 @@ describe("메인 로딩 → 데이터 전환", () => {
 
   it("stale 응답이면 관측일 기준 지연 문구를 보여준다", async () => {
     seedRegion();
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(() => Promise.resolve(jsonResponse(STALE))),
-    );
+    stubApiFetch({ status: () => jsonResponse(STALE) });
 
     render(<HomePage />);
 
@@ -148,14 +176,64 @@ describe("메인 로딩 → 데이터 전환", () => {
   });
 });
 
-describe("메인 오류·재시도", () => {
-  it("503이면 재시도 버튼을 보여주고, 재시도로 복구한다", async () => {
+describe("메인 예측 모듈", () => {
+  it("forecast가 오면 '이 추세라면'·흐름 차트·참고 고지를 보여준다", async () => {
     seedRegion();
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce(jsonResponse(STATUS_UNAVAILABLE, 503))
-      .mockResolvedValueOnce(jsonResponse(NORMAL));
-    vi.stubGlobal("fetch", fetchMock);
+    stubApiFetch({ status: () => jsonResponse(NORMAL) });
+
+    render(<HomePage />);
+
+    expect(await screen.findByText("이 추세라면")).toBeInTheDocument();
+    // normal 데모: reach.days null → 안정.
+    expect(screen.getByText("안정")).toBeInTheDocument();
+    expect(
+      screen.getByRole("img", { name: /지역 평년 대비 저수율/ }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "자세히" })).toHaveAttribute(
+      "href",
+      "/trend",
+    );
+    expect(
+      screen.getByText("예측은 참고용이며 공식 가뭄 예·경보가 우선이에요."),
+    ).toBeInTheDocument();
+  });
+
+  it("forecast 503이어도 status 모듈은 유지하고 예측 모듈만 오류 카드를 보여준다", async () => {
+    seedRegion();
+    stubApiFetch({
+      status: () => jsonResponse(NORMAL),
+      forecast: () => jsonResponse(FORECAST_UNAVAILABLE, 503),
+    });
+
+    render(<HomePage />);
+
+    // status 모듈은 정상 렌더.
+    expect(
+      await screen.findByText(String(NORMAL.reservoir.rate)),
+    ).toBeInTheDocument();
+    expect(screen.getByText("우리 지역 대표 저수지")).toBeInTheDocument();
+    // forecast 모듈만 오류 카드.
+    expect(
+      await screen.findByText("흐름 예측을 불러오지 못했어요"),
+    ).toBeInTheDocument();
+    expect(screen.getByText(FORECAST_UNAVAILABLE.message)).toBeInTheDocument();
+    expect(screen.queryByText("이 추세라면")).not.toBeInTheDocument();
+  });
+});
+
+describe("메인 오류·재시도", () => {
+  it("status 503이면 재시도 버튼을 보여주고, 재시도로 복구한다", async () => {
+    seedRegion();
+    let failStatusOnce = true;
+    const fetchMock = stubApiFetch({
+      status: () => {
+        if (failStatusOnce) {
+          failStatusOnce = false;
+          return jsonResponse(STATUS_UNAVAILABLE, 503);
+        }
+        return jsonResponse(NORMAL);
+      },
+    });
 
     render(<HomePage />);
 
@@ -168,27 +246,27 @@ describe("메인 오류·재시도", () => {
     expect(
       await screen.findByText(String(NORMAL.reservoir.rate)),
     ).toBeInTheDocument();
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    // 병렬 페치: status+forecast 2회씩 = 총 4회.
+    expect(fetchMock).toHaveBeenCalledTimes(4);
   });
 });
 
 describe("메인 로고 새로고침", () => {
-  it("로고를 누르면 status를 다시 요청한다", async () => {
+  it("로고를 누르면 status·forecast를 다시 요청한다", async () => {
     seedRegion();
     // Response 본문은 1회만 읽을 수 있어 호출마다 새 Response를 만든다.
-    const fetchMock = vi.fn(() => Promise.resolve(jsonResponse(NORMAL)));
-    vi.stubGlobal("fetch", fetchMock);
+    const fetchMock = stubApiFetch({ status: () => jsonResponse(NORMAL) });
 
     render(<HomePage />);
 
     expect(
       await screen.findByText(String(NORMAL.reservoir.rate)),
     ).toBeInTheDocument();
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
 
     fireEvent.click(screen.getByRole("button", { name: "새로고침" }));
 
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(4));
     expect(
       await screen.findByText(String(NORMAL.reservoir.rate)),
     ).toBeInTheDocument();

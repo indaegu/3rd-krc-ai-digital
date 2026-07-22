@@ -1,20 +1,22 @@
 "use client";
 
-// 메인 — 상태(status) 기반 모듈 조립. 예측·코치 모듈은 단계 4 Task 5·6에서
-// 이어서 삽입한다(placeholder 없이 미포함). 게이팅은 지역 유무만 본다
-// (consentVersion 검사는 Task 7 몫).
+// 메인 — 상태(status)·예측(forecast) 모듈 조립. 두 모듈은 병렬 페치하며
+// 서로의 실패에 영향받지 않는다(모듈별 오류 카드). 코치 모듈은 Task 6에서
+// 이어서 삽입한다. 게이팅은 지역 유무만 본다(consentVersion 검사는 Task 7 몫).
 
-import type { StatusResponse } from "@mulsigye/contracts";
+import type { ForecastResponse, StatusResponse } from "@mulsigye/contracts";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { HighWaterBanner } from "../components/HighWaterBanner";
 import { MainHeader } from "../components/MainHeader";
+import { ReachCard } from "../components/ReachCard";
 import { TodayCard } from "../components/TodayCard";
+import { TrendChartCard } from "../components/TrendChartCard";
 import { Card } from "../components/ui/Card";
 import { CtaButton } from "../components/ui/CtaButton";
 import { Skeleton } from "../components/ui/Skeleton";
-import { getStatus } from "../lib/client/api-client";
+import { getForecast, getStatus } from "../lib/client/api-client";
 import {
   currentRegion,
   loadRegionStore,
@@ -25,6 +27,11 @@ import styles from "./page.module.css";
 type StatusState =
   | { kind: "loading" }
   | { kind: "ready"; data: StatusResponse }
+  | { kind: "error"; message: string; retryable: boolean };
+
+type ForecastState =
+  | { kind: "loading" }
+  | { kind: "ready"; data: ForecastResponse }
   | { kind: "error"; message: string; retryable: boolean };
 
 const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
@@ -55,6 +62,27 @@ function stampText(state: StatusState): string | null {
   return formatAsOfStamp(state.data.asOf);
 }
 
+/** 예측 모듈(이 추세라면·저수율 흐름) 스켈레톤. */
+function ForecastSkeleton() {
+  return (
+    <>
+      <Card aria-hidden="true">
+        <Skeleton width="96px" height="14px" />
+        <div className={styles.skeletonStack}>
+          <Skeleton width="140px" height="40px" />
+          <Skeleton width="220px" height="14px" />
+        </div>
+      </Card>
+      <Card aria-hidden="true">
+        <Skeleton width="200px" height="14px" />
+        <div className={styles.skeletonStack}>
+          <Skeleton width="100%" height="180px" />
+        </div>
+      </Card>
+    </>
+  );
+}
+
 /** 오늘 우리 저수지 모듈 스켈레톤(shimmer 1.3s — 풀스크린 스피너 금지). */
 function TodayCardSkeleton() {
   return (
@@ -79,6 +107,7 @@ export default function HomePage() {
   const router = useRouter();
   const [region, setRegion] = useState<StoredRegion | null>(null);
   const [status, setStatus] = useState<StatusState>({ kind: "loading" });
+  const [forecast, setForecast] = useState<ForecastState>({ kind: "loading" });
   const mountedRef = useRef(true);
 
   useEffect(() => {
@@ -99,33 +128,50 @@ export default function HomePage() {
     setRegion(current);
   }, [router]);
 
-  const load = useCallback(async (sigunCode: string) => {
+  // status·forecast 병렬 페치 — 한쪽이 실패해도 다른 모듈은 유지한다.
+  const load = useCallback((sigunCode: string) => {
     setStatus({ kind: "loading" });
-    const result = await getStatus(sigunCode);
-    if (!mountedRef.current) {
-      return;
-    }
-    if (result.kind === "ok") {
-      setStatus({ kind: "ready", data: result.data });
-    } else {
-      setStatus({
-        kind: "error",
-        message: result.message,
-        retryable: result.retryable,
-      });
-    }
+    setForecast({ kind: "loading" });
+    void getStatus(sigunCode).then((result) => {
+      if (!mountedRef.current) {
+        return;
+      }
+      if (result.kind === "ok") {
+        setStatus({ kind: "ready", data: result.data });
+      } else {
+        setStatus({
+          kind: "error",
+          message: result.message,
+          retryable: result.retryable,
+        });
+      }
+    });
+    void getForecast(sigunCode).then((result) => {
+      if (!mountedRef.current) {
+        return;
+      }
+      if (result.kind === "ok") {
+        setForecast({ kind: "ready", data: result.data });
+      } else {
+        setForecast({
+          kind: "error",
+          message: result.message,
+          retryable: result.retryable,
+        });
+      }
+    });
   }, []);
 
   useEffect(() => {
     if (region !== null) {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- fetch-on-mount 결과를 상태로 반영한다
-      void load(region.sigunCode);
+      load(region.sigunCode);
     }
   }, [region, load]);
 
   const refresh = useCallback(() => {
     if (region !== null && status.kind !== "loading") {
-      void load(region.sigunCode);
+      load(region.sigunCode);
     }
   }, [region, status.kind, load]);
 
@@ -171,6 +217,30 @@ export default function HomePage() {
             ) : null}
           </Card>
         ) : null}
+
+        {forecast.kind === "loading" ? <ForecastSkeleton /> : null}
+
+        {forecast.kind === "ready" ? (
+          <>
+            <ReachCard forecast={forecast.data} />
+            <TrendChartCard forecast={forecast.data} />
+          </>
+        ) : null}
+
+        {forecast.kind === "error" ? (
+          <Card className={styles.errorCard} aria-live="polite">
+            <h2 className={styles.errorTitle}>흐름 예측을 불러오지 못했어요</h2>
+            <p className={styles.errorMessage}>{forecast.message}</p>
+            {forecast.retryable ? (
+              <CtaButton onClick={refresh}>다시 시도하기</CtaButton>
+            ) : null}
+          </Card>
+        ) : null}
+
+        {/* 모든 예측 화면 공통 고지(규칙 3, product.md 카피 규칙). */}
+        <p className={styles.disclaimer}>
+          예측은 참고용이며 공식 가뭄 예·경보가 우선이에요.
+        </p>
       </div>
     </main>
   );
