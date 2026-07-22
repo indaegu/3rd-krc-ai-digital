@@ -5,6 +5,7 @@
 - 상태: 사용자 승인 (2026-07-22)
 - 작성일: 2026-07-22
 - 확정 결정: live 코치 연결 = 단계 4 마지막 Task / 실 Anthropic 계약 테스트 = Task 6에서 실행 / forecast_runs 테이블 안 만듦 / 예측 상수는 플랜 제안값 채택
+- 추가 확정 (2026-07-22, Task 6 실계약 실측 후): **LLM 애플리케이션 timeout 4,000ms → 8,000ms 상향** (실측 2회 모두 약 4.03초 타임아웃 — 사용자 승인. `LLM_TIMEOUT_MS=8000`, 설계 spec에는 개정 이력으로 기록)
 - 추가 확정 (2026-07-22, 백테스트 결과 naive 채택 후): **추세·도달일은 최근 14일 관측 선형 기울기 `observedDailyDelta`로 계산** (예측선·밴드는 채택 모델 + 잔차 분위수 — 근거 분리를 문서·메타데이터에 명시). 플랜 본문의 `d = (forecast[13] − r0) / 14` 정의는 폐기. Task 4는 `observedDailyDelta`를 models.ts에 추가(테스트 포함)하고 trend/reach에 사용한다.
 - 근거 SSOT: `docs/prediction-model.md`(모델 4종·백테스트 프로토콜·도달일 산식 확정), `docs/llm-coach.md` + `docs/superpowers/specs/2026-07-19-llm-coach-design.md`(코치 계약·폴백·가드), `docs/product.md`(참고 표현·카피 규칙), AGENTS.md 절대 규칙 3·5·10
 

@@ -44,7 +44,7 @@
 | 모델 | `claude-opus-4-7` |
 | SDK | `@anthropic-ai/sdk@0.112.3` |
 | 출력 | `output_config.format` JSON Schema + Zod 의미 검증 |
-| 호출 | effort low, 256 tokens, 4초, retry 0, tools/search/RAG/streaming 없음 |
+| 호출 | effort low, 256 tokens, 8초, retry 0, tools/search/RAG/streaming 없음 |
 | 배치 | Anthropic 추론 + Vercel 오케스트레이션 + Supabase 검증 캐시 |
 | 비용 | USD 5 누적, KST 일일 20 live miss, cache/lock 선행 |
 | 개발 구독 | Max는 로컬 평가·사전 생성 전용, 공개 런타임은 Console API key |

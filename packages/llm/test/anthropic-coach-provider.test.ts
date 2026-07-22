@@ -7,6 +7,7 @@ import {
   type CoachMessagesClient,
 } from "../src/anthropic-coach-provider.js";
 import { PROMPT_VERSION, buildCoachPrompt } from "../src/coach-prompt.js";
+import { LLM_TIMEOUT_MS } from "../src/constants.js";
 import type { CoachFactPacket } from "../src/types.js";
 
 const facts: CoachFactPacket = {
@@ -119,7 +120,7 @@ describe("AnthropicCoachProvider", () => {
     expect("top_p" in params).toBe(false);
     expect("top_k" in params).toBe(false);
     expect("thinking" in params).toBe(false);
-    expect(options).toEqual({ timeout: 4_000, maxRetries: 0 });
+    expect(options).toEqual({ timeout: LLM_TIMEOUT_MS, maxRetries: 0 });
   });
 
   it("keeps sigunCode, addresses, and raw numbers out of the prompt payload", async () => {
