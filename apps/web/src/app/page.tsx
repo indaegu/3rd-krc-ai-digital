@@ -8,15 +8,17 @@ import type { ForecastResponse, StatusResponse } from "@mulsigye/contracts";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { CoachCard, type CoachCardState } from "../components/CoachCard";
 import { HighWaterBanner } from "../components/HighWaterBanner";
 import { MainHeader } from "../components/MainHeader";
 import { ReachCard } from "../components/ReachCard";
+import { SourcesCard } from "../components/SourcesCard";
 import { TodayCard } from "../components/TodayCard";
 import { TrendChartCard } from "../components/TrendChartCard";
 import { Card } from "../components/ui/Card";
 import { CtaButton } from "../components/ui/CtaButton";
 import { Skeleton } from "../components/ui/Skeleton";
-import { getForecast, getStatus } from "../lib/client/api-client";
+import { getCoach, getForecast, getStatus } from "../lib/client/api-client";
 import {
   currentRegion,
   loadRegionStore,
@@ -33,6 +35,10 @@ type ForecastState =
   | { kind: "loading" }
   | { kind: "ready"; data: ForecastResponse }
   | { kind: "error"; message: string; retryable: boolean };
+
+// 코치 모듈 상태는 CoachCard가 소유하는 discriminated union을 그대로 쓴다.
+// 코치는 다른 모듈을 막지 않는 비차단 페치이며 실패해도 이 모듈만 오류 카드가 된다.
+type CoachState = CoachCardState;
 
 const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
 
@@ -108,6 +114,7 @@ export default function HomePage() {
   const [region, setRegion] = useState<StoredRegion | null>(null);
   const [status, setStatus] = useState<StatusState>({ kind: "loading" });
   const [forecast, setForecast] = useState<ForecastState>({ kind: "loading" });
+  const [coach, setCoach] = useState<CoachState>({ kind: "loading" });
   const mountedRef = useRef(true);
 
   useEffect(() => {
@@ -132,6 +139,7 @@ export default function HomePage() {
   const load = useCallback((sigunCode: string) => {
     setStatus({ kind: "loading" });
     setForecast({ kind: "loading" });
+    setCoach({ kind: "loading" });
     void getStatus(sigunCode).then((result) => {
       if (!mountedRef.current) {
         return;
@@ -154,6 +162,21 @@ export default function HomePage() {
         setForecast({ kind: "ready", data: result.data });
       } else {
         setForecast({
+          kind: "error",
+          message: result.message,
+          retryable: result.retryable,
+        });
+      }
+    });
+    // 코치는 비차단 페치 — 실패해도 이 모듈만 오류 카드가 되고 나머지는 유지된다.
+    void getCoach(sigunCode).then((result) => {
+      if (!mountedRef.current) {
+        return;
+      }
+      if (result.kind === "ok") {
+        setCoach({ kind: "ready", data: result.data });
+      } else {
+        setCoach({
           kind: "error",
           message: result.message,
           retryable: result.retryable,
@@ -235,6 +258,14 @@ export default function HomePage() {
               <CtaButton onClick={refresh}>다시 시도하기</CtaButton>
             ) : null}
           </Card>
+        ) : null}
+
+        {/* ④ 물시계 코치 — 비차단. 스켈레톤·오류 카드는 모듈이 스스로 소유한다. */}
+        <CoachCard state={coach} onRetry={refresh} />
+
+        {/* ⑤ 근거·한계 고지 — 코치 응답의 sources·stale을 그대로 반영한다. */}
+        {coach.kind === "ready" ? (
+          <SourcesCard sources={coach.data.sources} stale={coach.data.stale} />
         ) : null}
 
         {/* 모든 예측 화면 공통 고지(규칙 3, product.md 카피 규칙). */}

@@ -1,0 +1,129 @@
+.card {
+  display: flex;
+  flex-direction: column;
+}
+
+.who {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.face {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: var(--blue-tint);
+  border-radius: 50%;
+}
+
+.face svg {
+  width: 20px;
+  height: 20px;
+  fill: var(--blue);
+}
+
+.title {
+  display: flex;
+  flex-direction: column;
+}
+
+.name {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.sub {
+  color: var(--ink3);
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+.headline {
+  margin: 0;
+  color: var(--ink);
+  font-size: 1.0625rem;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.summary {
+  margin: 8px 0 0;
+  color: var(--ink2);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  line-height: 1.55;
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.action {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.num {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  color: var(--blue-deep);
+  font-size: 0.875rem;
+  font-weight: 800;
+  background: var(--blue-tint);
+  border-radius: 50%;
+}
+
+.actionBody {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.actionTitle {
+  color: var(--ink);
+  font-size: 0.9375rem;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.actionReason {
+  color: var(--ink2);
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.45;
+}
+
+.loading {
+  padding: 8px 0 2px;
+}
+
+.loadingText {
+  color: var(--ink3);
+  font-size: 0.9375rem;
+}
+
+.errorMessage {
+  margin: 0;
+  color: var(--ink2);
+  font-size: 0.9375rem;
+}
+
+.errorMessage + button {
+  margin-top: 12px;
+}
