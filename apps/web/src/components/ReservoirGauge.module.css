@@ -1,0 +1,61 @@
+.gauge {
+  position: relative;
+  flex: none;
+  width: 74px;
+  height: 196px;
+  overflow: hidden;
+  border: 1.6px solid var(--gray200);
+  border-radius: 16px;
+  background: var(--bg);
+}
+
+.water {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 0%;
+  background: linear-gradient(180deg, #98cbff, #7eb6fa);
+  transition: height 1.6s cubic-bezier(0.25, 0.8, 0.3, 1);
+}
+
+/* 물 출렁임 — 회전 타원 2겹(7s / 11s reverse), design-system.md 애니메이션 규격 */
+.wave {
+  position: absolute;
+  top: -101px;
+  left: 50%;
+  width: 220px;
+  height: 220px;
+  border-radius: 41%;
+  background: #98cbff;
+  animation: slosh 7s linear infinite;
+}
+
+.w2 {
+  top: -104px;
+  border-radius: 37% 43% 40% 44%;
+  background: #bfe0ff;
+  opacity: 0.75;
+  animation: slosh 11s linear infinite reverse;
+}
+
+@keyframes slosh {
+  from {
+    transform: translateX(-50%) rotate(0deg);
+  }
+
+  to {
+    transform: translateX(-50%) rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .water {
+    transition: none;
+  }
+
+  .wave,
+  .w2 {
+    animation: none;
+  }
+}

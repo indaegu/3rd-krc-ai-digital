@@ -1,0 +1,72 @@
+.eyebrow {
+  margin: 0 0 12px;
+  color: var(--ink3);
+  font-size: 0.9375rem;
+  font-weight: 700;
+}
+
+.hero {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.info {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.valueLabel {
+  margin: 0;
+  color: var(--ink2);
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+.rateLine {
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+  margin: 0;
+  font-size: 3rem;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.04em;
+  line-height: 1.05;
+}
+
+.rateUnit {
+  color: var(--ink3);
+  font-size: 1.25rem;
+  font-weight: 800;
+}
+
+.noData {
+  margin: 0;
+  color: var(--ink2);
+  font-size: 1.125rem;
+  font-weight: 700;
+}
+
+.avg {
+  margin: 0;
+  color: var(--ink2);
+  font-size: 0.9375rem;
+}
+
+.avg b {
+  font-weight: 800;
+}
+
+.chipRow {
+  margin-top: 2px;
+}
+
+.headline {
+  margin: 4px 0 0;
+  color: var(--ink2);
+  font-size: 0.9375rem;
+  font-weight: 600;
+}

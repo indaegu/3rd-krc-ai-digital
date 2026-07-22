@@ -1,0 +1,93 @@
+.header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.logoButton {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: none;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.logoButton:active {
+  background: var(--gray50);
+}
+
+.drop {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  overflow: hidden;
+  border-radius: 9px;
+  background: var(--blue-tint);
+}
+
+.drop svg {
+  width: 16px;
+  height: 16px;
+  fill: var(--blue);
+}
+
+/* 로고 새로고침 — 물방울 rainfall 0.62s(design-system.md). 로고 회전 금지. */
+.raining .drop svg {
+  animation: rainfall 0.62s linear infinite;
+}
+
+@keyframes rainfall {
+  0% {
+    transform: translateY(-24px);
+  }
+
+  100% {
+    transform: translateY(24px);
+  }
+}
+
+.logoText {
+  font-size: 1.125rem;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+}
+
+.regionLink {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-height: 48px;
+  margin-left: auto;
+  padding: 8px 10px 8px 16px;
+  border-radius: 99px;
+  background: var(--gray100);
+  color: var(--ink2);
+  font-size: 0.9375rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.regionLink:active {
+  background: var(--gray200);
+}
+
+.chevron {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentcolor;
+  stroke-width: 2.4;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .raining .drop svg {
+    animation: none;
+  }
+}
