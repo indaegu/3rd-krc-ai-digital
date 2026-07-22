@@ -5,9 +5,11 @@ import {
   MODEL_MIN_INPUT_DAYS,
   MODEL_SIMPLICITY_ORDER,
   MODEL_VERSION,
+  OBSERVED_TREND_WINDOW_DAYS,
   PREDICTION_MODEL_NAMES,
   SES_ALPHA,
   dailyDelta,
+  observedDailyDelta,
   predict,
 } from "./models.ts";
 
@@ -132,5 +134,39 @@ describe("dailyDelta — d = (forecast[13] - r0) / 14", () => {
 
   it("예측이 14개가 아니면 명시적 에러", () => {
     expect(() => dailyDelta(70, [70, 70, 70])).toThrow(/14/);
+  });
+});
+
+describe("observedDailyDelta — 최근 14일 관측 OLS 기울기 (2026-07-22 확정)", () => {
+  it("창 상수는 14일이다", () => {
+    expect(OBSERVED_TREND_WINDOW_DAYS).toBe(14);
+  });
+
+  it("완전 선형 하강 -0.45/day 14일이면 정확히 -0.45", () => {
+    const series = Array.from({ length: 14 }, (_, i) => 73.85 - 0.45 * i);
+    expect(observedDailyDelta(series)).toBeCloseTo(-0.45, 10);
+  });
+
+  it("상수 시계열이면 0", () => {
+    const series = Array.from({ length: 14 }, () => 68);
+    expect(observedDailyDelta(series)).toBeCloseTo(0, 10);
+  });
+
+  it("90일 시계열도 마지막 14일만 본다(앞부분 노이즈 무시)", () => {
+    const tail = Array.from({ length: 14 }, (_, i) => 90 + 0.32 * i);
+    const noiseHead = Array.from({ length: 76 }, (_, i) =>
+      i % 2 === 0 ? 30 : 95,
+    );
+    expect(observedDailyDelta([...noiseHead, ...tail])).toBeCloseTo(0.32, 10);
+  });
+
+  it("14일 미만 입력이면 명시적 에러(predict와 동일한 최소 길이 계약)", () => {
+    const short = Array.from({ length: 13 }, () => 65);
+    expect(() => observedDailyDelta(short)).toThrow(/14/);
+  });
+
+  it("같은 입력 2회 호출은 동일 출력(결정성)", () => {
+    const series = Array.from({ length: 20 }, (_, i) => 80 - 0.3 * i + 0.1);
+    expect(observedDailyDelta(series)).toBe(observedDailyDelta(series));
   });
 });

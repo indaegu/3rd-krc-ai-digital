@@ -67,9 +67,29 @@ export function predict(
   }
 }
 
+/** 관측 추세 창(일) — observedDailyDelta가 보는 최근 관측 구간. */
+export const OBSERVED_TREND_WINDOW_DAYS = 14;
+
 /**
- * 일일 변화량 d(%p/day)의 통일 정의: (forecast[13] - r0) / 14.
- * 모델 독립적이다 — naive는 자연히 0이 된다.
+ * 추세·도달일용 일일 변화량 d(%p/day) — 최근 14일 "관측값"의 OLS 선형 회귀 기울기.
+ * 2026-07-22 확정: 채택 모델(naive 등 수평 예측)은 추세를 표현할 수 없으므로
+ * 추세·도달일은 이 관측 기울기에서, 예측선·밴드는 채택 모델 + 잔차 분위수에서
+ * 각각 도출한다(근거 분리 — docs/prediction-model.md "d의 정의").
+ * 입력이 14일 미만이면 명시적 에러(predict와 동일한 최소 길이 계약).
+ */
+export function observedDailyDelta(series: readonly number[]): number {
+  if (series.length < OBSERVED_TREND_WINDOW_DAYS) {
+    throw new Error(
+      `observedDailyDelta는 최소 ${String(OBSERVED_TREND_WINDOW_DAYS)}일 관측이 필요한데 ${String(series.length)}일만 받았다`,
+    );
+  }
+  return olsSlope(series.slice(-OBSERVED_TREND_WINDOW_DAYS));
+}
+
+/**
+ * 일일 변화량 d(%p/day)의 예측 기반 정의: (forecast[13] - r0) / 14.
+ * 모델 독립적이다 — naive는 자연히 0이 된다. 추세·도달일에는 쓰지 않는다
+ * (observedDailyDelta가 대체 — 백테스트 진단 용도로만 남긴다).
  */
 export function dailyDelta(r0: number, forecast: readonly number[]): number {
   const last = forecast[FORECAST_HORIZON_DAYS - 1];
@@ -100,20 +120,27 @@ function predictLinear(series: readonly number[]): number[] {
   const n = window.length;
   const xMean = (n - 1) / 2;
   const yMean = sum(window) / n;
-
-  let sxy = 0;
-  let sxx = 0;
-  window.forEach((y, x) => {
-    sxy += (x - xMean) * (y - yMean);
-    sxx += (x - xMean) * (x - xMean);
-  });
-  const slope = sxy / sxx;
+  const slope = olsSlope(window);
 
   // 창 마지막 관측의 x = n-1. h일 뒤 예측 x = n-1+h.
   return Array.from(
     { length: FORECAST_HORIZON_DAYS },
     (_, i) => yMean + slope * (n - 1 + (i + 1) - xMean),
   );
+}
+
+/** x = 0..n-1 등간격 최소제곱(OLS) 기울기. linear 외삽과 observedDailyDelta가 공유한다. */
+function olsSlope(window: readonly number[]): number {
+  const n = window.length;
+  const xMean = (n - 1) / 2;
+  const yMean = sum(window) / n;
+  let sxy = 0;
+  let sxx = 0;
+  window.forEach((y, x) => {
+    sxy += (x - xMean) * (y - yMean);
+    sxx += (x - xMean) * (x - xMean);
+  });
+  return sxy / sxx;
 }
 
 /** 주력 후보 2: 단순 지수평활(alpha=SES_ALPHA). 수준은 첫 값으로 초기화한다. */
