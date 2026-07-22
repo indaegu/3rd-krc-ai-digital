@@ -1,0 +1,30 @@
+.main {
+  display: grid;
+  gap: 24px;
+  width: min(100% - 32px, 560px);
+  margin: 0 auto;
+  padding: 32px 0 48px;
+}
+
+.header {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.back {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--r-sm);
+  color: var(--ink);
+  font-size: 1.5rem;
+  text-decoration: none;
+}
+
+.title {
+  margin: 0;
+  font-size: 1.75rem;
+}
