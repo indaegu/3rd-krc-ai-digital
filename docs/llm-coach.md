@@ -59,8 +59,10 @@ refusal·max_tokens·검증 실패를 포함한 모든 실패는 throw이며 폴
   `officialOutlookCode`는 이번 단계 `null` 고정)으로 만들고, 행동 3개는
   CoachPolicy `selectActions`가 확정한다. 패킷에 sigunCode·지역명·수치가 없음을
   테스트로 강제한다.
-- 만수위 참고 판정: 대표 저수지 원저수율 시계열(수위 API, 실패 시 커밋 스냅샷의
-  대표 저수지 최근 30일)로 `isHighWaterNotice`를 계산한다.
+- 만수위 참고 판정: status-service가 관측 폴백 3단(수위 API → Supabase 최신 관측
+  → 커밋 스냅샷) 각각에서 확보한 원저수율 시계열로 `isHighWaterNotice`를 계산해
+  `StatusResponse.highWaterNotice`로 확정한다. 코치는 이 값을 그대로 옮겨 담고
+  수위 시계열을 재조회하거나 재판정하지 않는다(판정 위치는 status 하나).
 - 게이트: ANTHROPIC_API_KEY가 전혀 없어도 5개 공인 단계 전부에서 행동 3개가
   HTTP 200으로 반환되고, `@anthropic-ai/sdk` 스텁 카운터로 호출 0회를 단언한다.
 - live 연결 조건(재명시): `coach_cache`·`coach_generation_locks`·`llm_usage`·

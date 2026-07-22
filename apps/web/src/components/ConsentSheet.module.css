@@ -1,0 +1,116 @@
+.title {
+  margin: 4px 0 8px;
+  font-size: 1.4rem;
+  line-height: 1.35;
+}
+
+.sub {
+  margin: 0 0 20px;
+  color: var(--ink2);
+  font-size: 0.95rem;
+}
+
+.agreeAll {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 56px;
+  padding: 0 16px;
+  border: none;
+  border-radius: var(--r-md);
+  background: var(--gray100);
+  color: var(--ink);
+  font-size: 1.05rem;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+}
+
+.list {
+  margin: 12px 0 4px;
+  padding: 0;
+  list-style: none;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.itemButton {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  padding: 0 8px;
+  border: none;
+  background: none;
+  color: var(--ink);
+  font-size: 0.98rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.itemLabel {
+  flex: 1;
+}
+
+.req {
+  color: var(--blue-deep);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.check {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--gray200);
+  border-radius: 999px;
+  background: var(--bg);
+}
+
+.check svg {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: var(--ink4);
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.on {
+  border-color: var(--blue);
+  background: var(--blue);
+}
+
+.on svg {
+  stroke: #ffffff;
+}
+
+.docLink {
+  flex-shrink: 0;
+  min-width: 48px;
+  padding: 8px;
+  color: var(--ink3);
+  font-size: 0.9rem;
+  text-align: center;
+  text-decoration: underline;
+}
+
+.privacyRow {
+  margin: 8px 0 16px;
+  text-align: center;
+}
+
+.privacyLink {
+  color: var(--ink3);
+  font-size: 0.9rem;
+  text-decoration: underline;
+}

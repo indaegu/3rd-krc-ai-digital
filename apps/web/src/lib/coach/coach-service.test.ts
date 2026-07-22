@@ -298,6 +298,20 @@ describe("buildCoach — 만수위 참고", () => {
       body.coach.actions.some((action) => action.id === HIGH_WATER_ACTION.id),
     ).toBe(false);
   });
+
+  it("만수위 판정은 status.highWaterNotice를 재사용한다 — 수위 API 호출 1회", async () => {
+    // 종전 rateSeriesFor는 같은 요청에서 수위 API를 한 번 더 불렀다.
+    // 이제 status가 확정한 highWaterNotice를 그대로 쓰므로 호출은 정확히 1회다.
+    const fetchSpy = vi.fn(okFetch(HIGH_WATER_XML));
+    const deps = makeCoachDeps({ avgRatio: 68 });
+    deps.status = {
+      ...deps.status,
+      waterLevel: { fetchImpl: fetchSpy, apiKey: "test-key" },
+    };
+    const body = await okBody(deps);
+    expect(body.coach.actions[0]?.id).toBe(HIGH_WATER_ACTION.id);
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe("buildCoach — 폴백·오류 경로", () => {

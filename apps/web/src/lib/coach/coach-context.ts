@@ -6,7 +6,6 @@
 // actions는 여기서 채우지 않는다 — coach-service가 selectActions로 확정한다.
 import type { ForecastResponse, StatusResponse } from "@mulsigye/contracts";
 import type { CoachFactPacket, Season as CoachSeason } from "@mulsigye/llm";
-import { isHighWaterNotice } from "../prediction/high-water.ts";
 import { seasonOf, type Season } from "../prediction/season.ts";
 
 const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
@@ -25,14 +24,12 @@ export function kstDateOf(now: Date): string {
 }
 
 export type CoachContextInput = {
+  /**
+   * 만수위 참고는 status가 서버에서 확정한 `highWaterNotice`를 그대로 옮긴다.
+   * 여기서 수위 시계열을 재판정하지 않는다 — 판정 위치는 status-service 하나다.
+   */
   status: StatusResponse;
   forecast: ForecastResponse;
-  /**
-   * 대표 저수지 '원저수율 rate(%)' 관측 시계열(오래된→최신).
-   * 지역 avgRatio(평년 대비 %)를 절대 넣지 않는다 — 두 값의 의미가 다르다.
-   * 시계열 확보는 coach-service가 담당한다(수위 API → 커밋 스냅샷 순).
-   */
-  rateSeries: readonly number[];
   now: Date;
 };
 
@@ -46,7 +43,7 @@ export function buildCoachFactPacket(
     season: SEASON_LABEL[seasonOf(kstDateOf(input.now))],
     reachBucket: input.forecast.reach.bucket,
     trendBucket: input.forecast.trend.bucket,
-    highWaterNotice: isHighWaterNotice(input.rateSeries),
+    highWaterNotice: input.status.highWaterNotice,
     // 승인 전망 코드 카탈로그는 live 연결 결정과 함께 확정 — 이번 단계 null 고정.
     officialOutlookCode: null,
     actions: [],

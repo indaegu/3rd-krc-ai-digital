@@ -1,0 +1,52 @@
+.main {
+  display: grid;
+  gap: 20px;
+  width: min(100% - 32px, 560px);
+  margin: 0 auto;
+  padding: 16px 0 48px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.back {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  color: var(--ink);
+  font-size: 1.4rem;
+  text-decoration: none;
+}
+
+.title {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.intro {
+  margin: 0;
+  color: var(--ink2);
+  font-size: 1rem;
+}
+
+.section {
+  display: grid;
+  gap: 8px;
+}
+
+.heading {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.paragraph {
+  margin: 0;
+  color: var(--ink2);
+  font-size: 0.98rem;
+  line-height: 1.65;
+}

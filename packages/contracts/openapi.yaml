@@ -170,6 +170,7 @@ paths:
                       officialStage:
                         code: ok
                         label: 정상
+                    highWaterNotice: false
                     asOf: "2026-07-21T00:00:00.000Z"
                     sources:
                       - 농촌용수 저수지 수위정보 조회
@@ -194,6 +195,7 @@ paths:
                       officialStage:
                         code: ok
                         label: 정상
+                    highWaterNotice: false
                     asOf: "2026-07-21T00:00:00.000Z"
                     sources:
                       - Supabase 스냅샷
@@ -829,6 +831,7 @@ components:
         - sigunName
         - reservoir
         - region
+        - highWaterNotice
         - asOf
         - sources
         - stale
@@ -908,6 +911,12 @@ components:
               description: 평년 대비 저수율 %. 100 초과 가능(실측 140.1). 일일 변화량은 %p
             officialStage:
               $ref: "#/components/schemas/DroughtStage"
+        highWaterNotice:
+          type: boolean
+          description: >-
+            만수위 '참고' 안내 여부. 대표 저수지 원저수율 95% 이상 + 상승 추세일
+            때만 true이며 서버가 확정한다. 클라이언트는 이 값을 재판정하지
+            않는다(자체 임계값 복제 금지). 경보가 아니라 참고 표시 전용이다
         asOf:
           type: string
           format: date-time

@@ -112,6 +112,22 @@ LLM 키가 없어도 모든 단계에서 행동 3개가 반환된다.
 
 **완료:** 실제 API로 4개 상태와 지연 폴백을 시연하고 375px·큰 글꼴·키보드·reduced motion QA를 통과한다.
 
+**게이트 자동화분 통과(2026-07-23):** 온보딩·동의·지역 등록·메인·흐름 상세(`/trend`)·폴리시
+웹 플로우를 구현하고, 4개 상태(정상·가뭄 진행·심각 임박·장마 만수위)와 지연 폴백(stale)을
+계약 정합 데모 픽스처(`packages/contracts/examples/{status,forecast}.*-demo.json` +
+`status.stale.json`)로 스텁해 실제 화면 컴포넌트를 렌더하는 `apps/web/test/stage4-gate.test.ts`
+(14 케이스)로 검증했다: ① 4개 상태 메인 전체 트리가 product.md 상태 표(rate·avgRatio·단계
+칩·도달일·만수위 배너·행동 3개)와 일치, ② stale에서 지연 안내 + HTTP 200 경로 유지,
+③ 카피 감사(금지 단정 표현·"가까운 저수지"·알림·로그인 0건, 공식 우선 고지 존재), ④ 접근성
+자동화분(heading 순서·아이콘 버튼 접근 이름·차트 aria-label·키보드 접근·reduced-motion 분기).
+루트 `pnpm lint && pnpm typecheck && pnpm test && pnpm --filter @mulsigye/web build &&
+pnpm format:check` 전부 통과.
+
+**미완(수동 QA):** 375px·큰 글꼴 200%·키보드·OS reduced motion 실기기 확인과 Vercel 프리뷰
+실 API 시연(정상/심각/stale)·디자이너 공유는 코드로 대체할 수 없어 **이 브랜치의 PR 후
+프리뷰에서 수행**한다. `docs/testing-and-feedback.md` 수동 QA 체크박스에 기록하며, 완료 전에는
+단계 4를 최종 완료로 표시하지 않는다.
+
 ### 5. Android 세로 기능 조각
 
 **구현 순서:** 웹과 동일한 API 순서를 따른다. Compose UI와 DataStore만 플랫폼별로 구현하고

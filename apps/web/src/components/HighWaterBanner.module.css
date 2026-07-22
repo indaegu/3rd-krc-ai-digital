@@ -1,0 +1,14 @@
+/* 파란 참고 배너 — 가뭄 단계 칩과 같은 위험 체계처럼 보이지 않게 분리한다. */
+.banner {
+  margin: 0;
+  padding: 14px 16px;
+  border-radius: var(--r-md);
+  background: var(--blue-tint);
+  color: #0e4da4;
+  font-size: 0.9375rem;
+  line-height: 1.55;
+}
+
+.tag {
+  font-weight: 800;
+}

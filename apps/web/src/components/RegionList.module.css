@@ -1,0 +1,71 @@
+.empty {
+  display: grid;
+  gap: 4px;
+  padding: 32px 20px;
+  border-radius: var(--r-lg);
+  background: var(--gray50);
+  text-align: center;
+}
+
+.emptyTitle {
+  margin: 0;
+  font-weight: 700;
+}
+
+.emptyHint {
+  margin: 0;
+  color: var(--ink2);
+  font-size: 0.9375rem;
+}
+
+.list {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.selectButton {
+  display: grid;
+  flex: 1;
+  gap: 4px;
+  padding: 16px 20px;
+  border: 2px solid transparent;
+  border-radius: var(--r-md);
+  background: var(--gray50);
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.selectButton[aria-pressed="true"] {
+  border-color: var(--blue);
+  background: var(--blue-tint);
+}
+
+.name {
+  font-size: 1.125rem;
+}
+
+.caption {
+  color: var(--ink2);
+  font-size: 0.9375rem;
+}
+
+.deleteButton {
+  min-width: 48px;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: var(--gray100);
+  color: var(--ink3);
+  font-size: 1.25rem;
+  cursor: pointer;
+}

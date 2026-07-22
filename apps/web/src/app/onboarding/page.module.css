@@ -1,0 +1,105 @@
+.main {
+  display: flex;
+  flex-direction: column;
+  width: min(100% - 32px, 560px);
+  min-height: 100dvh;
+  margin: 0 auto;
+  padding: 24px 0 32px;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.carousel {
+  display: flex;
+  flex: 1;
+  gap: 16px;
+  padding: 0;
+  margin: 0;
+  overflow-x: auto;
+  list-style: none;
+  scroll-snap-type: x mandatory;
+}
+
+.slide {
+  display: flex;
+  flex: 0 0 100%;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  padding: 16px;
+  text-align: center;
+  scroll-snap-align: center;
+}
+
+.art {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 132px;
+  height: 132px;
+  border-radius: 40px;
+}
+
+.art svg {
+  width: 64px;
+  height: 64px;
+}
+
+.slideTitle {
+  margin: 0;
+  font-size: 1.6rem;
+  line-height: 1.35;
+  letter-spacing: -0.02em;
+}
+
+.slideBody {
+  margin: 0;
+  color: var(--ink2);
+  font-size: 1.02rem;
+}
+
+.dots {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  padding: 20px 0;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--gray200);
+}
+
+.dotOn {
+  width: 20px;
+  background: var(--blue);
+}
+
+.ctaWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+}
+
+.ctaWrap > :first-child {
+  width: 100%;
+}
+
+.ctaSub {
+  color: var(--ink3);
+  font-size: 0.9rem;
+}

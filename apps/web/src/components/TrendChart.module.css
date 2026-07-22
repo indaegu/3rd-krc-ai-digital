@@ -1,0 +1,96 @@
+/* 차트 색·선 굵기 규격의 SSOT는 docs/design-system.md 토큰이다. */
+
+.wrap {
+  display: block;
+}
+
+.svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.band {
+  opacity: 0.7;
+  fill: var(--blue-soft);
+}
+
+.actual {
+  fill: none;
+  stroke: var(--blue);
+  stroke-width: 2.8;
+  stroke-linecap: round;
+}
+
+.forecastLine {
+  fill: none;
+  stroke: var(--blue-deep);
+  stroke-width: 2.3;
+  stroke-dasharray: 5 6;
+  stroke-linecap: round;
+}
+
+.thresholdLine {
+  stroke: var(--gray200);
+  stroke-dasharray: 3 5;
+}
+
+.thresholdLabel {
+  font-size: 9.5px;
+  font-weight: 700;
+}
+
+.watch {
+  fill: var(--watch-fg);
+}
+
+.care {
+  fill: var(--care-fg);
+}
+
+.alert {
+  fill: var(--alert-fg);
+}
+
+.crit {
+  fill: var(--crit-fg);
+}
+
+.axisLabel {
+  font-size: 9.5px;
+  fill: var(--ink4);
+}
+
+.axisTick {
+  font-size: 10px;
+  fill: var(--ink4);
+}
+
+.todayLine {
+  stroke: var(--gray100);
+  stroke-width: 1.6;
+}
+
+.todayLabel {
+  font-size: 10px;
+  font-weight: 700;
+  fill: var(--ink2);
+}
+
+.marker {
+  fill: var(--blue-deep);
+  stroke: #fff;
+  stroke-width: 2;
+}
+
+.srOnly {
+  position: absolute;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  white-space: nowrap;
+  border: 0;
+}

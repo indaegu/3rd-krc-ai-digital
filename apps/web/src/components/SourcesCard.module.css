@@ -1,0 +1,46 @@
+.card {
+  display: flex;
+  flex-direction: column;
+}
+
+.title {
+  margin: 0 0 10px;
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.body {
+  margin: 0;
+  color: var(--ink2);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  line-height: 1.6;
+}
+
+.stale {
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  color: var(--ink2);
+  font-size: 0.875rem;
+  font-weight: 600;
+  background: var(--gray100);
+  border-radius: var(--r-sm);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chip {
+  padding: 6px 12px;
+  color: var(--ink2);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  background: var(--gray100);
+  border-radius: 99px;
+}

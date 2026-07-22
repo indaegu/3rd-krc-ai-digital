@@ -1,32 +1,84 @@
 .main {
-  display: grid;
-  gap: 24px;
   width: min(100% - 32px, 560px);
   margin: 0 auto;
-  padding: 48px 0;
+  padding: 12px 0 48px;
 }
 
-.hero {
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  border: 0;
+  white-space: nowrap;
+}
+
+.stamp {
+  margin: 2px 0 0;
+  padding-left: 8px;
+  color: var(--ink4);
+  font-size: 0.875rem;
+}
+
+/* 모듈 간격 24px은 페이지 레이아웃이 소유한다(design-system.md). */
+.feed {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  margin-top: 16px;
+}
+
+.skeletonRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  margin-top: 14px;
+}
+
+.skeletonInfo {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.skeletonGauge {
+  display: block;
+  flex: none;
+  overflow: hidden;
+  border-radius: 16px;
+}
+
+.skeletonStack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+/* 예측 참고 고지 — 모든 예측 화면에 병기한다(product.md 카피 규칙). */
+.disclaimer {
+  margin: 0;
+  padding-left: 8px;
+  color: var(--ink3);
+  font-size: 0.9375rem;
+}
+
+.errorCard {
   display: grid;
-  gap: 8px;
+  gap: 12px;
 }
 
-.hero h1,
-.hero p {
+.errorTitle {
   margin: 0;
+  font-size: 1.125rem;
 }
 
-.hero h1 {
-  font-size: clamp(2.5rem, 10vw, 4rem);
-}
-
-.eyebrow {
-  color: var(--blue-deep);
-  font-weight: 700;
-}
-
-.notice {
+.errorMessage {
   margin: 0;
-  color: var(--ink-secondary);
+  color: var(--ink2);
   font-size: 0.9375rem;
 }

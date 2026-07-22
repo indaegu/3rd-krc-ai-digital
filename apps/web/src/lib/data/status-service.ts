@@ -3,8 +3,11 @@
 // → ③ 커밋 스냅샷. 지역 공식 단계: regional_drought_daily 최신 → 실패 시 커밋 스냅샷.
 // 사실만 반환한다(관측값·공식 단계) — 예측·확정 표현 없음(AGENTS.md 규칙 3).
 // rate(원저수율 %)와 avgRatio(평년 대비 %)는 의미가 다르다 — 절대 섞지 않는다.
+// 만수위 참고 highWaterNotice는 서버가 여기서 확정한다 — 각 폴백 단에서 확보한
+// 원저수율 시계열로 isHighWaterNotice를 계산하고, 시계열 미확보(2점 미만)면 false.
 import type { StatusResponse } from "@mulsigye/contracts";
 import { z } from "zod";
+import { isHighWaterNotice } from "../prediction/high-water.ts";
 import {
   STAGE_LABEL_BY_CODE,
   stageCodeFromAvgRatio,
@@ -117,6 +120,11 @@ type ObservationView = {
   rate: number | null;
   waterLevel: number | null;
   observedOn: string;
+  /**
+   * 만수위 참고 판정용 원저수율 시계열(오래된→최신, null 제외).
+   * 해당 폴백 단에서 확보한 관측만 담는다 — 2점 미만이면 판정은 false다.
+   */
+  rateSeries: readonly number[];
 };
 
 type RegionalView = {
@@ -133,6 +141,9 @@ function defaultCreateClient(): StatusSupabaseClient {
   return createServiceRoleClient() as unknown as StatusSupabaseClient;
 }
 
+/** Supabase 폴백에서 만수위 추세 판정까지 가능하도록 최근 14일치를 조회한다. */
+const SUPABASE_OBSERVATION_LIMIT = 14;
+
 async function latestObservationFromSupabase(
   client: StatusSupabaseClient | null,
   facCode: string,
@@ -144,14 +155,24 @@ async function latestObservationFromSupabase(
       .select("observed_on,rate,water_level")
       .eq("fac_code", facCode)
       .order("observed_on", { ascending: false })
-      .limit(1);
+      .limit(SUPABASE_OBSERVATION_LIMIT);
     if (error !== null || data === null || data.length === 0) return null;
-    const parsed = observationRowSchema.safeParse(data[0]);
-    if (!parsed.success) return null;
+    // observed_on 내림차순 — 첫 행이 최신 관측이다.
+    const rows = data
+      .map((row) => observationRowSchema.safeParse(row))
+      .filter((parsed) => parsed.success)
+      .map((parsed) => parsed.data);
+    const latest = rows[0];
+    if (latest === undefined) return null;
     return {
-      rate: parsed.data.rate,
-      waterLevel: parsed.data.water_level,
-      observedOn: parsed.data.observed_on,
+      rate: latest.rate,
+      waterLevel: latest.water_level,
+      observedOn: latest.observed_on,
+      rateSeries: rows
+        .slice()
+        .reverse()
+        .map((row) => row.rate)
+        .filter((rate): rate is number => rate !== null),
     };
   } catch {
     return null;
@@ -170,17 +191,18 @@ function latestObservationFromSnapshot(
     ? snapshot.representativeRecent30d[sigunCode]
     : undefined;
   if (representative !== undefined && representative.facCode === facCode) {
-    let latest: { observedOn: string; rate: number | null } | null = null;
-    for (const row of representative.rows) {
-      if (latest === null || row.observedOn > latest.observedOn) {
-        latest = row;
-      }
-    }
-    if (latest !== null) {
+    const rows = [...representative.rows].sort((a, b) =>
+      a.observedOn < b.observedOn ? -1 : 1,
+    );
+    const latest = rows[rows.length - 1];
+    if (latest !== undefined) {
       return {
         rate: latest.rate,
         waterLevel: null,
         observedOn: latest.observedOn,
+        rateSeries: rows
+          .map((row) => row.rate)
+          .filter((rate): rate is number => rate !== null),
       };
     }
   }
@@ -192,6 +214,8 @@ function latestObservationFromSnapshot(
     rate: byFacility.rate,
     waterLevel: null,
     observedOn: byFacility.observedOn,
+    // 관측 1점뿐 — 추세를 알 수 없으므로 만수위 판정은 false가 된다.
+    rateSeries: byFacility.rate === null ? [] : [byFacility.rate],
   };
 }
 
@@ -328,6 +352,10 @@ export async function buildStatus(
       rate: api.latest.rate,
       waterLevel: api.latest.waterLevel,
       observedOn: api.latest.observedOn,
+      rateSeries: [...api.observations]
+        .sort((a, b) => (a.observedOn < b.observedOn ? -1 : 1))
+        .map((row) => row.rate)
+        .filter((rate): rate is number => rate !== null),
     };
     sources.push(WATERLEVEL_API_SOURCE);
     await upsertObservations(getClient(), api.observations);
@@ -396,6 +424,8 @@ export async function buildStatus(
       avgRatio: region.avgRatio,
       officialStage: toOfficialStage(region),
     },
+    // 만수위 참고 — 서버 확정 값. 클라이언트는 이 값을 재판정하지 않는다.
+    highWaterNotice: isHighWaterNotice(observation.rateSeries),
     asOf: (deps.now ?? (() => new Date()))().toISOString(),
     sources,
     stale,
