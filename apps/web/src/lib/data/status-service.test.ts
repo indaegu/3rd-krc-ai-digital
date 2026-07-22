@@ -413,6 +413,131 @@ describe("buildStatus — 지역 단계 소스·경계", () => {
   );
 });
 
+describe("buildStatus — 만수위 참고(highWaterNotice)", () => {
+  /** 수위 API XML — 원저수율 시계열을 날짜·값으로 조립한다(탑정 고정). */
+  function waterLevelXml(
+    rows: readonly { date: string; rate: number }[],
+  ): string {
+    const items = rows
+      .map(
+        (row) =>
+          `<item><check_date>${row.date}</check_date><county>충청남도 논산시 </county>` +
+          `<fac_code>${TAPJEONG}</fac_code><fac_name>탑정</fac_name>` +
+          `<rate>${String(row.rate)}</rate><water_level>27.4</water_level></item>`,
+      )
+      .join("");
+    return (
+      '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><response><body>' +
+      `${items}<numOfRows>10</numOfRows><pageNo>1</pageNo>` +
+      `<totalCount>${String(rows.length)}</totalCount></body>` +
+      "<header><returnAuthMsg>NORMAL SERVICE</returnAuthMsg>" +
+      "<returnReasonCode>00</returnReasonCode></header></response>"
+    );
+  }
+
+  async function noticeOf(deps: StatusServiceDeps): Promise<boolean> {
+    const result = await buildStatus(NONSAN, deps);
+    if (result.kind !== "ok") throw new Error("ok여야 한다");
+    return result.body.highWaterNotice;
+  }
+
+  it("① 수위 API 시계열이 95 이상 + 상승이면 true", async () => {
+    const highFetch: WaterLevelFetch = async () =>
+      xmlResponse(
+        waterLevelXml([
+          { date: "20260719", rate: 95.2 },
+          { date: "20260720", rate: 96 },
+        ]),
+      );
+    const { client } = makeStatusClient({
+      regional: { data: [REGIONAL_ROW], error: null },
+    });
+    expect(await noticeOf(makeDeps(highFetch, client))).toBe(true);
+  });
+
+  it("① 수위 API 시계열이 95 미만이면 false (샘플 XML 최신 60.4)", async () => {
+    const { client } = makeStatusClient({
+      regional: { data: [REGIONAL_ROW], error: null },
+    });
+    expect(await noticeOf(makeDeps(okFetch, client))).toBe(false);
+  });
+
+  it("② Supabase 폴백 시계열(96 상승)로도 true를 계산한다", async () => {
+    const { client } = makeStatusClient({
+      observations: {
+        data: [
+          { observed_on: "2026-07-19", rate: 96, water_level: 30.1 },
+          { observed_on: "2026-07-18", rate: 95.2, water_level: 29.8 },
+        ],
+        error: null,
+      },
+      regional: { data: [REGIONAL_ROW], error: null },
+    });
+    const result = await buildStatus(NONSAN, makeDeps(timeoutFetch, client));
+    if (result.kind !== "ok") throw new Error("ok여야 한다");
+    expect(result.body.highWaterNotice).toBe(true);
+    // 최신 관측 자체는 종전과 동일하게 첫 행이다.
+    expect(result.body.reservoir.rate).toBe(96);
+    expect(result.body.reservoir.observedOn).toBe("2026-07-19");
+    expect(result.body.stale).toBe(true);
+  });
+
+  it("② Supabase 폴백이 관측 1점뿐이면(추세 불명) false", async () => {
+    const { client } = makeStatusClient({
+      observations: {
+        data: [{ observed_on: "2026-07-19", rate: 96, water_level: 30.1 }],
+        error: null,
+      },
+      regional: { data: [REGIONAL_ROW], error: null },
+    });
+    expect(await noticeOf(makeDeps(timeoutFetch, client))).toBe(false);
+  });
+
+  it("③ 커밋 스냅샷 대표지 시계열(95.2→96)로도 true를 계산한다", async () => {
+    const downClient = makeStatusClient({
+      observations: { data: null, error: { message: "connection refused" } },
+      regional: { data: [REGIONAL_ROW], error: null },
+    }).client;
+    const deps = makeDeps(timeoutFetch, downClient, {
+      snapshotObservations: {
+        latestByFacility: [],
+        representativeRecent30d: {
+          [NONSAN]: {
+            facCode: TAPJEONG,
+            name: "탑정",
+            rows: [
+              { observedOn: "2026-07-18", rate: 95.2 },
+              { observedOn: "2026-07-19", rate: 96 },
+            ],
+          },
+        },
+      },
+    });
+    expect(await noticeOf(deps)).toBe(true);
+  });
+
+  it("③ 스냅샷 latestByFacility 1점 폴백이면(시계열 미확보) false", async () => {
+    const downClient = makeStatusClient({
+      observations: { data: null, error: { message: "connection refused" } },
+      regional: { data: [REGIONAL_ROW], error: null },
+    }).client;
+    const deps = makeDeps(timeoutFetch, downClient, {
+      snapshotObservations: {
+        latestByFacility: [
+          {
+            facCode: TAPJEONG,
+            observedOn: "2026-07-19",
+            rate: 96,
+            source: "waterlevel_api",
+          },
+        ],
+        representativeRecent30d: {},
+      },
+    });
+    expect(await noticeOf(deps)).toBe(false);
+  });
+});
+
 describe("buildStatus — 준비되지 않은 지역", () => {
   it("논가뭄지도에 없는 광역시 구 코드(27140)는 not_prepared", async () => {
     const { client } = makeStatusClient({});

@@ -18,7 +18,11 @@ const STAGES: readonly StageDto[] = [
   { code: "crit", label: "심각" },
 ];
 
-function makeStatus(officialStage: StageDto, avgRatio: number): StatusResponse {
+function makeStatus(
+  officialStage: StageDto,
+  avgRatio: number,
+  highWaterNotice = false,
+): StatusResponse {
   return {
     schemaVersion: "1",
     sigunCode: "44230",
@@ -37,6 +41,7 @@ function makeStatus(officialStage: StageDto, avgRatio: number): StatusResponse {
       avgRatio,
       officialStage,
     },
+    highWaterNotice,
     asOf: FIXED_NOW.toISOString(),
     sources: ["농촌용수 저수지 수위정보 조회", "논가뭄지도"],
     stale: false,
@@ -84,7 +89,6 @@ function makeInput(
   overrides: Partial<{
     status: StatusResponse;
     forecast: ForecastResponse;
-    rateSeries: readonly number[];
     now: Date;
   }> = {},
 ) {
@@ -92,7 +96,6 @@ function makeInput(
     status:
       overrides.status ?? makeStatus({ code: "watch", label: "관심" }, 68),
     forecast: overrides.forecast ?? makeForecast({}),
-    rateSeries: overrides.rateSeries ?? [58.4, 60.4],
     now: overrides.now ?? FIXED_NOW,
   };
 }
@@ -140,14 +143,15 @@ describe("buildCoachFactPacket — 사실 매핑", () => {
     expect(packet.trendBucket).toBe("rising");
   });
 
-  it("만수위 참고: 최신 rate 96 상승 → true, 하락·95 미만·관측 부족 → false", () => {
-    const truthy = makeInput({ rateSeries: [95.2, 96] });
+  it("만수위 참고: status가 확정한 highWaterNotice를 그대로 옮긴다(재판정 금지)", () => {
+    const truthy = makeInput({
+      status: makeStatus({ code: "ok", label: "정상" }, 118, true),
+    });
     expect(buildCoachFactPacket(truthy).highWaterNotice).toBe(true);
-    for (const rateSeries of [[96.5, 96], [94, 94.9], [96], []] as const) {
-      expect(
-        buildCoachFactPacket(makeInput({ rateSeries })).highWaterNotice,
-      ).toBe(false);
-    }
+    const falsy = makeInput({
+      status: makeStatus({ code: "watch", label: "관심" }, 68, false),
+    });
+    expect(buildCoachFactPacket(falsy).highWaterNotice).toBe(false);
   });
 
   it("officialOutlookCode는 이번 단계 null 고정, actions는 coach-service가 채운다", () => {
@@ -174,7 +178,11 @@ describe("buildCoachFactPacket — 비식별 계약", () => {
   });
 
   it("스키마 상수를 제외한 fact 필드 직렬화에 숫자가 없다", () => {
-    const packet = buildCoachFactPacket(makeInput({ rateSeries: [95.2, 96] }));
+    const packet = buildCoachFactPacket(
+      makeInput({
+        status: makeStatus({ code: "ok", label: "정상" }, 118, true),
+      }),
+    );
     // factSchemaVersion("1")·reachBucket(within_7d 등)은 닫힌 스키마 상수라
     // 숫자 검사에서 제외하되, 값이 닫힌 어휘 안에 있음을 별도로 단언한다.
     const { factSchemaVersion, reachBucket, ...measured } = packet;

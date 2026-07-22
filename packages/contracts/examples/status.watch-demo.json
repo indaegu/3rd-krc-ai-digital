@@ -1,22 +1,22 @@
 {
   "schemaVersion": "1",
-  "sigunCode": "44230",
-  "sigunName": "논산시",
+  "sigunCode": "46170",
+  "sigunName": "나주시",
   "reservoir": {
-    "facCode": "4423010045",
-    "name": "탑정",
-    "rate": 87.5,
-    "waterLevel": 32.1,
+    "facCode": "4617010200",
+    "name": "나주호",
+    "rate": 57,
+    "waterLevel": 24.3,
     "observedOn": "2026-07-20"
   },
   "region": {
     "observedOn": "2026-07-20",
-    "regionalRate": 82.4,
-    "normalRate": 88.1,
-    "avgRatio": 93.5,
+    "regionalRate": 54.4,
+    "normalRate": 80,
+    "avgRatio": 68,
     "officialStage": {
-      "code": "ok",
-      "label": "정상"
+      "code": "watch",
+      "label": "관심"
     }
   },
   "highWaterNotice": false,

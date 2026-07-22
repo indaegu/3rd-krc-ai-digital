@@ -209,6 +209,8 @@ export interface components {
         avgRatio: number;
         officialStage: components["schemas"]["DroughtStage"];
       };
+      /** @description 만수위 '참고' 안내 여부. 대표 저수지 원저수율 95% 이상 + 상승 추세일 때만 true이며 서버가 확정한다. 클라이언트는 이 값을 재판정하지 않는다(자체 임계값 복제 금지). 경보가 아니라 참고 표시 전용이다 */
+      highWaterNotice: boolean;
       /** Format: date-time */
       asOf: string;
       sources: string[];

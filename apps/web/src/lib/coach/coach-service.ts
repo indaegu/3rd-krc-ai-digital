@@ -4,25 +4,19 @@
 // 않으며, LLM_ENABLED env 분기 자체를 두지 않는다 — 실수로 live가 열릴 여지를
 // 없앤다. live 연결은 캐시·lock·예산 가드가 자동 테스트되는 별도 변경 몫이다.
 // 행동 ID·순서·카피는 서버(카탈로그·CoachPolicy)가 확정한다(AGENTS 규칙 10).
-import type { CoachResponse, StatusResponse } from "@mulsigye/contracts";
+import type { CoachResponse } from "@mulsigye/contracts";
 import {
   ACTION_CATALOG_VERSION,
   PROMPT_VERSION,
   selectActions,
   StaticCoachProvider,
 } from "@mulsigye/llm";
-import {
-  buildStatus,
-  type ObservationsSnapshot,
-  type StatusServiceDeps,
-} from "../data/status-service.ts";
-import { fetchLatestWaterLevel } from "../data/waterlevel-api.ts";
+import { buildStatus, type StatusServiceDeps } from "../data/status-service.ts";
 import {
   buildForecast,
   type ForecastServiceDeps,
 } from "../prediction/forecast-service.ts";
 import { buildCoachFactPacket } from "./coach-context.ts";
-import observationsSnapshotJson from "../../../../../data/snapshots/reservoir-observations.json" with { type: "json" };
 
 export type CoachServiceDeps = {
   status?: StatusServiceDeps;
@@ -35,49 +29,8 @@ export type CoachResult =
   | { kind: "not_prepared" }
   | { kind: "unavailable" };
 
-const OBSERVATIONS_SNAPSHOT: ObservationsSnapshot = observationsSnapshotJson;
-
 /** 정적 provider 단일 인스턴스 — 이 경로가 실행하는 유일한 CoachProvider다. */
 const staticCoachProvider = new StaticCoachProvider();
-
-/**
- * 만수위 참고 판정용 대표 저수지 '원저수율 rate(%)' 시계열(오래된→최신).
- * ① 수위 API(최근 14일 — buildStatus와 같은 60분 fetch 캐시를 공유하므로
- *    같은 요청 안의 재호출은 추가 원격 호출이 아니다)
- * ② 커밋 스냅샷 representativeRecent30d
- * ③ 둘 다 없으면 빈 시계열 — isHighWaterNotice는 false(참고 배너 생략이 안전).
- */
-async function rateSeriesFor(
-  status: StatusResponse,
-  deps: CoachServiceDeps,
-): Promise<number[]> {
-  const facCode = status.reservoir.facCode;
-  const api = await fetchLatestWaterLevel(
-    facCode,
-    deps.status?.waterLevel ?? {},
-  );
-  if (api.ok) {
-    return [...api.observations]
-      .sort((a, b) => (a.observedOn < b.observedOn ? -1 : 1))
-      .map((observation) => observation.rate)
-      .filter((rate): rate is number => rate !== null);
-  }
-
-  const snapshot = deps.status?.snapshotObservations ?? OBSERVATIONS_SNAPSHOT;
-  const representative = Object.hasOwn(
-    snapshot.representativeRecent30d,
-    status.sigunCode,
-  )
-    ? snapshot.representativeRecent30d[status.sigunCode]
-    : undefined;
-  if (representative !== undefined && representative.facCode === facCode) {
-    return [...representative.rows]
-      .sort((a, b) => (a.observedOn < b.observedOn ? -1 : 1))
-      .map((row) => row.rate)
-      .filter((rate): rate is number => rate !== null);
-  }
-  return [];
-}
 
 /**
  * sigunCode 하나로 status·forecast를 조립해 정적 코치 CoachResponse를 만든다.
@@ -107,11 +60,11 @@ export async function buildCoach(
   const status = statusResult.body;
   const forecast = forecastResult.body;
 
-  const rateSeries = await rateSeriesFor(status, deps);
+  // 만수위 참고는 status가 서버에서 확정한 highWaterNotice를 그대로 쓴다 —
+  // 수위 시계열을 다시 조회하거나 재판정하지 않는다(중복 rateSeriesFor 제거).
   const base = buildCoachFactPacket({
     status,
     forecast,
-    rateSeries,
     now: now(),
   });
   const facts = {

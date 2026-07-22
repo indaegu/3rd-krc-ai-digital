@@ -19,6 +19,7 @@
       "label": "정상"
     }
   },
+  "highWaterNotice": false,
   "asOf": "2026-07-21T00:00:00.000Z",
   "sources": ["Supabase 스냅샷", "논가뭄지도"],
   "stale": true

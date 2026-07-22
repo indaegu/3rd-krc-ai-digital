@@ -1,22 +1,22 @@
 {
   "schemaVersion": "1",
-  "sigunCode": "44230",
-  "sigunName": "논산시",
+  "sigunCode": "50110",
+  "sigunName": "제주시",
   "reservoir": {
-    "facCode": "4423010045",
-    "name": "탑정",
-    "rate": 87.5,
-    "waterLevel": 32.1,
+    "facCode": "5011010004",
+    "name": "상대",
+    "rate": 33,
+    "waterLevel": 4.1,
     "observedOn": "2026-07-20"
   },
   "region": {
     "observedOn": "2026-07-20",
-    "regionalRate": 82.4,
-    "normalRate": 88.1,
-    "avgRatio": 93.5,
+    "regionalRate": 36.8,
+    "normalRate": 80,
+    "avgRatio": 46,
     "officialStage": {
-      "code": "ok",
-      "label": "정상"
+      "code": "alert",
+      "label": "경계"
     }
   },
   "highWaterNotice": false,

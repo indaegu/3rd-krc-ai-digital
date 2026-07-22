@@ -75,7 +75,7 @@ apps/web browser UI + apps/android
 |---|---|---|---|
 | `GET /api/v1/regions/search` | 주소 검색어 | 주소 API 결과를 최소 필드로 정규화 | 원문을 로그·DB에 저장하지 않음 |
 | `POST /api/v1/regions/resolve` | 선택 주소의 행정코드 | 시군구와 대표 저수지를 결정 | 수혜면적 최대, 동률은 시설코드 오름차순 |
-| `GET /api/v1/status` | `sigunCode` | 대표 저수지 원저수율 + 지역 `avgRatio` + 공식 단계 | 두 저수율의 의미를 분리, 3단 폴백으로 HTTP 200 유지 |
+| `GET /api/v1/status` | `sigunCode` | 대표 저수지 원저수율 + 지역 `avgRatio` + 공식 단계 + 만수위 참고 `highWaterNotice` | 두 저수율의 의미를 분리, 3단 폴백으로 HTTP 200 유지. 만수위 참고(원저수율 95% 이상 + 상승)는 각 폴백 단에서 확보한 시계열로 서버가 확정하며 클라이언트는 재판정하지 않는다 |
 | `GET /api/v1/forecast` | `sigunCode` | 14일 예측, 오차, 도달 가능 시점, 공식 전망 | 참고 표현만 반환 |
 | `GET /api/v1/coach` | `sigunCode` | 서버가 상태를 조회해 허용 행동 안에서 코칭 | 임의 프롬프트 입력 금지 |
 

@@ -1,11 +1,20 @@
 import { describe, expect, expectTypeOf, it } from "vitest";
 
+import forecastFloodDemo from "../examples/forecast.flood-demo.json" with { type: "json" };
+import forecastNormalDemo from "../examples/forecast.normal-demo.json" with { type: "json" };
 import forecastOk from "../examples/forecast.ok.json" with { type: "json" };
+import forecastSevereDemo from "../examples/forecast.severe-demo.json" with { type: "json" };
 import forecastStable from "../examples/forecast.stable.json" with { type: "json" };
+import forecastWatchDemo from "../examples/forecast.watch-demo.json" with { type: "json" };
+import statusFloodDemo from "../examples/status.flood-demo.json" with { type: "json" };
+import statusNormalDemo from "../examples/status.normal-demo.json" with { type: "json" };
+import statusSevereDemo from "../examples/status.severe-demo.json" with { type: "json" };
+import statusWatchDemo from "../examples/status.watch-demo.json" with { type: "json" };
 import type {
   ForecastBandPoint,
   ForecastPoint,
   ForecastResponse,
+  StatusResponse,
 } from "../src/index.js";
 
 const round2 = (value: number): number => Math.round(value * 100) / 100;
@@ -164,7 +173,129 @@ describe("forecast contract fixtures", () => {
     expect(forecastStable.trend.bucket).toBe("rising");
     expect(forecastStable.officialOutlook).toBeNull();
   });
+});
 
+// 4개 상태 데모 픽스처 — product.md 상태 표와 산술 정합:
+// reach.days === ceil((avgRatio − 다음 단계 임계값) / |dailyDelta|).
+// 임계값은 공인 기준 70/60/50/40이며 프로덕션 코드는 drought-stage.ts가 단일 출처다
+// (여기서는 계약 패키지 테스트라 산술 검증용 수치로만 쓴다).
+describe("forecast demo fixtures — 도달일·단계 산술 정합", () => {
+  type Demo = {
+    name: string;
+    forecast: ForecastResponse;
+    status: StatusResponse;
+    dailyDelta: number;
+    trendBucket: ForecastResponse["trend"]["bucket"];
+    reach: {
+      days: number;
+      bucket: ForecastResponse["reach"]["bucket"];
+      targetStage: { code: string; label: string };
+      threshold: number;
+    } | null;
+  };
+
+  const DEMOS: readonly Demo[] = [
+    {
+      name: "정상(−0.12 → none)",
+      forecast: forecastNormalDemo as ForecastResponse,
+      status: statusNormalDemo as StatusResponse,
+      dailyDelta: -0.12,
+      trendBucket: "falling",
+      reach: null,
+    },
+    {
+      name: "가뭄 진행(−0.45 → 18일 주의)",
+      forecast: forecastWatchDemo as ForecastResponse,
+      status: statusWatchDemo as StatusResponse,
+      dailyDelta: -0.45,
+      trendBucket: "falling",
+      reach: {
+        days: 18,
+        bucket: "within_30d",
+        targetStage: { code: "care", label: "주의" },
+        threshold: 60,
+      },
+    },
+    {
+      name: "심각 임박(−0.67 → 9일 심각)",
+      forecast: forecastSevereDemo as ForecastResponse,
+      status: statusSevereDemo as StatusResponse,
+      dailyDelta: -0.67,
+      trendBucket: "falling",
+      reach: {
+        days: 9,
+        bucket: "within_14d",
+        targetStage: { code: "crit", label: "심각" },
+        threshold: 40,
+      },
+    },
+    {
+      name: "장마 만수위(+0.42 → none)",
+      forecast: forecastFloodDemo as ForecastResponse,
+      status: statusFloodDemo as StatusResponse,
+      dailyDelta: 0.42,
+      trendBucket: "rising",
+      reach: null,
+    },
+  ];
+
+  for (const demo of DEMOS) {
+    it(`${demo.name}: 추세·도달일이 산식과 일치한다`, () => {
+      const { forecast } = demo;
+      expect(forecast.trend.dailyDelta).toBe(demo.dailyDelta);
+      expect(forecast.trend.bucket).toBe(demo.trendBucket);
+
+      if (demo.reach === null) {
+        expect(forecast.reach.days).toBeNull();
+        expect(forecast.reach.bucket).toBe("none");
+        expect(forecast.reach.targetStage).toBeNull();
+      } else {
+        // reach.days === ceil((avgRatio − 임계값) / |dailyDelta|)
+        expect(forecast.reach.days).toBe(
+          Math.ceil(
+            (forecast.basis.avgRatio - demo.reach.threshold) /
+              Math.abs(demo.dailyDelta),
+          ),
+        );
+        expect(forecast.reach.days).toBe(demo.reach.days);
+        expect(forecast.reach.bucket).toBe(demo.reach.bucket);
+        expect(forecast.reach.targetStage).toEqual(demo.reach.targetStage);
+      }
+    });
+
+    it(`${demo.name}: history 30점이 dailyDelta 등차로 basis에 도달한다`, () => {
+      const { forecast } = demo;
+      expect(forecast.history).toHaveLength(30);
+      expect(forecast.forecast).toHaveLength(14);
+      const last = forecast.history[forecast.history.length - 1];
+      expect(last?.observedOn).toBe(forecast.basis.observedOn);
+      expect(last?.avgRatio).toBe(forecast.basis.avgRatio);
+      for (let i = 1; i < forecast.history.length; i += 1) {
+        const prev = forecast.history[i - 1];
+        const next = forecast.history[i];
+        if (prev === undefined || next === undefined) {
+          throw new Error("history 점이 비었다");
+        }
+        expect(round2(next.avgRatio - prev.avgRatio)).toBe(demo.dailyDelta);
+      }
+      for (const point of forecast.forecast) {
+        expect(point.low).toBeLessThan(point.high);
+      }
+    });
+
+    it(`${demo.name}: status 데모와 지역·수치·단계가 일치한다`, () => {
+      expect(demo.forecast.sigunCode).toBe(demo.status.sigunCode);
+      expect(demo.forecast.sigunName).toBe(demo.status.sigunName);
+      expect(demo.forecast.basis.avgRatio).toBe(demo.status.region.avgRatio);
+      expect(demo.forecast.basis.officialStage).toEqual(
+        demo.status.region.officialStage,
+      );
+      expect(demo.forecast.model).toEqual(backtestedModel);
+    });
+  }
+});
+
+describe("forecast contract type unions", () => {
   it("keeps trend and reach bucket unions to the fixed contract values", () => {
     expectTypeOf<ForecastResponse["trend"]["bucket"]>().toEqualTypeOf<
       "rising" | "stable" | "falling"
