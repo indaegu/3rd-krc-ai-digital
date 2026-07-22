@@ -18,6 +18,7 @@
 | 데이터 적재·검증 | `pnpm build:data` (`--dry-run`/`--skip-upsert` 지원, upsert는 `.env.local` 필요) |
 | 백테스트 | `pnpm backtest` (`data/raw` 원CSV 필요 — gitignore 대상이므로 개발 PC 수동 명령. `data/backtest-report.json` 재생성, 지표 값 재현 확인) |
 | 단계 2 완료 게이트 | `pnpm --filter @mulsigye/web test test/stage2-gate.test.ts` |
+| 단계 3 완료 게이트 | `pnpm --filter @mulsigye/web test test/stage3-gate.test.ts` (리포트-문서 드리프트 + 5단계×3시군 정적 코치 + 도달일 예제. MAE 재현 자체는 `pnpm backtest` 재실행으로 확인) |
 | LLM 실계약(보호) | `$env:LLM_CONTRACT_TEST='1'` + 실 `ANTHROPIC_API_KEY` 설정 후 `pnpm --filter @mulsigye/llm test test/anthropic-live.contract.test.ts` (기본·CI는 skip, 실 Opus 4.7 1회 호출 비용 발생 — docs/llm-coach.md 참조) |
 | Supabase 시작·적용 | `pnpm supabase:start`, `pnpm supabase:reset` |
 | Supabase 검사 | `pnpm supabase:lint`, `pnpm supabase:test` |
