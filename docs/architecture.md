@@ -129,6 +129,8 @@ apps/web browser UI + apps/android
 apps/web/src/app/            Next.js 페이지
 apps/web/src/app/api/v1/     버전이 고정된 Route Handlers
 apps/web/src/components/     UI 컴포넌트(Gauge*, Coach*, Region*)
+apps/web/src/components/ui/  UI 프리미티브(Card·StageChip·CtaButton·Skeleton·BottomSheet)
+apps/web/src/lib/client/     브라우저 전용 지역·동의 저장소(localStorage)와 /api/v1 fetch 클라이언트
 apps/web/src/lib/data/       외부 페치·XML/CSV 정규화·대표지 결정·캐시
 apps/web/src/lib/prediction/ 모델·도달일 계산 순수 함수
 apps/web/scripts/            데이터 적재 CLI(build-data.ts) — lib/data 모듈 재사용

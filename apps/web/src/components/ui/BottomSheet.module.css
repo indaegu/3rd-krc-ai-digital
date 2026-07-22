@@ -1,0 +1,36 @@
+.overlay {
+  position: fixed;
+  z-index: 100;
+  display: flex;
+  align-items: flex-end;
+  inset: 0;
+}
+
+.dim {
+  position: absolute;
+  background: rgb(25 31 40 / 45%);
+  inset: 0;
+}
+
+.sheet {
+  position: relative;
+  width: 100%;
+  max-height: 85vh;
+  padding: 12px 20px 24px;
+  overflow-y: auto;
+  border-radius: var(--r-lg) var(--r-lg) 0 0;
+  background: var(--bg);
+}
+
+.sheet:focus-visible {
+  outline: none;
+}
+
+.grabber {
+  display: block;
+  width: 44px;
+  height: 4px;
+  margin: 0 auto 16px;
+  border-radius: 999px;
+  background: var(--gray200);
+}

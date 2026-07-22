@@ -1,0 +1,25 @@
+.skeleton {
+  display: block;
+  height: 16px;
+  border-radius: var(--r-sm);
+  background: linear-gradient(
+    90deg,
+    var(--gray100) 25%,
+    var(--gray200) 50%,
+    var(--gray100) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.3s ease-in-out infinite;
+}
+
+/* globals.css의 shimmer와 같은 정의. CSS Modules가 animation 이름을
+   로컬 스코프로 바꾸므로 이 파일 안에 keyframes를 함께 둔다. */
+@keyframes shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+
+  100% {
+    background-position: -100% 0;
+  }
+}

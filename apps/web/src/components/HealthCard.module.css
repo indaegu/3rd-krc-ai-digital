@@ -1,7 +1,7 @@
 .card {
   padding: 24px;
-  border-radius: var(--radius-large);
-  background: var(--gray-50);
+  border-radius: var(--r-lg);
+  background: var(--gray50);
 }
 
 .card h2,
@@ -12,7 +12,7 @@
 
 .card p {
   margin-top: 8px;
-  color: var(--ink-secondary);
+  color: var(--ink2);
 }
 
 .button {

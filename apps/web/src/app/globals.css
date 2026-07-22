@@ -1,12 +1,33 @@
+/* 디자인 토큰 — 이름·값의 SSOT는 docs/design-system.md. 임의 추가·변경 금지. */
 :root {
   --ink: #191f28;
-  --ink-secondary: #4e5968;
-  --gray-50: #f9fafb;
+  --ink2: #4e5968;
+  --ink3: #8b95a1;
+  --ink4: #b0b8c1;
+  --bg: #ffffff;
+  --gray50: #f9fafb;
+  --gray100: #f2f4f6;
+  --gray200: #e5e8eb;
   --blue: #3182f6;
   --blue-deep: #1b64da;
-  --radius-large: 24px;
+  --blue-tint: #e8f3ff;
+  --blue-soft: #d6e8ff;
+  /* 공식 가뭄 단계 fg/bg — 임계값은 src/lib/data/drought-stage.ts에만 둔다 */
+  --ok-fg: #159570;
+  --ok-bg: #e6f6f0;
+  --watch-fg: #9a6700;
+  --watch-bg: #fff3d6;
+  --care-fg: #d9510c;
+  --care-bg: #ffebde;
+  --alert-fg: #e5372f;
+  --alert-bg: #fdebea;
+  --crit-fg: #a11c1c;
+  --crit-bg: #f8e2e2;
+  --r-lg: 24px;
+  --r-md: 18px;
+  --r-sm: 12px;
   color: var(--ink);
-  background: #ffffff;
+  background: var(--bg);
   font-family:
     var(--font-pretendard),
     -apple-system,
@@ -29,6 +50,22 @@ body {
 button {
   min-width: 48px;
   min-height: 48px;
+}
+
+:focus-visible {
+  outline: 3px solid var(--blue-deep);
+  outline-offset: 3px;
+}
+
+/* 스켈레톤 shimmer(1.3s). CSS Modules는 번들러 스코핑 때문에 로컬 keyframes를 함께 정의한다. */
+@keyframes shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+
+  100% {
+    background-position: -100% 0;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
