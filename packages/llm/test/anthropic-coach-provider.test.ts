@@ -128,13 +128,15 @@ describe("AnthropicCoachProvider", () => {
     await new AnthropicCoachProvider({ client }).generate(facts);
 
     const [params] = create.mock.calls[0]!;
-    const promptText = [params.system, JSON.stringify(params.messages)].join(
-      "\n",
-    );
+    const messagesText = JSON.stringify(params.messages);
+    const promptText = [params.system, messagesText].join("\n");
 
     expect(promptText).not.toMatch(/sigunCode/i);
     expect(promptText).not.toContain("주소");
-    expect(promptText).not.toMatch(/\d/);
+    // 사실 채널(user 메시지)에는 숫자가 하나도 없어야 한다 — 버킷 코드도
+    // 우리말 라벨로 변환된다. 시스템 프롬프트의 분량 지시(15자 등)는 정적
+    // 문구라 비식별 제약과 무관하다.
+    expect(messagesText).not.toMatch(/\d/);
   });
 
   it("propagates a timeout failure", async () => {

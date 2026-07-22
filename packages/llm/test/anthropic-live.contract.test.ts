@@ -52,9 +52,12 @@ describe.runIf(shouldRun)("anthropic live contract (claude-opus-4-7)", () => {
     );
     expect(copy.headline.length).toBeGreaterThan(0);
 
-    // 보고용(키·프롬프트 전문은 출력하지 않는다).
-    console.info("[live-contract] headline:", copy.headline);
-    console.info("[live-contract] summary:", copy.summary);
-    console.info("[live-contract] usage:", JSON.stringify(usage));
+    // 보고용(키·프롬프트 전문은 출력하지 않는다). vitest 리포터가 통과한
+    // 테스트의 console 출력을 숨길 수 있어 stdout에 직접 쓴다.
+    process.stdout.write(
+      `[live-contract] headline: ${copy.headline}\n` +
+        `[live-contract] summary: ${copy.summary}\n` +
+        `[live-contract] usage: ${JSON.stringify(usage)}\n`,
+    );
   }, 30_000);
 });

@@ -59,8 +59,10 @@ pnpm --filter @mulsigye/llm test test/anthropic-live.contract.test.ts
 (각 약 4.03초에 중단, 400 파라미터 거절 아님 — 호출 계약 자체는 수락됨).
 이 실측을 근거로 사용자 승인을 받아 타임아웃을 8,000ms로 상향했다(2026-07-22).
 8,000ms 재실측 1회는 약 5.8초에 응답을 받았으나 `stop_reason: "max_tokens"`
-(출력 256 tokens 상한 도달)로 검증 전 실패했다 — max tokens 상향은 설계 고정값
-변경이므로 별도 승인 후 결정한다.
+(출력 256 tokens 상한 도달)로 검증 전 실패했다. 이에 coach-v1 프롬프트에 출력
+분량 지시(headline 15자 안팎·summary 60자 안팎·reason 40자 안팎)를 추가했고,
+같은 날 실호출 1회가 약 4.4초에 성공해 validator 통과·행동 ID 보존을 확인했다 —
+설계 spec 17절 1항(실 `claude-opus-4-7` 구조화 출력 고정 사례 1개 성공) 충족.
 
 ## 보안과 로그
 
