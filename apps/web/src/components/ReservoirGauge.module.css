@@ -16,10 +16,10 @@
   left: 0;
   height: 0%;
   background: linear-gradient(180deg, #98cbff, #7eb6fa);
-  transition: height 1.6s cubic-bezier(0.25, 0.8, 0.3, 1);
 }
 
-/* 물 출렁임 — 회전 타원 2겹(7s / 11s reverse), design-system.md 애니메이션 규격 */
+/* 물 출렁임 — 회전 타원 2겹(7s / 11s reverse), design-system.md 애니메이션 규격.
+   모션 허용(data-motion="flowing")일 때만 채움 transition·출렁임을 켠다. */
 .wave {
   position: absolute;
   top: -101px;
@@ -28,7 +28,7 @@
   height: 220px;
   border-radius: 41%;
   background: #98cbff;
-  animation: slosh 7s linear infinite;
+  transform: translateX(-50%);
 }
 
 .w2 {
@@ -36,6 +36,17 @@
   border-radius: 37% 43% 40% 44%;
   background: #bfe0ff;
   opacity: 0.75;
+}
+
+.gauge[data-motion="flowing"] .water {
+  transition: height 1.6s cubic-bezier(0.25, 0.8, 0.3, 1);
+}
+
+.gauge[data-motion="flowing"] .wave {
+  animation: slosh 7s linear infinite;
+}
+
+.gauge[data-motion="flowing"] .w2 {
   animation: slosh 11s linear infinite reverse;
 }
 
@@ -46,16 +57,5 @@
 
   to {
     transform: translateX(-50%) rotate(360deg);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .water {
-    transition: none;
-  }
-
-  .wave,
-  .w2 {
-    animation: none;
   }
 }

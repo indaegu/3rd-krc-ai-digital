@@ -19,6 +19,7 @@
 | 백테스트 | `pnpm backtest` (`data/raw` 원CSV 필요 — gitignore 대상이므로 개발 PC 수동 명령. `data/backtest-report.json` 재생성, 지표 값 재현 확인) |
 | 단계 2 완료 게이트 | `pnpm --filter @mulsigye/web test test/stage2-gate.test.ts` |
 | 단계 3 완료 게이트 | `pnpm --filter @mulsigye/web test test/stage3-gate.test.ts` (리포트-문서 드리프트 + 5단계×3시군 정적 코치 + 도달일 예제. MAE 재현 자체는 `pnpm backtest` 재실행으로 확인) |
+| 단계 4 완료 게이트(자동화분) | `pnpm --filter @mulsigye/web test test/stage4-gate.test.ts` (계약 정합 데모 픽스처 4벌 + stale로 fetch만 스텁하고 메인 `/`·상세 `/trend` 실제 화면을 렌더: ① 4개 상태 전체 트리 product.md 정합 ② stale 지연 안내 + 200 유지 ③ 카피 감사 ④ 접근성 자동화분. **수동 QA는 이 명령으로 대체할 수 없다** — 아래 수동 QA 참조) |
 | LLM 실계약(보호) | `$env:LLM_CONTRACT_TEST='1'` + 실 `ANTHROPIC_API_KEY` 설정 후 `pnpm --filter @mulsigye/llm test test/anthropic-live.contract.test.ts` (기본·CI는 skip, 실 Opus 4.7 1회 호출 비용 발생 — docs/llm-coach.md 참조) |
 | Supabase 시작·적용 | `pnpm supabase:start`, `pnpm supabase:reset` |
 | Supabase 검사 | `pnpm supabase:lint`, `pnpm supabase:test` |
@@ -69,6 +70,11 @@
 UI 스냅샷은 만들지 않는다. 시각 회귀 비용 대신 아래 핵심 플로우를 실제 화면으로 확인한다.
 
 ## 수동 QA
+
+단계 4 완료 게이트의 자동화 가능분(4개 상태 + stale 픽스처 정합, 카피 감사, heading·버튼
+이름·차트 aria·키보드·reduced-motion 분기)은 `test/stage4-gate.test.ts`가 검증한다. 아래
+항목 중 375px·큰 글꼴 200%·실기기·TalkBack·OS reduced motion·Vercel 프리뷰 실 API 확인은
+코드로 대체할 수 없어 **웹은 PR 후 Vercel 프리뷰에서** 수행하고 여기 체크박스로 기록한다.
 
 - [ ] 웹·Android 신규 사용자: 스플래시 → 온보딩 → 약관 동의 → 주소 검색 → 대표 저수지 등록 → 메인
 - [ ] 로그인·알림 요청 화면이 어느 플랫폼에도 없음

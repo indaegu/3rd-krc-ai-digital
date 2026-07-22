@@ -6,6 +6,7 @@
 
 import { useEffect, useRef } from "react";
 
+import { prefersReducedMotion } from "../lib/client/reduced-motion";
 import styles from "./ReservoirGauge.module.css";
 
 interface ReservoirGaugeProps {
@@ -14,23 +15,38 @@ interface ReservoirGaugeProps {
 }
 
 export function ReservoirGauge({ rate }: ReservoirGaugeProps) {
+  const gaugeRef = useRef<HTMLDivElement>(null);
   const waterRef = useRef<HTMLDivElement>(null);
   const target = rate === null ? 0 : Math.min(Math.max(rate, 0), 100);
+
+  // 물 출렁임·수위 채움 애니메이션은 모션 허용일 때만 켠다. 마운트 후에 판정해
+  // data-motion을 바꾸므로 SSR 기본값(reduced=정지)과 하이드레이션이 어긋나지 않는다.
+  useEffect(() => {
+    const gauge = gaugeRef.current;
+    if (gauge !== null) {
+      gauge.dataset.motion = prefersReducedMotion() ? "reduced" : "flowing";
+    }
+  }, []);
 
   useEffect(() => {
     const water = waterRef.current;
     if (water === null) {
       return;
     }
-    // 수위 0 → 목표 채움. 1.6s 곡선은 CSS transition이 소유하고,
-    // reduced motion에서는 전역 규칙이 transition을 끊어 즉시 반영된다.
+    // 수위 0 → 목표 채움. 1.6s 곡선은 data-motion="flowing"일 때만 transition으로
+    // 애니메이션하고, reduced/정지에서는 즉시 목표 높이로 반영된다.
     water.style.height = "0%";
     void water.offsetHeight; // 리플로우로 시작 높이를 확정해 transition을 보장한다.
     water.style.height = `${target}%`;
   }, [target]);
 
   return (
-    <div className={styles.gauge} aria-hidden="true">
+    <div
+      ref={gaugeRef}
+      className={styles.gauge}
+      data-motion="reduced"
+      aria-hidden="true"
+    >
       <div ref={waterRef} className={styles.water}>
         <span className={styles.wave} />
         <span className={`${styles.wave} ${styles.w2}`} />
