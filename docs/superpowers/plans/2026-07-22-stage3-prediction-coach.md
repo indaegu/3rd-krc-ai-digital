@@ -5,6 +5,7 @@
 - 상태: 사용자 승인 (2026-07-22)
 - 작성일: 2026-07-22
 - 확정 결정: live 코치 연결 = 단계 4 마지막 Task / 실 Anthropic 계약 테스트 = Task 6에서 실행 / forecast_runs 테이블 안 만듦 / 예측 상수는 플랜 제안값 채택
+- 추가 확정 (2026-07-22, 백테스트 결과 naive 채택 후): **추세·도달일은 최근 14일 관측 선형 기울기 `observedDailyDelta`로 계산** (예측선·밴드는 채택 모델 + 잔차 분위수 — 근거 분리를 문서·메타데이터에 명시). 플랜 본문의 `d = (forecast[13] − r0) / 14` 정의는 폐기. Task 4는 `observedDailyDelta`를 models.ts에 추가(테스트 포함)하고 trend/reach에 사용한다.
 - 근거 SSOT: `docs/prediction-model.md`(모델 4종·백테스트 프로토콜·도달일 산식 확정), `docs/llm-coach.md` + `docs/superpowers/specs/2026-07-19-llm-coach-design.md`(코치 계약·폴백·가드), `docs/product.md`(참고 표현·카피 규칙), AGENTS.md 절대 규칙 3·5·10
 
 **Goal:** 논가뭄지도 `avgRatio` 시계열로 naive/ma7/linear/ses 4종 순수 함수 예측 모델을 구현하고, 1년치 원CSV로 7일·14일 홀드아웃 MAE 백테스트를 재현 가능하게 실행해 `data/backtest-report.json`과 `docs/prediction-model.md` 결과 절에 실측 수치를 기록한다. 다음 단계 도달 가능 시점(`reachBucket`)을 계산해 `/api/v1/forecast`로 노출하고, 행동 카탈로그 `actions-v1`(단계 5종 × 3개 + 만수위 참고)과 `AnthropicCoachProvider`(claude-opus-4-7, 미연결)를 갖춘 뒤, `/api/v1/coach`를 **정적 코치 전용 경로**(LLM_ENABLED=false, Anthropic 미호출)로 노출한다. 완료 게이트: `pnpm backtest` 재실행 시 동일 MAE가 재현되고, LLM 키가 전혀 없어도 5개 공인 단계 전부에서 행동 3개가 HTTP 200으로 반환된다.
