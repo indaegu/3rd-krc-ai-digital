@@ -1,12 +1,13 @@
 "use client";
 
 // 지역 설정 — 등록 지역 리스트(선택·삭제·빈 상태)와 지역 추가 진입점.
-// 동의 바텀시트(최초 1회)는 단계 4 Task 7에서 붙는다.
+// 최초 진입(동의 이력 없음) 시 동의 바텀시트가 자동으로 열린다(ConsentSheet 내부 판정).
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { ConsentSheet } from "../../components/ConsentSheet";
 import { RegionList } from "../../components/RegionList";
 import { CtaButton } from "../../components/ui/CtaButton";
 import styles from "./page.module.css";
@@ -17,6 +18,7 @@ export default function RegionsPage() {
 
   return (
     <main className={styles.main}>
+      <ConsentSheet />
       <header className={styles.header}>
         <h1 className={styles.title}>지역 설정</h1>
         <p className={styles.subtitle}>

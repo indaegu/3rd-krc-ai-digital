@@ -1,8 +1,9 @@
 "use client";
 
-// 메인 — 상태(status)·예측(forecast) 모듈 조립. 두 모듈은 병렬 페치하며
-// 서로의 실패에 영향받지 않는다(모듈별 오류 카드). 코치 모듈은 Task 6에서
-// 이어서 삽입한다. 게이팅은 지역 유무만 본다(consentVersion 검사는 Task 7 몫).
+// 메인 — 상태(status)·예측(forecast)·코치(coach) 모듈 조립. 세 모듈은 병렬
+// 페치하며 서로의 실패에 영향받지 않는다(모듈별 오류 카드).
+// 게이팅 우선순위: 동의(consentVersion) 없음 → /onboarding, 동의는 있으나
+// 등록 지역 없음 → /regions. 둘 다 있으면 스플래시 오버레이 1.5s 뒤 메인.
 
 import type { ForecastResponse, StatusResponse } from "@mulsigye/contracts";
 import { useRouter } from "next/navigation";
@@ -13,6 +14,7 @@ import { HighWaterBanner } from "../components/HighWaterBanner";
 import { MainHeader } from "../components/MainHeader";
 import { ReachCard } from "../components/ReachCard";
 import { SourcesCard } from "../components/SourcesCard";
+import { Splash } from "../components/Splash";
 import { TodayCard } from "../components/TodayCard";
 import { TrendChartCard } from "../components/TrendChartCard";
 import { Card } from "../components/ui/Card";
@@ -134,7 +136,12 @@ export default function HomePage() {
   const [status, setStatus] = useState<StatusState>({ kind: "loading" });
   const [forecast, setForecast] = useState<ForecastState>({ kind: "loading" });
   const [coach, setCoach] = useState<CoachState>({ kind: "loading" });
+  const [splashDone, setSplashDone] = useState(false);
   const mountedRef = useRef(true);
+
+  const finishSplash = useCallback(() => {
+    setSplashDone(true);
+  }, []);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -143,11 +150,16 @@ export default function HomePage() {
     };
   }, []);
 
-  // 게이팅: 등록 지역이 없으면 /onboarding으로 보낸다(replace).
+  // 게이팅: 동의가 없으면 /onboarding, 동의는 있으나 지역이 없으면 /regions.
   useEffect(() => {
-    const current = currentRegion(loadRegionStore());
-    if (current === null) {
+    const store = loadRegionStore();
+    if (store.consentVersion === null) {
       router.replace("/onboarding");
+      return;
+    }
+    const current = currentRegion(store);
+    if (current === null) {
+      router.replace("/regions");
       return;
     }
     // eslint-disable-next-line react-hooks/set-state-in-effect -- localStorage는 클라이언트 마운트 후에만 읽을 수 있다
@@ -230,6 +242,9 @@ export default function HomePage() {
 
   return (
     <main className={styles.main}>
+      {/* 스플래시는 게이팅과 별개 오버레이 — consent·지역이 모두 있는 메인 위에
+          1.5s 덮었다 사라진다(reduced-motion이면 즉시 통과). */}
+      {splashDone ? null : <Splash onDone={finishSplash} />}
       <h1 className={styles.srOnly}>물시계</h1>
       <MainHeader
         regionLabel={regionLabel}

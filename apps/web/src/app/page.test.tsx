@@ -129,7 +129,7 @@ afterEach(() => {
 });
 
 describe("메인 게이팅", () => {
-  it("등록 지역이 없으면 /onboarding으로 replace하고 status를 호출하지 않는다", async () => {
+  it("동의 이력이 없으면 /onboarding으로 replace하고 status를 호출하지 않는다", async () => {
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
 
@@ -137,6 +137,27 @@ describe("메인 게이팅", () => {
 
     await waitFor(() =>
       expect(routerMock.replace).toHaveBeenCalledWith("/onboarding"),
+    );
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("동의는 했지만 등록 지역이 없으면 /regions로 replace한다", async () => {
+    window.localStorage.setItem(
+      REGION_STORE_KEY,
+      JSON.stringify({
+        schemaVersion: 1,
+        consentVersion: "consent-v1",
+        regions: [],
+        currentIndex: 0,
+      }),
+    );
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<HomePage />);
+
+    await waitFor(() =>
+      expect(routerMock.replace).toHaveBeenCalledWith("/regions"),
     );
     expect(fetchMock).not.toHaveBeenCalled();
   });
