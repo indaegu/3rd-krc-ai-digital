@@ -95,6 +95,17 @@ Supabase 최신 스냅샷, 그마저 없으면 커밋된 제출 스냅샷으로 
 **완료:** 7일·14일 홀드아웃 MAE가 재현되고 `docs/prediction-model.md` 결과 절에 실제 수치가 있다.
 LLM 키가 없어도 모든 단계에서 행동 3개가 반환된다.
 
+**게이트 통과(2026-07-22):** `pnpm backtest` 재실행 시 지표 값이 커밋된
+`data/backtest-report.json`과 동일하게 재현됐고(diff는 runAt·gitCommit만),
+채택 모델 naive(MAE7 1.9168 / MAE14 2.8337 %p)의 수치가
+`docs/prediction-model.md` 결과 절과 일치함을 `apps/web/test/stage3-gate.test.ts`
+(리포트 Zod 스키마 + 문서-리포트 드리프트 가드)로 검증했다. 같은 게이트 테스트에서
+5개 공인 단계 × 대표 3개 시군(논산 44230·나주 46170·기장 26710) 15케이스 전부
+`ANTHROPIC_API_KEY` 없이 정적 코치가 행동 3개를 반환하고, 도달일 예제 2개
+(68/-0.45→18일, 46/-0.67→9일)를 재검증했다. AnthropicCoachProvider는
+실 계약 테스트(`LLM_CONTRACT_TEST=1`, claude-opus-4-7 구조화 출력) 1회 성공을
+확인했으며 공개 `/api/v1/coach`는 정적 전용으로 Anthropic을 호출하지 않는다.
+
 ### 4. 웹 세로 기능 조각
 
 **구현 순서:** 지역 검색·대표 저수지 → 메인 상태 → 평년 대비 흐름 상세 → 온보딩·동의 → 폴리시.

@@ -22,8 +22,13 @@
 | `ses` | 단순 지수평활 | 주력 후보 |
 
 - 입력은 `number[]`(날짜 오름차순의 `avgRatio`), 출력은 14일 예측 `number[]`다.
+  입력이 14일 미만이면 명시적 에러를 낸다(모델별 최소 길이 상수, 전 모델 14일 통일).
 - 복잡한 딥러닝은 v1 범위 밖이다. 기준선과 비교한 수치로 모델 선택을 방어한다.
 - N·평활계수는 이름 있는 상수와 모델 버전에 포함한다. 변경하면 리포트를 다시 만든다.
+- 확정 상수(단계 3 플랜 승인): `LINEAR_WINDOW_DAYS = 14`, `MA_WINDOW_DAYS = 7`,
+  `SES_ALPHA = 0.3`, `MODEL_VERSION = "pred-v1"`.
+- “더 단순한 모델” 동률 판정 서열(`MODEL_SIMPLICITY_ORDER`, 앞이 더 단순):
+  `naive < ma7 < ses < linear`.
 
 ## 백테스트 프로토콜
 
@@ -37,6 +42,15 @@
 6. 관측 수 부족·긴 결측 구간은 제외하고 지역 코드·제외 이유를 리포트에 남긴다.
 7. `data/backtest-report.json`에 원천 체크섬, 실행 시각, git commit, 모델 파라미터,
    표본·origin 수, 전체 지표를 기록한다.
+
+구현 확정(단계 3 플랜 승인): origin은 `lastDate − 14·k (k=1..6)`로 만들어 마지막
+90일 안에서 14일 간격을 이루고, 각 origin 뒤 14일 평가 구간이 시계열 끝을 넘지 않는다.
+7일 지표는 horizon 1~7, 14일 지표는 horizon 1~14 잔차(실측−예측)의 MAE/RMSE다.
+제외 규칙: 유효 관측 180일 미만은 `insufficient_days`, 연속 결측 7일 초과
+(`MAX_GAP_DAYS = 7`)는 `long_gap`. 모든 지표는 소수 4자리로 반올림해 기록한다
+(재실행 재현성 비교의 기준). 엔진은 `apps/web/src/lib/prediction/backtest.ts`의
+순수 함수이고 실행 시각·git commit은 CLI(`apps/web/scripts/backtest.ts`)가 주입한다.
+리포트 형태는 `apps/web/src/lib/prediction/backtest-report.ts`의 Zod 스키마가 단일 출처다.
 
 서비스 출시 전 이 문서의 “결과” 절에 리포트 요약과 채택 근거를 작성한다.
 
@@ -53,7 +67,19 @@ d < 0 이고 r0 > t 이면 days = ceil((r0 - t) / abs(d))
 그 외에는 30일 안 도달 가능성 없음
 ```
 
+- `d`의 정의(2026-07-22 확정): **최근 14일 관측값의 선형 회귀 기울기**
+  `observedDailyDelta(series)` (%p/day)다. 백테스트 채택 모델(naive 등 수평
+  예측 모델)은 추세를 표현할 수 없으므로, 추세·도달일은 관측 기울기에서,
+  14일 예측선·불확실성 밴드는 채택 모델과 잔차 분위수에서 각각 도출한다.
+  두 지표의 근거가 다름을 API 메타데이터와 화면 문구("최근 흐름이 이어지면")로
+  구분해 표시한다. (이전 정의 `(forecast[13] − r0) / 14`는 폐기 —
+  naive 채택 시 항상 0이 되어 도달일 기능이 무력화된다.)
+- 추세 버킷: `|d| < 0.05`(`TREND_STABLE_EPSILON`)이면 `stable`, 그 외 음수는
+  `falling`, 양수는 `rising`. 경계값 ±0.05는 방향을 유지한다.
+- 도달 버킷: `days` 없음 → `none`, ≤7 → `within_7d`, ≤14 → `within_14d`,
+  ≤30 → `within_30d`.
 - 정상→관심 70, 관심→주의 60, 주의→경계 50, 경계→심각 40을 사용한다.
+  임계값은 `apps/web/src/lib/data/drought-stage.ts`만 import한다(복제 금지).
 - 이미 심각이면 다음 단계 도달일을 계산하지 않는다.
 - `days`가 1~30일일 때만 숫자를 표시한다. 그 밖에는 “안정”과 보조 문구
   “현재 추세로는 30일 안에 다음 단계 가능성이 낮아요”를 표시한다.
@@ -83,12 +109,34 @@ d < 0 이고 r0 > t 이면 days = ceil((r0 - t) / abs(d))
 행동 ID·개수·순서를 보존한 쉬운 이유만 생성한다. 상세 호출·캐시·비용·평가 규칙은
 `docs/llm-coach.md`를 따른다.
 
-## 결과 — 아직 실행 전
+## 결과 — 2026-07-22 실행 (`pnpm backtest`, 아래 수치는 전부 리포트 실측값)
 
-- [ ] 정규화된 논가뭄지도 스냅샷과 체크섬 기록
-- [ ] 지역·origin 수와 제외 내역 기록
-- [ ] 모델별 7일·14일 MAE/RMSE 표 기록
-- [ ] 채택 모델·파라미터·근거 기록
-- [ ] `data/backtest-report.json` 커밋
+- [x] 원천 체크섬 기록 —
+  `data/raw/한국농어촌공사_논가뭄지도_20251231.csv`(2025-01-01~12-31) SHA-256
+  `02d2392898289ab5c473b5c1c6c9220f8ade84bbeed4f4e68507a8da2efad319`.
+  `normalizeDroughtMap` 정규화 결과 적재 56,258행, 격리 4,697행
+  (placeholder·stage_mismatch 등 — `build:data`와 동일 파이프라인).
+- [x] 지역·origin 수와 제외 내역 기록 — 평가 154개 시군 × origin 6개 = 924 origin,
+  잔차 표본 12,936개(924 × 14 horizon). 제외 1곳: `41450`
+  (`insufficient_days` — 유효 관측 180일 미만). `long_gap` 제외 없음.
+- [x] 모델별 7일·14일 MAE/RMSE 표 기록 (%p, 지역별 지표의 macro average):
+
+  | 모델 | 7일 MAE | 7일 RMSE | 14일 MAE | 14일 RMSE |
+  |---|---|---|---|---|
+  | **naive (채택)** | **1.9168** | **3.6892** | **2.8337** | **5.1504** |
+  | ma7 | 2.4543 | 4.1311 | 3.2911 | 5.4894 |
+  | ses | 2.2878 | 3.9734 | 3.1419 | 5.3672 |
+  | linear | 3.0315 | 4.7909 | 4.4665 | 6.9769 |
+
+- [x] 채택 모델·파라미터·근거 기록 — **naive**(`pred-v1`). 근거: 14일 macro MAE
+  최저(2.8337)를 단독 달성, 2위 ses(3.1419)와 차이 0.3082%p > 0.05%p로 동률 규칙
+  미적용(`rule: "lowest_mae14"`, `tiedWith: []`). 1년 데이터에서는 기준선이 주력
+  후보(linear·ses)보다 오차가 낮았다 — 기준선과 비교한 수치로 선택을 방어한다는
+  이 문서의 원칙 그대로 채택한다. 파라미터: `LINEAR_WINDOW_DAYS=14`,
+  `MA_WINDOW_DAYS=7`, `SES_ALPHA=0.3`, `MIN_VALID_DAYS=180`, `MAX_GAP_DAYS=7`,
+  origin 창 90일·간격 14일, 지표 소수 4자리.
+- [x] `data/backtest-report.json` 커밋 — 채택 모델의 horizon 1~14 잔차 경험적
+  p10/p90 포함(예: h7 −2.60~+7.20, h14 −4.47~+8.27, horizon당 924표본).
+  밴드 산식 메타데이터는 `residual_quantile_p10_p90`.
 
 결과가 채워지기 전에는 발표자료나 UI에 임의 정확도 수치를 쓰지 않는다.
