@@ -72,6 +72,40 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/forecast": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** 시군구 avgRatio 14일 예측과 다음 단계 도달 가능 시점 조회 */
+    get: operations["getForecast"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/coach": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** 시군구 상태 기반 물관리 코치 문구 조회 */
+    get: operations["getCoach"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -175,6 +209,155 @@ export interface components {
         avgRatio: number;
         officialStage: components["schemas"]["DroughtStage"];
       };
+      /** Format: date-time */
+      asOf: string;
+      sources: string[];
+      stale: boolean;
+    };
+    /** @description 실측 avgRatio 시계열 점 */
+    ForecastPoint: {
+      /**
+       * Format: date
+       * @description KST 달력일 YYYY-MM-DD
+       */
+      observedOn: string;
+      /** @description 평년 대비 저수율 %. 100 초과 가능 */
+      avgRatio: number;
+    };
+    /** @description 14일 예측 점과 불확실성 밴드. 밴드 산식은 model.bandMethod가 정의 */
+    ForecastBandPoint: {
+      /**
+       * Format: date
+       * @description KST 달력일 YYYY-MM-DD
+       */
+      observedOn: string;
+      /** @description 채택 모델의 예측 avgRatio % */
+      avgRatio: number;
+      /** @description 밴드 하한 %p 반영값 */
+      low: number;
+      /** @description 밴드 상한 %p 반영값 */
+      high: number;
+    };
+    ForecastResponse: {
+      /** @constant */
+      schemaVersion: "1";
+      sigunCode: string;
+      sigunName: string;
+      /** @description 최신 실측 기준점 */
+      basis: {
+        /**
+         * Format: date
+         * @description KST 달력일 YYYY-MM-DD
+         */
+        observedOn: string;
+        /** @description 평년 대비 저수율 %. 100 초과 가능 */
+        avgRatio: number;
+        officialStage: components["schemas"]["DroughtStage"];
+      };
+      /** @description 최근 30일 실측(실선) */
+      history: components["schemas"]["ForecastPoint"][];
+      /** @description 14일 예측(점선)과 밴드 */
+      forecast: components["schemas"]["ForecastBandPoint"][];
+      trend: {
+        /** @description 일일 변화량 %p/day. 최근 14일 실측 avgRatio의 관측 선형 기울기 (observedDailyDelta)로 계산한다. 예측선·밴드는 채택 모델과 잔차 분위수 기반이며 추세·도달일과 근거를 분리한다 */
+        dailyDelta: number;
+        /**
+         * @description |dailyDelta| < 0.05 %p/day면 stable
+         * @enum {string}
+         */
+        bucket: "rising" | "stable" | "falling";
+      };
+      /** @description 다음 공인 단계 도달 가능 시점. 참고 표현 전용 */
+      reach: {
+        /** @description 1~30일만 숫자로 표시. 그 외(안정)는 null */
+        days: number | null;
+        /** @enum {string} */
+        bucket: "none" | "within_7d" | "within_14d" | "within_30d";
+        /** @description 도달 대상 다음 단계. 계산하지 않으면 null(심각 단계 포함) */
+        targetStage: components["schemas"]["DroughtStage"] | null;
+      };
+      /** @description 백테스트로 채택한 예측 모델 메타데이터 (data/backtest-report.json) */
+      model: {
+        /** @enum {string} */
+        name: "naive" | "ma7" | "linear" | "ses";
+        /** @description 예측 상수를 포함한 모델 버전. 예 pred-v1 */
+        version: string;
+        /** @description 백테스트 7일 macro MAE %p */
+        mae7: number;
+        /** @description 백테스트 14일 macro MAE %p */
+        mae14: number;
+        /**
+         * @description 밴드 산식. 잔차 충분 시 경험적 10~90 분위수, 부족 시 최근 14일 MAE
+         * @enum {string}
+         */
+        bandMethod: "residual_quantile_p10_p90" | "recent_mae";
+      };
+      /** @description 공식 가뭄예경보 전망 병기. 최신 발행분이 없으면 null */
+      officialOutlook: {
+        /**
+         * Format: date
+         * @description 공식 전망 발행일 YYYY-MM-DD
+         */
+        publishedOn: string;
+        current: components["schemas"]["DroughtStage"];
+        outlook1m: components["schemas"]["DroughtStage"];
+        outlook2m: components["schemas"]["DroughtStage"];
+        outlook3m: components["schemas"]["DroughtStage"];
+      } | null;
+      /** Format: date-time */
+      asOf: string;
+      sources: string[];
+      stale: boolean;
+    };
+    /** @description 물관리 코치 응답. LLM 폴백도 HTTP 200이며 mode로 관측한다. 클라이언트는 mode에 따라 화면 구조를 바꾸지 않는다 */
+    CoachResponse: {
+      /** @constant */
+      schemaVersion: "1";
+      /**
+       * @description 코치 문구 출처
+       * @enum {string}
+       */
+      mode: "llm" | "cache" | "static";
+      /** @description KRC 데이터의 오래됨. 코치 캐시 여부와 구분한다 */
+      dataStale: boolean;
+      cacheHit: boolean;
+      /** Format: date-time */
+      generatedAt: string;
+      /** @description 예 coach-v1 */
+      promptVersion: string;
+      /** @description 예 actions-v1 */
+      actionCatalogVersion: string;
+      coach: {
+        /** @description 한 문장, ~해요체 */
+        headline: string;
+        /** @description 최대 두 문장, 숫자를 추가하지 않는 쉬운 요약 */
+        summary: string;
+        actions: {
+          /** @description 행동 카탈로그 ID */
+          id: string;
+          /** @description 항상 서버 행동 카탈로그에서 결합한 검토 완료 문구 */
+          title: string;
+          /** @description 한 문장, ~해요체 */
+          reason: string;
+        }[];
+      };
+      /**
+       * @description 정적 폴백 사유. LLM 정상 생성이면 null
+       * @enum {string|null}
+       */
+      fallbackReason:
+        | "disabled"
+        | "cache_unavailable"
+        | "budget_exceeded"
+        | "daily_limit"
+        | "generation_in_progress"
+        | "timeout"
+        | "rate_limited"
+        | "provider_error"
+        | "refusal"
+        | "max_tokens"
+        | "validation_failed"
+        | null;
       /** Format: date-time */
       asOf: string;
       sources: string[];
@@ -341,6 +524,106 @@ export interface operations {
         };
       };
       /** @description 수위 API·Supabase·커밋 스냅샷 폴백이 모두 실패함 (retryable=true) */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+    };
+  };
+  getForecast: {
+    parameters: {
+      query: {
+        /** @description KRC 시군 코드 5자리 */
+        sigunCode: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description 최근 30일 실측과 14일 예측·밴드·추세·도달 버킷. 참고 표현 전용으로 숫자·버킷·단계만 반환하며 서버는 문장을 만들지 않는다 */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ForecastResponse"];
+        };
+      };
+      /** @description sigunCode가 없거나 5자리 숫자가 아님 (retryable=false) */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description 준비되지 않은 시군구 코드 (retryable=false) */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description 시계열 조회와 커밋 스냅샷 폴백까지 모두 실패함 (retryable=true) */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+    };
+  };
+  getCoach: {
+    parameters: {
+      query: {
+        /** @description KRC 시군 코드 5자리 */
+        sigunCode: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description 검토 완료 행동 카탈로그 기반 코치 응답. LLM 폴백도 HTTP 200이며 mode=static과 fallbackReason으로 관측한다 */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["CoachResponse"];
+        };
+      };
+      /** @description sigunCode가 없거나 5자리 숫자가 아님 (retryable=false) */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description 준비되지 않은 시군구 코드 (retryable=false) */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description 상태·예측 조회와 커밋 스냅샷 폴백이 모두 실패함 (retryable=true) */
       503: {
         headers: {
           [name: string]: unknown;

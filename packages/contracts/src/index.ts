@@ -14,3 +14,7 @@ export type RepresentativeReservoir =
 export type DroughtStage = components["schemas"]["DroughtStage"];
 export type DroughtStageCode = DroughtStage["code"];
 export type StatusResponse = components["schemas"]["StatusResponse"];
+export type ForecastPoint = components["schemas"]["ForecastPoint"];
+export type ForecastBandPoint = components["schemas"]["ForecastBandPoint"];
+export type ForecastResponse = components["schemas"]["ForecastResponse"];
+export type CoachResponse = components["schemas"]["CoachResponse"];

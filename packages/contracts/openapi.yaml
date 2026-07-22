@@ -217,6 +217,423 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
+  /api/v1/forecast:
+    get:
+      operationId: getForecast
+      summary: 시군구 avgRatio 14일 예측과 다음 단계 도달 가능 시점 조회
+      parameters:
+        - name: sigunCode
+          in: query
+          required: true
+          description: KRC 시군 코드 5자리
+          schema:
+            type: string
+            pattern: "^[0-9]{5}$"
+      responses:
+        "200":
+          description: >-
+            최근 30일 실측과 14일 예측·밴드·추세·도달 버킷. 참고 표현 전용으로
+            숫자·버킷·단계만 반환하며 서버는 문장을 만들지 않는다
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ForecastResponse"
+              examples:
+                ok:
+                  value:
+                    schemaVersion: "1"
+                    sigunCode: "44230"
+                    sigunName: 논산시
+                    basis:
+                      observedOn: "2026-07-20"
+                      avgRatio: 68
+                      officialStage:
+                        code: watch
+                        label: 관심
+                    history:
+                      - observedOn: "2026-06-21"
+                        avgRatio: 81.05
+                      - observedOn: "2026-06-22"
+                        avgRatio: 80.6
+                      - observedOn: "2026-06-23"
+                        avgRatio: 80.15
+                      - observedOn: "2026-06-24"
+                        avgRatio: 79.7
+                      - observedOn: "2026-06-25"
+                        avgRatio: 79.25
+                      - observedOn: "2026-06-26"
+                        avgRatio: 78.8
+                      - observedOn: "2026-06-27"
+                        avgRatio: 78.35
+                      - observedOn: "2026-06-28"
+                        avgRatio: 77.9
+                      - observedOn: "2026-06-29"
+                        avgRatio: 77.45
+                      - observedOn: "2026-06-30"
+                        avgRatio: 77
+                      - observedOn: "2026-07-01"
+                        avgRatio: 76.55
+                      - observedOn: "2026-07-02"
+                        avgRatio: 76.1
+                      - observedOn: "2026-07-03"
+                        avgRatio: 75.65
+                      - observedOn: "2026-07-04"
+                        avgRatio: 75.2
+                      - observedOn: "2026-07-05"
+                        avgRatio: 74.75
+                      - observedOn: "2026-07-06"
+                        avgRatio: 74.3
+                      - observedOn: "2026-07-07"
+                        avgRatio: 73.85
+                      - observedOn: "2026-07-08"
+                        avgRatio: 73.4
+                      - observedOn: "2026-07-09"
+                        avgRatio: 72.95
+                      - observedOn: "2026-07-10"
+                        avgRatio: 72.5
+                      - observedOn: "2026-07-11"
+                        avgRatio: 72.05
+                      - observedOn: "2026-07-12"
+                        avgRatio: 71.6
+                      - observedOn: "2026-07-13"
+                        avgRatio: 71.15
+                      - observedOn: "2026-07-14"
+                        avgRatio: 70.7
+                      - observedOn: "2026-07-15"
+                        avgRatio: 70.25
+                      - observedOn: "2026-07-16"
+                        avgRatio: 69.8
+                      - observedOn: "2026-07-17"
+                        avgRatio: 69.35
+                      - observedOn: "2026-07-18"
+                        avgRatio: 68.9
+                      - observedOn: "2026-07-19"
+                        avgRatio: 68.45
+                      - observedOn: "2026-07-20"
+                        avgRatio: 68
+                    forecast:
+                      - observedOn: "2026-07-21"
+                        avgRatio: 68
+                        low: 67.5
+                        high: 68.2
+                      - observedOn: "2026-07-22"
+                        avgRatio: 68
+                        low: 67
+                        high: 73.17
+                      - observedOn: "2026-07-23"
+                        avgRatio: 68
+                        low: 66.9
+                        high: 73.04
+                      - observedOn: "2026-07-24"
+                        avgRatio: 68
+                        low: 66.8
+                        high: 72.87
+                      - observedOn: "2026-07-25"
+                        avgRatio: 68
+                        low: 66
+                        high: 73.17
+                      - observedOn: "2026-07-26"
+                        avgRatio: 68
+                        low: 65.7
+                        high: 74.9
+                      - observedOn: "2026-07-27"
+                        avgRatio: 68
+                        low: 65.4
+                        high: 75.2
+                      - observedOn: "2026-07-28"
+                        avgRatio: 68
+                        low: 65.23
+                        high: 76.27
+                      - observedOn: "2026-07-29"
+                        avgRatio: 68
+                        low: 64.7
+                        high: 76.44
+                      - observedOn: "2026-07-30"
+                        avgRatio: 68
+                        low: 64.6
+                        high: 76.51
+                      - observedOn: "2026-07-31"
+                        avgRatio: 68
+                        low: 64.5
+                        high: 76.54
+                      - observedOn: "2026-08-01"
+                        avgRatio: 68
+                        low: 64.1
+                        high: 76.87
+                      - observedOn: "2026-08-02"
+                        avgRatio: 68
+                        low: 63.6
+                        high: 76.67
+                      - observedOn: "2026-08-03"
+                        avgRatio: 68
+                        low: 63.53
+                        high: 76.27
+                    trend:
+                      dailyDelta: -0.45
+                      bucket: falling
+                    reach:
+                      days: 18
+                      bucket: within_30d
+                      targetStage:
+                        code: care
+                        label: 주의
+                    model:
+                      name: naive
+                      version: pred-v1
+                      mae7: 1.9168
+                      mae14: 2.8337
+                      bandMethod: residual_quantile_p10_p90
+                    officialOutlook:
+                      publishedOn: "2026-07-10"
+                      current:
+                        code: watch
+                        label: 관심
+                      outlook1m:
+                        code: care
+                        label: 주의
+                      outlook2m:
+                        code: care
+                        label: 주의
+                      outlook3m:
+                        code: watch
+                        label: 관심
+                    asOf: "2026-07-21T00:00:00.000Z"
+                    sources:
+                      - 논가뭄지도
+                      - 가뭄예경보자료
+                    stale: false
+                stable:
+                  value:
+                    schemaVersion: "1"
+                    sigunCode: "46170"
+                    sigunName: 나주시
+                    basis:
+                      observedOn: "2026-07-20"
+                      avgRatio: 93.5
+                      officialStage:
+                        code: ok
+                        label: 정상
+                    history:
+                      - observedOn: "2026-06-21"
+                        avgRatio: 84.22
+                      - observedOn: "2026-06-22"
+                        avgRatio: 84.54
+                      - observedOn: "2026-06-23"
+                        avgRatio: 84.86
+                      - observedOn: "2026-06-24"
+                        avgRatio: 85.18
+                      - observedOn: "2026-06-25"
+                        avgRatio: 85.5
+                      - observedOn: "2026-06-26"
+                        avgRatio: 85.82
+                      - observedOn: "2026-06-27"
+                        avgRatio: 86.14
+                      - observedOn: "2026-06-28"
+                        avgRatio: 86.46
+                      - observedOn: "2026-06-29"
+                        avgRatio: 86.78
+                      - observedOn: "2026-06-30"
+                        avgRatio: 87.1
+                      - observedOn: "2026-07-01"
+                        avgRatio: 87.42
+                      - observedOn: "2026-07-02"
+                        avgRatio: 87.74
+                      - observedOn: "2026-07-03"
+                        avgRatio: 88.06
+                      - observedOn: "2026-07-04"
+                        avgRatio: 88.38
+                      - observedOn: "2026-07-05"
+                        avgRatio: 88.7
+                      - observedOn: "2026-07-06"
+                        avgRatio: 89.02
+                      - observedOn: "2026-07-07"
+                        avgRatio: 89.34
+                      - observedOn: "2026-07-08"
+                        avgRatio: 89.66
+                      - observedOn: "2026-07-09"
+                        avgRatio: 89.98
+                      - observedOn: "2026-07-10"
+                        avgRatio: 90.3
+                      - observedOn: "2026-07-11"
+                        avgRatio: 90.62
+                      - observedOn: "2026-07-12"
+                        avgRatio: 90.94
+                      - observedOn: "2026-07-13"
+                        avgRatio: 91.26
+                      - observedOn: "2026-07-14"
+                        avgRatio: 91.58
+                      - observedOn: "2026-07-15"
+                        avgRatio: 91.9
+                      - observedOn: "2026-07-16"
+                        avgRatio: 92.22
+                      - observedOn: "2026-07-17"
+                        avgRatio: 92.54
+                      - observedOn: "2026-07-18"
+                        avgRatio: 92.86
+                      - observedOn: "2026-07-19"
+                        avgRatio: 93.18
+                      - observedOn: "2026-07-20"
+                        avgRatio: 93.5
+                    forecast:
+                      - observedOn: "2026-07-21"
+                        avgRatio: 93.5
+                        low: 93
+                        high: 93.7
+                      - observedOn: "2026-07-22"
+                        avgRatio: 93.5
+                        low: 92.5
+                        high: 98.67
+                      - observedOn: "2026-07-23"
+                        avgRatio: 93.5
+                        low: 92.4
+                        high: 98.54
+                      - observedOn: "2026-07-24"
+                        avgRatio: 93.5
+                        low: 92.3
+                        high: 98.37
+                      - observedOn: "2026-07-25"
+                        avgRatio: 93.5
+                        low: 91.5
+                        high: 98.67
+                      - observedOn: "2026-07-26"
+                        avgRatio: 93.5
+                        low: 91.2
+                        high: 100.4
+                      - observedOn: "2026-07-27"
+                        avgRatio: 93.5
+                        low: 90.9
+                        high: 100.7
+                      - observedOn: "2026-07-28"
+                        avgRatio: 93.5
+                        low: 90.73
+                        high: 101.77
+                      - observedOn: "2026-07-29"
+                        avgRatio: 93.5
+                        low: 90.2
+                        high: 101.94
+                      - observedOn: "2026-07-30"
+                        avgRatio: 93.5
+                        low: 90.1
+                        high: 102.01
+                      - observedOn: "2026-07-31"
+                        avgRatio: 93.5
+                        low: 90
+                        high: 102.04
+                      - observedOn: "2026-08-01"
+                        avgRatio: 93.5
+                        low: 89.6
+                        high: 102.37
+                      - observedOn: "2026-08-02"
+                        avgRatio: 93.5
+                        low: 89.1
+                        high: 102.17
+                      - observedOn: "2026-08-03"
+                        avgRatio: 93.5
+                        low: 89.03
+                        high: 101.77
+                    trend:
+                      dailyDelta: 0.32
+                      bucket: rising
+                    reach:
+                      days: null
+                      bucket: none
+                      targetStage: null
+                    model:
+                      name: naive
+                      version: pred-v1
+                      mae7: 1.9168
+                      mae14: 2.8337
+                      bandMethod: residual_quantile_p10_p90
+                    officialOutlook: null
+                    asOf: "2026-07-21T00:00:00.000Z"
+                    sources:
+                      - 논가뭄지도
+                    stale: false
+        "400":
+          description: sigunCode가 없거나 5자리 숫자가 아님 (retryable=false)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "404":
+          description: 준비되지 않은 시군구 코드 (retryable=false)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "503":
+          description: 시계열 조회와 커밋 스냅샷 폴백까지 모두 실패함 (retryable=true)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/coach:
+    get:
+      operationId: getCoach
+      summary: 시군구 상태 기반 물관리 코치 문구 조회
+      parameters:
+        - name: sigunCode
+          in: query
+          required: true
+          description: KRC 시군 코드 5자리
+          schema:
+            type: string
+            pattern: "^[0-9]{5}$"
+      responses:
+        "200":
+          description: >-
+            검토 완료 행동 카탈로그 기반 코치 응답. LLM 폴백도 HTTP 200이며
+            mode=static과 fallbackReason으로 관측한다
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CoachResponse"
+              examples:
+                static:
+                  value:
+                    schemaVersion: "1"
+                    mode: static
+                    dataStale: false
+                    cacheHit: false
+                    generatedAt: "2026-07-21T00:00:00.000Z"
+                    promptVersion: coach-v1
+                    actionCatalogVersion: actions-v1
+                    coach:
+                      headline: 지금 할 일을 하나씩 확인해요.
+                      summary: 예측은 참고 정보예요. 공식 가뭄 예·경보를 먼저 확인해요.
+                      actions:
+                        - id: care_save_paddy_water
+                          title: 물꼬를 조금만 열어 두어요
+                          reason: 논물을 아껴 쓰면 다음 단계까지 여유가 생겨요.
+                        - id: care_check_official_notice
+                          title: 공식 가뭄 안내를 확인해요
+                          reason: 우리 지역 공식 예·경보가 가장 정확한 기준이에요.
+                        - id: care_plan_water_order
+                          title: 물 대는 순서를 정해요
+                          reason: 필요한 논부터 차례로 물을 대면 부담이 줄어요.
+                    fallbackReason: disabled
+                    asOf: "2026-07-21T00:00:00.000Z"
+                    sources:
+                      - 논가뭄지도
+                    stale: false
+        "400":
+          description: sigunCode가 없거나 5자리 숫자가 아님 (retryable=false)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "404":
+          description: 준비되지 않은 시군구 코드 (retryable=false)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "503":
+          description: 상태·예측 조회와 커밋 스냅샷 폴백이 모두 실패함 (retryable=true)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
 components:
   schemas:
     HealthResponse:
@@ -491,6 +908,336 @@ components:
               description: 평년 대비 저수율 %. 100 초과 가능(실측 140.1). 일일 변화량은 %p
             officialStage:
               $ref: "#/components/schemas/DroughtStage"
+        asOf:
+          type: string
+          format: date-time
+        sources:
+          type: array
+          items:
+            type: string
+        stale:
+          type: boolean
+    ForecastPoint:
+      type: object
+      additionalProperties: false
+      description: 실측 avgRatio 시계열 점
+      required:
+        - observedOn
+        - avgRatio
+      properties:
+        observedOn:
+          type: string
+          format: date
+          description: KST 달력일 YYYY-MM-DD
+        avgRatio:
+          type: number
+          minimum: 0
+          description: 평년 대비 저수율 %. 100 초과 가능
+    ForecastBandPoint:
+      type: object
+      additionalProperties: false
+      description: 14일 예측 점과 불확실성 밴드. 밴드 산식은 model.bandMethod가 정의
+      required:
+        - observedOn
+        - avgRatio
+        - low
+        - high
+      properties:
+        observedOn:
+          type: string
+          format: date
+          description: KST 달력일 YYYY-MM-DD
+        avgRatio:
+          type: number
+          minimum: 0
+          description: 채택 모델의 예측 avgRatio %
+        low:
+          type: number
+          description: 밴드 하한 %p 반영값
+        high:
+          type: number
+          description: 밴드 상한 %p 반영값
+    ForecastResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - schemaVersion
+        - sigunCode
+        - sigunName
+        - basis
+        - history
+        - forecast
+        - trend
+        - reach
+        - model
+        - officialOutlook
+        - asOf
+        - sources
+        - stale
+      properties:
+        schemaVersion:
+          type: string
+          const: "1"
+        sigunCode:
+          type: string
+          pattern: "^[0-9]{5}$"
+        sigunName:
+          type: string
+        basis:
+          type: object
+          additionalProperties: false
+          description: 최신 실측 기준점
+          required:
+            - observedOn
+            - avgRatio
+            - officialStage
+          properties:
+            observedOn:
+              type: string
+              format: date
+              description: KST 달력일 YYYY-MM-DD
+            avgRatio:
+              type: number
+              minimum: 0
+              description: 평년 대비 저수율 %. 100 초과 가능
+            officialStage:
+              $ref: "#/components/schemas/DroughtStage"
+        history:
+          type: array
+          description: 최근 30일 실측(실선)
+          items:
+            $ref: "#/components/schemas/ForecastPoint"
+        forecast:
+          type: array
+          description: 14일 예측(점선)과 밴드
+          items:
+            $ref: "#/components/schemas/ForecastBandPoint"
+        trend:
+          type: object
+          additionalProperties: false
+          required:
+            - dailyDelta
+            - bucket
+          properties:
+            dailyDelta:
+              type: number
+              description: >-
+                일일 변화량 %p/day. 최근 14일 실측 avgRatio의 관측 선형 기울기
+                (observedDailyDelta)로 계산한다. 예측선·밴드는 채택 모델과 잔차
+                분위수 기반이며 추세·도달일과 근거를 분리한다
+            bucket:
+              type: string
+              enum:
+                - rising
+                - stable
+                - falling
+              description: "|dailyDelta| < 0.05 %p/day면 stable"
+        reach:
+          type: object
+          additionalProperties: false
+          description: 다음 공인 단계 도달 가능 시점. 참고 표현 전용
+          required:
+            - days
+            - bucket
+            - targetStage
+          properties:
+            days:
+              type:
+                - number
+                - "null"
+              minimum: 1
+              maximum: 30
+              description: 1~30일만 숫자로 표시. 그 외(안정)는 null
+            bucket:
+              type: string
+              enum:
+                - none
+                - within_7d
+                - within_14d
+                - within_30d
+            targetStage:
+              oneOf:
+                - $ref: "#/components/schemas/DroughtStage"
+                - type: "null"
+              description: 도달 대상 다음 단계. 계산하지 않으면 null(심각 단계 포함)
+        model:
+          type: object
+          additionalProperties: false
+          description: 백테스트로 채택한 예측 모델 메타데이터 (data/backtest-report.json)
+          required:
+            - name
+            - version
+            - mae7
+            - mae14
+            - bandMethod
+          properties:
+            name:
+              type: string
+              enum:
+                - naive
+                - ma7
+                - linear
+                - ses
+            version:
+              type: string
+              minLength: 1
+              description: 예측 상수를 포함한 모델 버전. 예 pred-v1
+            mae7:
+              type: number
+              minimum: 0
+              description: 백테스트 7일 macro MAE %p
+            mae14:
+              type: number
+              minimum: 0
+              description: 백테스트 14일 macro MAE %p
+            bandMethod:
+              type: string
+              enum:
+                - residual_quantile_p10_p90
+                - recent_mae
+              description: 밴드 산식. 잔차 충분 시 경험적 10~90 분위수, 부족 시 최근 14일 MAE
+        officialOutlook:
+          oneOf:
+            - type: object
+              additionalProperties: false
+              required:
+                - publishedOn
+                - current
+                - outlook1m
+                - outlook2m
+                - outlook3m
+              properties:
+                publishedOn:
+                  type: string
+                  format: date
+                  description: 공식 전망 발행일 YYYY-MM-DD
+                current:
+                  $ref: "#/components/schemas/DroughtStage"
+                outlook1m:
+                  $ref: "#/components/schemas/DroughtStage"
+                outlook2m:
+                  $ref: "#/components/schemas/DroughtStage"
+                outlook3m:
+                  $ref: "#/components/schemas/DroughtStage"
+            - type: "null"
+          description: 공식 가뭄예경보 전망 병기. 최신 발행분이 없으면 null
+        asOf:
+          type: string
+          format: date-time
+        sources:
+          type: array
+          items:
+            type: string
+        stale:
+          type: boolean
+    CoachResponse:
+      type: object
+      additionalProperties: false
+      description: >-
+        물관리 코치 응답. LLM 폴백도 HTTP 200이며 mode로 관측한다. 클라이언트는
+        mode에 따라 화면 구조를 바꾸지 않는다
+      required:
+        - schemaVersion
+        - mode
+        - dataStale
+        - cacheHit
+        - generatedAt
+        - promptVersion
+        - actionCatalogVersion
+        - coach
+        - fallbackReason
+        - asOf
+        - sources
+        - stale
+      properties:
+        schemaVersion:
+          type: string
+          const: "1"
+        mode:
+          type: string
+          enum:
+            - llm
+            - cache
+            - static
+          description: 코치 문구 출처
+        dataStale:
+          type: boolean
+          description: KRC 데이터의 오래됨. 코치 캐시 여부와 구분한다
+        cacheHit:
+          type: boolean
+        generatedAt:
+          type: string
+          format: date-time
+        promptVersion:
+          type: string
+          minLength: 1
+          description: 예 coach-v1
+        actionCatalogVersion:
+          type: string
+          minLength: 1
+          description: 예 actions-v1
+        coach:
+          type: object
+          additionalProperties: false
+          required:
+            - headline
+            - summary
+            - actions
+          properties:
+            headline:
+              type: string
+              minLength: 1
+              maxLength: 30
+              description: 한 문장, ~해요체
+            summary:
+              type: string
+              minLength: 1
+              maxLength: 100
+              description: 최대 두 문장, 숫자를 추가하지 않는 쉬운 요약
+            actions:
+              type: array
+              minItems: 1
+              maxItems: 3
+              items:
+                type: object
+                additionalProperties: false
+                required:
+                  - id
+                  - title
+                  - reason
+                properties:
+                  id:
+                    type: string
+                    minLength: 1
+                    description: 행동 카탈로그 ID
+                  title:
+                    type: string
+                    minLength: 1
+                    maxLength: 30
+                    description: 항상 서버 행동 카탈로그에서 결합한 검토 완료 문구
+                  reason:
+                    type: string
+                    minLength: 1
+                    maxLength: 70
+                    description: 한 문장, ~해요체
+        fallbackReason:
+          type:
+            - string
+            - "null"
+          enum:
+            - disabled
+            - cache_unavailable
+            - budget_exceeded
+            - daily_limit
+            - generation_in_progress
+            - timeout
+            - rate_limited
+            - provider_error
+            - refusal
+            - max_tokens
+            - validation_failed
+            - null
+          description: 정적 폴백 사유. LLM 정상 생성이면 null
         asOf:
           type: string
           format: date-time
