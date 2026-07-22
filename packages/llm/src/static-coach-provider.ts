@@ -1,10 +1,10 @@
-import { validateGeneratedCoachCopy } from "./coach-validator.js";
+import { validateGeneratedCoachCopy } from "./coach-validator.ts";
 import type {
   CoachFactPacket,
   CoachProvider,
   GeneratedCoachCopy,
   OfficialStage,
-} from "./types.js";
+} from "./types.ts";
 
 const HEADLINES: Record<OfficialStage, string> = {
   정상: "지금처럼 물 상황을 살펴봐요.",

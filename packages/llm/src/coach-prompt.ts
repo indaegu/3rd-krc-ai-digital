@@ -1,4 +1,4 @@
-import type { CoachFactPacket, ReachBucket, TrendBucket } from "./types.js";
+import type { CoachFactPacket, ReachBucket, TrendBucket } from "./types.ts";
 
 export const PROMPT_VERSION = "coach-v1" as const;
 

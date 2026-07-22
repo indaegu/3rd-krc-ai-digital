@@ -1,18 +1,18 @@
 import Anthropic from "@anthropic-ai/sdk";
 
-import { buildCoachPrompt } from "./coach-prompt.js";
-import { validateGeneratedCoachCopy } from "./coach-validator.js";
+import { buildCoachPrompt } from "./coach-prompt.ts";
+import { validateGeneratedCoachCopy } from "./coach-validator.ts";
 import {
   ANTHROPIC_MODEL,
   LLM_MAX_TOKENS,
   LLM_TIMEOUT_MS,
-} from "./constants.js";
-import { GENERATED_COACH_JSON_SCHEMA } from "./generated-coach-schema.js";
+} from "./constants.ts";
+import { GENERATED_COACH_JSON_SCHEMA } from "./generated-coach-schema.ts";
 import type {
   CoachFactPacket,
   CoachProvider,
   GeneratedCoachCopy,
-} from "./types.js";
+} from "./types.ts";
 
 /** 테스트 mock과 실제 Anthropic 클라이언트가 공유하는 최소 표면. */
 export type CoachMessageResponse = {

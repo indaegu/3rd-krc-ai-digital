@@ -1,5 +1,5 @@
-import { HIGH_WATER_ACTION, STAGE_ACTIONS } from "./action-catalog.js";
-import type { ApprovedAction, OfficialStage } from "./types.js";
+import { HIGH_WATER_ACTION, STAGE_ACTIONS } from "./action-catalog.ts";
+import type { ApprovedAction, OfficialStage } from "./types.ts";
 
 /**
  * 단계·만수위 참고 여부 → 검토 완료 행동 정확히 3개(결정적 순서).

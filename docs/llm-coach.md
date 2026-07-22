@@ -45,6 +45,28 @@ refusal·max_tokens·검증 실패를 포함한 모든 실패는 throw이며 폴
 실데이터 저장소, `coach_cache`, `coach_generation_locks`, `llm_usage`, 예산 가드가
 자동 테스트된 변경에서만 live provider와 공개 `/api/v1/coach`를 연결한다.
 
+## 공개 경로 현재 상태 — 정적 코치 전용
+
+공개 `GET /api/v1/coach?sigunCode=`는 배포되어 있으며 **정적 코치 전용**이다.
+`apps/web/src/lib/coach/coach-service.ts`는 StaticCoachProvider만 실행하고
+`LLM_ENABLED` 분기 자체를 두지 않는다 — 어떤 env 조합에서도 이 경로가 Anthropic을
+호출할 수 없다(실수로 live가 열릴 여지 제거). 응답은 항상 `mode: "static"`,
+`cacheHit: false`, `fallbackReason: "disabled"`이고, 클라이언트는 mode로 화면
+구조를 바꾸지 않는다.
+
+- 사실 조립: `apps/web/src/lib/coach/coach-context.ts`가 status·forecast 결과를
+  비식별 `CoachFactPacket`(단계 라벨·계절·reach/trend 버킷·만수위 참고,
+  `officialOutlookCode`는 이번 단계 `null` 고정)으로 만들고, 행동 3개는
+  CoachPolicy `selectActions`가 확정한다. 패킷에 sigunCode·지역명·수치가 없음을
+  테스트로 강제한다.
+- 만수위 참고 판정: 대표 저수지 원저수율 시계열(수위 API, 실패 시 커밋 스냅샷의
+  대표 저수지 최근 30일)로 `isHighWaterNotice`를 계산한다.
+- 게이트: ANTHROPIC_API_KEY가 전혀 없어도 5개 공인 단계 전부에서 행동 3개가
+  HTTP 200으로 반환되고, `@anthropic-ai/sdk` 스텁 카운터로 호출 0회를 단언한다.
+- live 연결 조건(재명시): `coach_cache`·`coach_generation_locks`·`llm_usage`·
+  예산·일일 한도 가드가 자동 테스트되는 별도 변경에서만 AnthropicCoachProvider를
+  이 경로에 연결한다(packages/llm AGENTS.md).
+
 ## 보호된 실계약 테스트
 
 기본 CI와 `pnpm test`는 실키 없이 mock으로 통과하며 live 테스트는 skip된다.

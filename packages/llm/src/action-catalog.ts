@@ -1,4 +1,4 @@
-import type { ApprovedAction, OfficialStage } from "./types.js";
+import type { ApprovedAction, OfficialStage } from "./types.ts";
 
 export const ACTION_CATALOG_VERSION = "actions-v1" as const;
 
