@@ -1,7 +1,7 @@
 import { generatedCoachCopySchema } from "./generated-coach-schema.js";
 import type { CoachFactPacket, GeneratedCoachCopy } from "./types.js";
 
-const FORBIDDEN_ASSERTIONS = ["위험합니다", "발생합니다", "됩니다"];
+const FORBIDDEN_ASSERTIONS = ["위험합니다", "발생합니다", "됩니다", "내려가요"];
 
 export function validateGeneratedCoachCopy(
   facts: CoachFactPacket,
