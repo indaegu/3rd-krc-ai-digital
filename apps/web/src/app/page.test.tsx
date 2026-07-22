@@ -239,16 +239,18 @@ describe("메인 코치·근거 모듈", () => {
 
     expect(await screen.findByText("물시계 코치")).toBeInTheDocument();
     expect(screen.getByText(COACH_STATIC.coach.headline)).toBeInTheDocument();
-    // 근거 고지 모듈 + 응답 sources 칩.
+    // 근거 고지 모듈 + status ∪ forecast sources 칩(중복 제거).
     expect(screen.getByText("이 화면의 근거")).toBeInTheDocument();
-    const [firstSource = ""] = COACH_STATIC.sources;
-    expect(screen.getByText(firstSource)).toBeInTheDocument();
+    const [firstStatusSource = ""] = NORMAL.sources;
+    expect(screen.getByText(firstStatusSource)).toBeInTheDocument();
+    // "논가뭄지도"는 status·forecast 양쪽에 있지만 칩은 한 번만 렌더된다.
+    expect(screen.getAllByText("논가뭄지도")).toHaveLength(1);
     // 채팅 암시 UI는 없어야 한다(spec 15절).
     expect(screen.queryByText("코치에게 물어보기")).not.toBeInTheDocument();
     expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
   });
 
-  it("coach 503이어도 status·forecast는 유지하고 코치 모듈만 오류 카드를 보여준다", async () => {
+  it("coach 503이어도 status·forecast·근거 고지 카드는 유지하고 코치 모듈만 오류 카드가 된다", async () => {
     seedRegion();
     stubApiFetch({
       status: () => jsonResponse(NORMAL),
@@ -278,8 +280,14 @@ describe("메인 코치·근거 모듈", () => {
     expect(
       screen.queryByText(COACH_STATIC.coach.headline),
     ).not.toBeInTheDocument();
-    // coach 실패 시 근거 고지 모듈은 렌더하지 않는다(sources 미확보).
-    expect(screen.queryByText("이 화면의 근거")).not.toBeInTheDocument();
+    // 근거 고지 카드는 coach 실패와 무관하게 status가 로드되면 항상 뜬다.
+    expect(screen.getByText("이 화면의 근거")).toBeInTheDocument();
+    const [firstStatusSource = ""] = NORMAL.sources;
+    expect(screen.getByText(firstStatusSource)).toBeInTheDocument();
+    // 공식 우선 규정 준수 문구도 함께 보인다.
+    expect(
+      screen.getByText(/공식 가뭄 예·경보가 항상 우선/),
+    ).toBeInTheDocument();
   });
 });
 

@@ -68,6 +68,25 @@ function stampText(state: StatusState): string | null {
   return formatAsOfStamp(state.data.asOf);
 }
 
+/**
+ * 근거 고지에 쓸 sources를 합친다. status를 앞에 두고 forecast를 뒤에 붙이되
+ * 중복은 제거한다(순서 보존). status.sources는 항상 반영된다.
+ */
+function mergeSources(
+  statusSources: string[],
+  forecastSources: string[],
+): string[] {
+  const seen = new Set<string>();
+  const merged: string[] = [];
+  for (const source of [...statusSources, ...forecastSources]) {
+    if (!seen.has(source)) {
+      seen.add(source);
+      merged.push(source);
+    }
+  }
+  return merged;
+}
+
 /** 예측 모듈(이 추세라면·저수율 흐름) 스켈레톤. */
 function ForecastSkeleton() {
   return (
@@ -263,9 +282,20 @@ export default function HomePage() {
         {/* ④ 물시계 코치 — 비차단. 스켈레톤·오류 카드는 모듈이 스스로 소유한다. */}
         <CoachCard state={coach} onRetry={refresh} />
 
-        {/* ⑤ 근거·한계 고지 — 코치 응답의 sources·stale을 그대로 반영한다. */}
-        {coach.kind === "ready" ? (
-          <SourcesCard sources={coach.data.sources} stale={coach.data.stale} />
+        {/* ⑤ 근거·한계 고지 — 공인 기준·공식 우선 문구는 화면의 핵심 규정 준수
+            메시지다. coach 실패와 무관하게 status가 로드되면 항상 보여준다.
+            sources는 status ∪ forecast(가능할 때)를 중복 제거해 반영한다. */}
+        {status.kind === "ready" ? (
+          <SourcesCard
+            sources={mergeSources(
+              status.data.sources,
+              forecast.kind === "ready" ? forecast.data.sources : [],
+            )}
+            stale={
+              status.data.stale ||
+              (forecast.kind === "ready" && forecast.data.stale)
+            }
+          />
         ) : null}
 
         {/* 모든 예측 화면 공통 고지(규칙 3, product.md 카피 규칙). */}
