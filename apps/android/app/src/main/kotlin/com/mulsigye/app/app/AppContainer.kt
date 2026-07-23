@@ -28,8 +28,11 @@ class AppContainer(
     context: Context,
     apiBaseUrl: String,
 ) {
+    // v1은 호환 가능한 additive 확장(필드 추가)을 허용한다(예: status에 highWaterNotice가 추가된 전례).
+    // 설치형 Android 앱은 웹처럼 즉시 재배포가 안 되므로, 서버가 다음 additive v1 필드를 배포해도
+    // 엄격 디코딩으로 현장 크래시가 나지 않도록 unknown key를 무시한다(플랜 Global Constraints).
     private val json = Json {
-        ignoreUnknownKeys = false
+        ignoreUnknownKeys = true
         explicitNulls = false
     }
     private val retrofit = ApiClient.create(apiBaseUrl, json)
