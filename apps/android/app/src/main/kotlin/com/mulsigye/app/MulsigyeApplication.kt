@@ -9,6 +9,6 @@ class MulsigyeApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
-        container = AppContainer(BuildConfig.API_BASE_URL)
+        container = AppContainer(this, BuildConfig.API_BASE_URL)
     }
 }

@@ -1,18 +1,54 @@
 package com.mulsigye.app.app
 
+import android.content.Context
+import androidx.datastore.preferences.preferencesDataStore
 import com.mulsigye.app.core.network.ApiClient
+import com.mulsigye.app.core.storage.RegionStore
+import com.mulsigye.app.feature.coach.data.DefaultCoachRepository
+import com.mulsigye.app.feature.coach.data.remote.CoachApi
+import com.mulsigye.app.feature.coach.domain.CoachRepository
+import com.mulsigye.app.feature.forecast.data.DefaultForecastRepository
+import com.mulsigye.app.feature.forecast.data.remote.ForecastApi
+import com.mulsigye.app.feature.forecast.domain.ForecastRepository
 import com.mulsigye.app.feature.health.data.DefaultHealthRepository
 import com.mulsigye.app.feature.health.data.remote.HealthApi
 import com.mulsigye.app.feature.health.domain.HealthRepository
+import com.mulsigye.app.feature.region.data.DefaultRegionRepository
+import com.mulsigye.app.feature.region.data.remote.RegionApi
+import com.mulsigye.app.feature.region.domain.RegionRepository
+import com.mulsigye.app.feature.status.data.DefaultStatusRepository
+import com.mulsigye.app.feature.status.data.remote.StatusApi
+import com.mulsigye.app.feature.status.domain.StatusRepository
 import kotlinx.serialization.json.Json
 
-class AppContainer(apiBaseUrl: String) {
+// 지역·동의 저장용 단일 DataStore. 코드 2종·동의 버전만 저장한다(RegionStore).
+private val Context.regionDataStore by preferencesDataStore(name = "mulsigye_region_store")
+
+class AppContainer(
+    context: Context,
+    apiBaseUrl: String,
+) {
     private val json = Json {
         ignoreUnknownKeys = false
         explicitNulls = false
     }
     private val retrofit = ApiClient.create(apiBaseUrl, json)
 
+    val regionStore: RegionStore = RegionStore(context.applicationContext.regionDataStore)
+
+    val regionRepository: RegionRepository =
+        DefaultRegionRepository(retrofit.create(RegionApi::class.java), json)
+
+    val statusRepository: StatusRepository =
+        DefaultStatusRepository(retrofit.create(StatusApi::class.java), json)
+
+    val forecastRepository: ForecastRepository =
+        DefaultForecastRepository(retrofit.create(ForecastApi::class.java), json)
+
+    val coachRepository: CoachRepository =
+        DefaultCoachRepository(retrofit.create(CoachApi::class.java), json)
+
+    // 기존 health 저장소는 유지한다(Task 7에서 화면 정리).
     val healthRepository: HealthRepository =
         DefaultHealthRepository(retrofit.create(HealthApi::class.java), json)
 }
