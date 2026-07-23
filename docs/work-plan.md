@@ -104,7 +104,7 @@ LLM 키가 없어도 모든 단계에서 행동 3개가 반환된다.
 `ANTHROPIC_API_KEY` 없이 정적 코치가 행동 3개를 반환하고, 도달일 예제 2개
 (68/-0.45→18일, 46/-0.67→9일)를 재검증했다. AnthropicCoachProvider는
 실 계약 테스트(`LLM_CONTRACT_TEST=1`, claude-opus-4-7 구조화 출력) 1회 성공을
-확인했으며 공개 `/api/v1/coach`는 정적 전용으로 Anthropic을 호출하지 않는다.
+확인했다. 공개 `/api/v1/coach`의 live 연결은 단계 4 Task 9에서 완료했다(아래 참조).
 
 ### 4. 웹 세로 기능 조각
 
@@ -127,6 +127,18 @@ pnpm format:check` 전부 통과.
 실 API 시연(정상/심각/stale)·디자이너 공유는 코드로 대체할 수 없어 **이 브랜치의 PR 후
 프리뷰에서 수행**한다. `docs/testing-and-feedback.md` 수동 QA 체크박스에 기록하며, 완료 전에는
 단계 4를 최종 완료로 표시하지 않는다.
+
+**Task 9 — live 코치 연결(별도 브랜치 `feat/llm-live-coach`):** 공개 `/api/v1/coach`에
+`LLM_ENABLED === "true"` && `ANTHROPIC_API_KEY` 존재 시에만 도는 live 파이프라인을 연결했다
+(`coach-service.ts` 분기 + `coach-cache.ts` 캐시 키·30일 TTL 조회/저장 +
+`coach-guards.ts` KST 일일 한도·앱 레벨 2단계 예산·generation lock). 캐시 히트는
+`mode: "cache"`, miss 해피패스는 Claude 1회 호출 후 `mode: "llm"`, 나머지 실패 경로는
+전부 정적 코치 200 + spec 11절 fallbackReason으로 종료한다. `src/lib/coach`의 자동 테스트가
+env 분기·캐시 히트·동시 miss ≤1회·Supabase 장애·timeout/429/refusal/max_tokens/검증
+실패·일일 한도·예산 초과를 전부 mock·스텁으로 덮으며 Anthropic 호출 0회를 단언한다.
+**현재 프로덕션 기본값은 `LLM_ENABLED=false`**라 공개 경로는 아직 Anthropic을 호출하지 않는다 —
+활성화(Vercel Production `LLM_ENABLED=true` + `ANTHROPIC_API_KEY`, Preview 미주입)와
+배포 후 실 miss 1회 확인은 이 PR 머지 직후 사람이 수행하는 별도 조치다.
 
 ### 5. Android 세로 기능 조각
 

@@ -1,7 +1,9 @@
-// GET /api/v1/coach?sigunCode= — 정적 코치 전용 공개 경로(LLM 미호출).
-// 코치 카피는 검토 완료 행동 카탈로그 문구만 사용한다(AGENTS.md 규칙 3·10).
-// mode "static"·fallbackReason "disabled" 고정 — live 연결은 캐시·lock·예산
-// 가드가 자동 테스트되는 별도 변경에서만 한다(packages/llm AGENTS.md).
+// GET /api/v1/coach?sigunCode= — 공개 코치 경로.
+// buildCoach가 기본은 정적 코치(mode "static"·fallbackReason "disabled")이고,
+// LLM_ENABLED === "true" && ANTHROPIC_API_KEY 존재 시에만 live 파이프라인
+// (캐시·lock·예산 가드 → Claude 1회)을 탄다. 어떤 실패 경로에서도 정적 코치 200을
+// 유지하며, 단계·수치·행동 ID·순서는 서버가 확정한다(AGENTS.md 규칙 3·10).
+// 현재 프로덕션 기본값은 LLM_ENABLED=false라 이 경로는 Anthropic을 호출하지 않는다.
 import type { ApiError } from "@mulsigye/contracts";
 import {
   buildCoach,

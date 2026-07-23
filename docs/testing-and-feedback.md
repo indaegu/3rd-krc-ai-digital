@@ -20,6 +20,7 @@
 | 단계 2 완료 게이트 | `pnpm --filter @mulsigye/web test test/stage2-gate.test.ts` |
 | 단계 3 완료 게이트 | `pnpm --filter @mulsigye/web test test/stage3-gate.test.ts` (리포트-문서 드리프트 + 5단계×3시군 정적 코치 + 도달일 예제. MAE 재현 자체는 `pnpm backtest` 재실행으로 확인) |
 | 단계 4 완료 게이트(자동화분) | `pnpm --filter @mulsigye/web test test/stage4-gate.test.ts` (계약 정합 데모 픽스처 4벌 + stale로 fetch만 스텁하고 메인 `/`·상세 `/trend` 실제 화면을 렌더: ① 4개 상태 전체 트리 product.md 정합 ② stale 지연 안내 + 200 유지 ③ 카피 감사 ④ 접근성 자동화분. **수동 QA는 이 명령으로 대체할 수 없다** — 아래 수동 QA 참조) |
+| live 코치 게이트 | `pnpm --filter @mulsigye/web test src/lib/coach` (캐시 키 비식별·30일 TTL·KST 일일 한도·앱 레벨 2단계 예산·generation lock·env 분기·cache hit·동시 miss ≤1회·Supabase 장애·timeout/429/refusal/max_tokens/검증 실패 → 각 fallbackReason 정적 200. 전부 mock·스텁이라 실 Anthropic/Supabase 미호출, Anthropic 호출 0회를 단언) |
 | LLM 실계약(보호) | `$env:LLM_CONTRACT_TEST='1'` + 실 `ANTHROPIC_API_KEY` 설정 후 `pnpm --filter @mulsigye/llm test test/anthropic-live.contract.test.ts` (기본·CI는 skip, 실 Opus 4.7 1회 호출 비용 발생 — docs/llm-coach.md 참조) |
 | Supabase 시작·적용 | `pnpm supabase:start`, `pnpm supabase:reset` |
 | Supabase 검사 | `pnpm supabase:lint`, `pnpm supabase:test` |

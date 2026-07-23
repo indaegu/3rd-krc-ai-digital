@@ -17,6 +17,11 @@ import type { WaterLevelFetch } from "../data/waterlevel-api.ts";
 import type { ForecastSupabaseClient } from "../prediction/forecast-service.ts";
 import { buildCoach, type CoachServiceDeps } from "./coach-service.ts";
 import { anthropicSdkCalls } from "../../../test/anthropic-sdk-stub.ts";
+import {
+  createFakeCoachSupabase,
+  type FakeCoachSupabase,
+} from "./coach-supabase-fake.ts";
+import type { CoachFactPacket, GeneratedCoachCopy } from "@mulsigye/llm";
 
 const FIXED_NOW = new Date("2026-07-21T03:00:00.000Z");
 const END_DATE = "2026-07-20";
@@ -390,6 +395,278 @@ describe("buildCoach — Anthropic 미호출 단언", () => {
     // 이 파일의 모든 시나리오(정상·만수위·폴백)를 거친 뒤에도 카운터는 0이다.
     await okBody(makeCoachDeps({ avgRatio: 68 }));
     await okBody(makeCoachDeps({ avgRatio: 35, waterXml: HIGH_WATER_XML }));
+    expect(anthropicSdkCalls.constructed).toBe(0);
+    expect(anthropicSdkCalls.messagesCreated).toBe(0);
+  });
+});
+
+// ── live 파이프라인 (LLM_ENABLED 분기·cache·lock·예산·폴백) ─────────────────
+// env·Supabase·provider를 전부 deps.llm으로 주입한다. 실 Anthropic/Supabase 미호출.
+// 관심 단계(avgRatio 68) actions 순서: watch_check_leak → plan_watering → follow_trend.
+
+type FakeProvider = {
+  calls: number;
+  generate(facts: CoachFactPacket): Promise<GeneratedCoachCopy>;
+};
+
+/** 행동 ID·순서를 그대로 보존하는 정상 provider. throwError면 그 예외를 던진다. */
+function makeProvider(throwError?: unknown): FakeProvider {
+  const provider: FakeProvider = {
+    calls: 0,
+    async generate(facts: CoachFactPacket): Promise<GeneratedCoachCopy> {
+      provider.calls += 1;
+      if (throwError !== undefined) throw throwError;
+      return {
+        headline: "우리 지역 물 흐름을 살펴봐요.",
+        summary: "예측은 참고 정보예요. 공식 예·경보를 먼저 확인해요.",
+        actions: facts.actions.map((action) => ({
+          id: action.id,
+          reason: "지금 이렇게 하면 도움이 돼요.",
+        })),
+      };
+    },
+  };
+  return provider;
+}
+
+const LIVE_ENV = {
+  LLM_ENABLED: "true",
+  ANTHROPIC_API_KEY: "test-key",
+  ANTHROPIC_MODEL: "claude-opus-4-7",
+} as const;
+
+function makeLiveDeps(options: {
+  avgRatio: number;
+  client: FakeCoachSupabase;
+  provider: FakeProvider;
+  env?: Record<string, string>;
+}): CoachServiceDeps {
+  return {
+    ...makeCoachDeps({ avgRatio: options.avgRatio }),
+    llm: {
+      env: options.env ?? { ...LIVE_ENV },
+      createClient: () => options.client,
+      provider: options.provider,
+    },
+  };
+}
+
+function usageRow(occurredAt: string, cost: number): Record<string, unknown> {
+  return {
+    occurred_at: occurredAt,
+    context_hash: "ctx",
+    provider: "anthropic",
+    model: "claude-opus-4-7",
+    input_tokens: 900,
+    output_tokens: 200,
+    estimated_cost_usd: cost,
+    latency_ms: 4400,
+    result_code: "success",
+  };
+}
+
+const WATCH_IDS = [
+  "watch_check_leak",
+  "watch_plan_watering",
+  "watch_follow_trend",
+];
+
+describe("buildCoach live — env 분기", () => {
+  it("LLM_ENABLED=false면 정적 200·provider 0회", async () => {
+    const provider = makeProvider();
+    const client = createFakeCoachSupabase();
+    const body = await okBody(
+      makeLiveDeps({
+        avgRatio: 68,
+        client,
+        provider,
+        env: { LLM_ENABLED: "false", ANTHROPIC_API_KEY: "test-key" },
+      }),
+    );
+    expect(body.mode).toBe("static");
+    expect(body.fallbackReason).toBe("disabled");
+    expect(body.coach.actions).toHaveLength(3);
+    expect(provider.calls).toBe(0);
+  });
+
+  it("ANTHROPIC_API_KEY가 없으면 정적 200·provider 0회", async () => {
+    const provider = makeProvider();
+    const client = createFakeCoachSupabase();
+    const body = await okBody(
+      makeLiveDeps({
+        avgRatio: 68,
+        client,
+        provider,
+        env: { LLM_ENABLED: "true" },
+      }),
+    );
+    expect(body.mode).toBe("static");
+    expect(body.fallbackReason).toBe("disabled");
+    expect(provider.calls).toBe(0);
+  });
+});
+
+describe("buildCoach live — 캐시·해피패스", () => {
+  it("miss 해피패스: provider 정확히 1회·mode llm·행동 순서 보존·캐시 저장", async () => {
+    const provider = makeProvider();
+    const client = createFakeCoachSupabase();
+    const body = await okBody(makeLiveDeps({ avgRatio: 68, client, provider }));
+    expect(provider.calls).toBe(1);
+    expect(body.mode).toBe("llm");
+    expect(body.fallbackReason).toBeNull();
+    expect(body.cacheHit).toBe(false);
+    expect(body.coach.actions.map((a) => a.id)).toEqual(WATCH_IDS);
+    // title은 카탈로그, reason은 provider 산출물.
+    const watch = STAGE_ACTIONS["관심"];
+    expect(body.coach.actions[0]?.title).toBe(watch[0].approvedTitle);
+    expect(body.coach.actions[0]?.reason).toBe("지금 이렇게 하면 도움이 돼요.");
+    // 캐시에 검증 통과분이 저장됐다.
+    expect(client.tables["coach_cache"] ?? []).toHaveLength(1);
+  });
+
+  it("cache hit: 두 번째 호출은 mode cache·provider 추가 호출 0회", async () => {
+    const provider = makeProvider();
+    const client = createFakeCoachSupabase();
+    const deps = makeLiveDeps({ avgRatio: 68, client, provider });
+    await okBody(deps);
+    const second = await okBody(deps);
+    expect(provider.calls).toBe(1);
+    expect(second.mode).toBe("cache");
+    expect(second.cacheHit).toBe(true);
+    expect(second.fallbackReason).toBeNull();
+    expect(second.coach.actions.map((a) => a.id)).toEqual(WATCH_IDS);
+  });
+
+  it("같은 key 동시 miss 2건: provider 호출 ≤1회(lock)", async () => {
+    const provider = makeProvider();
+    const client = createFakeCoachSupabase();
+    const deps = makeLiveDeps({ avgRatio: 68, client, provider });
+    const [a, b] = await Promise.all([
+      buildCoach(NONSAN, deps),
+      buildCoach(NONSAN, deps),
+    ]);
+    expect(provider.calls).toBeLessThanOrEqual(1);
+    for (const result of [a, b]) {
+      expect(result.kind).toBe("ok");
+      if (result.kind === "ok") {
+        expect(result.body.coach.actions).toHaveLength(3);
+      }
+    }
+  });
+});
+
+describe("buildCoach live — Supabase 장애·한도·예산", () => {
+  it("Supabase 장애면 provider 0회·정적 200(cache_unavailable)", async () => {
+    const provider = makeProvider();
+    const client = createFakeCoachSupabase({ failing: true });
+    const body = await okBody(makeLiveDeps({ avgRatio: 68, client, provider }));
+    expect(provider.calls).toBe(0);
+    expect(body.mode).toBe("static");
+    expect(body.fallbackReason).toBe("cache_unavailable");
+    expect(body.coach.actions).toHaveLength(3);
+  });
+
+  it("createClient 자체가 throw여도 provider 0회·정적 200", async () => {
+    const provider = makeProvider();
+    const deps: CoachServiceDeps = {
+      ...makeCoachDeps({ avgRatio: 68 }),
+      llm: {
+        env: { ...LIVE_ENV },
+        createClient: () => {
+          throw new Error("no supabase");
+        },
+        provider,
+      },
+    };
+    const body = await okBody(deps);
+    expect(provider.calls).toBe(0);
+    expect(body.mode).toBe("static");
+    expect(body.fallbackReason).toBe("cache_unavailable");
+  });
+
+  it("일일 한도 초과면 provider 0회·정적 200(daily_limit)", async () => {
+    const provider = makeProvider();
+    const client = createFakeCoachSupabase();
+    client.seed(
+      "llm_usage",
+      Array.from({ length: 20 }, (_, k) =>
+        usageRow(`2026-07-21T0${String(k % 6)}:30:00.000Z`, 0.01),
+      ),
+    );
+    const body = await okBody(makeLiveDeps({ avgRatio: 68, client, provider }));
+    expect(provider.calls).toBe(0);
+    expect(body.mode).toBe("static");
+    expect(body.fallbackReason).toBe("daily_limit");
+  });
+
+  it("예산 초과면 provider 0회·정적 200(budget_exceeded)", async () => {
+    const provider = makeProvider();
+    const client = createFakeCoachSupabase();
+    client.seed("llm_usage", [usageRow("2026-07-21T01:00:00.000Z", 4.99)]);
+    const body = await okBody(makeLiveDeps({ avgRatio: 68, client, provider }));
+    expect(provider.calls).toBe(0);
+    expect(body.mode).toBe("static");
+    expect(body.fallbackReason).toBe("budget_exceeded");
+  });
+});
+
+describe("buildCoach live — provider 오류 → fallbackReason", () => {
+  const cases: readonly {
+    name: string;
+    error: unknown;
+    reason: string;
+  }[] = [
+    {
+      name: "timeout",
+      error: Object.assign(new Error("timeout"), {
+        name: "APIConnectionTimeoutError",
+      }),
+      reason: "timeout",
+    },
+    {
+      name: "429",
+      error: Object.assign(new Error("rate limited"), { status: 429 }),
+      reason: "rate_limited",
+    },
+    {
+      name: "refusal",
+      error: new Error("PROVIDER_REFUSAL"),
+      reason: "refusal",
+    },
+    {
+      name: "max_tokens",
+      error: new Error("PROVIDER_MAX_TOKENS"),
+      reason: "max_tokens",
+    },
+    {
+      name: "검증 실패",
+      error: new Error("ACTION_IDS_MISMATCH"),
+      reason: "validation_failed",
+    },
+    {
+      name: "5xx provider error",
+      error: Object.assign(new Error("boom"), { status: 500 }),
+      reason: "provider_error",
+    },
+  ];
+
+  for (const { name, error, reason } of cases) {
+    it(`${name} → 정적 200·fallbackReason ${reason}`, async () => {
+      const provider = makeProvider(error);
+      const client = createFakeCoachSupabase();
+      const body = await okBody(
+        makeLiveDeps({ avgRatio: 68, client, provider }),
+      );
+      expect(provider.calls).toBe(1);
+      expect(body.mode).toBe("static");
+      expect(body.fallbackReason).toBe(reason);
+      expect(body.coach.actions).toHaveLength(3);
+      // 실패분은 캐시에 저장되지 않는다.
+      expect(client.tables["coach_cache"] ?? []).toHaveLength(0);
+    });
+  }
+
+  it("모든 실패에서 실 @anthropic-ai/sdk는 0회다(주입 provider만 사용)", () => {
     expect(anthropicSdkCalls.constructed).toBe(0);
     expect(anthropicSdkCalls.messagesCreated).toBe(0);
   });

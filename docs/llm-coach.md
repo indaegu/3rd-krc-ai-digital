@@ -45,14 +45,17 @@ refusal·max_tokens·검증 실패를 포함한 모든 실패는 throw이며 폴
 실데이터 저장소, `coach_cache`, `coach_generation_locks`, `llm_usage`, 예산 가드가
 자동 테스트된 변경에서만 live provider와 공개 `/api/v1/coach`를 연결한다.
 
-## 공개 경로 현재 상태 — 정적 코치 전용
+## 공개 경로 현재 상태 — live 연결(기본은 정적)
 
-공개 `GET /api/v1/coach?sigunCode=`는 배포되어 있으며 **정적 코치 전용**이다.
-`apps/web/src/lib/coach/coach-service.ts`는 StaticCoachProvider만 실행하고
-`LLM_ENABLED` 분기 자체를 두지 않는다 — 어떤 env 조합에서도 이 경로가 Anthropic을
-호출할 수 없다(실수로 live가 열릴 여지 제거). 응답은 항상 `mode: "static"`,
-`cacheHit: false`, `fallbackReason: "disabled"`이고, 클라이언트는 mode로 화면
-구조를 바꾸지 않는다.
+공개 `GET /api/v1/coach?sigunCode=`는 배포되어 있으며 **live 파이프라인이 연결**됐다.
+`apps/web/src/lib/coach/coach-service.ts`는 기본은 정적 코치를 조립하고,
+`LLM_ENABLED === "true"` **그리고** `ANTHROPIC_API_KEY`가 있을 때만 live 파이프라인을
+탄다. 두 조건 중 하나라도 아니면 Anthropic을 구성조차 하지 않고 정적 코치 200
+(`mode: "static"`, `cacheHit: false`, `fallbackReason: "disabled"`)을 반환한다.
+**현재 프로덕션 기본값은 `LLM_ENABLED=false`**라 공개 경로는 Anthropic을 호출하지
+않으며, 활성화는 Task 9 머지 후 Vercel Production env(`LLM_ENABLED=true` +
+`ANTHROPIC_API_KEY`, Preview 미주입)를 사람이 설정하는 별도 조치다. 클라이언트는
+mode로 화면 구조를 바꾸지 않는다.
 
 - 사실 조립: `apps/web/src/lib/coach/coach-context.ts`가 status·forecast 결과를
   비식별 `CoachFactPacket`(단계 라벨·계절·reach/trend 버킷·만수위 참고,
@@ -63,11 +66,24 @@ refusal·max_tokens·검증 실패를 포함한 모든 실패는 throw이며 폴
   → 커밋 스냅샷) 각각에서 확보한 원저수율 시계열로 `isHighWaterNotice`를 계산해
   `StatusResponse.highWaterNotice`로 확정한다. 코치는 이 값을 그대로 옮겨 담고
   수위 시계열을 재조회하거나 재판정하지 않는다(판정 위치는 status 하나).
-- 게이트: ANTHROPIC_API_KEY가 전혀 없어도 5개 공인 단계 전부에서 행동 3개가
-  HTTP 200으로 반환되고, `@anthropic-ai/sdk` 스텁 카운터로 호출 0회를 단언한다.
-- live 연결 조건(재명시): `coach_cache`·`coach_generation_locks`·`llm_usage`·
-  예산·일일 한도 가드가 자동 테스트되는 별도 변경에서만 AnthropicCoachProvider를
-  이 경로에 연결한다(packages/llm AGENTS.md).
+- live 파이프라인(설계 spec 6.1 순서): 캐시 키(SHA-256, sigunCode·수치·시각 제외)로
+  `coach_cache` 조회 → hit이면 `mode: "cache"` → miss면 KST 일일 miss 한도(기본 20)와
+  누적 USD 예산(기본 5, 건당 0.02 선예약, 예약 후 합계 초과면 예약 회수) 확인 →
+  `coach_generation_locks` 단일 생성 권한(TTL 15초) 획득 → 권한을 얻은 한 요청만
+  Claude를 8초·256 tokens·재시도 0회로 1회 호출 → 검증 통과분만 30일 캐시 후
+  `mode: "llm"`. 권한을 못 얻은 동시 요청은 캐시를 한 번 더 읽고, 없으면 추가 호출
+  없이 정적(`generation_in_progress`)으로 종료한다. `apps/web/src/lib/coach/
+  coach-cache.ts`(키·조회·저장)와 `coach-guards.ts`(한도·예산·lock)가 이를 나눠 맡는다.
+- 폴백 매핑(spec 11절): 비활성·키 없음 → `disabled`, Supabase 장애(어느 단계든) →
+  `cache_unavailable`, 일일 한도 → `daily_limit`, 예산 초과 → `budget_exceeded`,
+  생성 중 → `generation_in_progress`, timeout → `timeout`, 429 → `rate_limited`,
+  기타 4xx/5xx → `provider_error`, refusal → `refusal`, max_tokens → `max_tokens`,
+  JSON·Zod·의미 검증 실패 → `validation_failed`. 모든 실패에서 HTTP 200 + 행동 3개를
+  유지하고, provider 예외를 payload·로그에 남기지 않는다(비식별 메타만).
+- 게이트: 기본 실행(LLM_ENABLED 미설정·키 없음)에서 5개 공인 단계 전부 행동 3개를
+  HTTP 200으로 반환하고, `@anthropic-ai/sdk` 스텁 카운터로 호출 0회를 단언한다.
+  live 파이프라인 분기·캐시·lock·예산·폴백은 `src/lib/coach`의 자동 테스트가
+  전부 mock·스텁으로 덮으며 실 Anthropic/Supabase를 호출하지 않는다.
 
 ## 보호된 실계약 테스트
 
