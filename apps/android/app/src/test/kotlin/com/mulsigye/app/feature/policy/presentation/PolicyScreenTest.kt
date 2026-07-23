@@ -37,6 +37,16 @@ class PolicyScreenTest : RobolectricComposeTest() {
         assertNoText("알림")
     }
 
+    // 회귀 방지: 메인 화면이 로드될 때마다 sigunCode를 /api/v1/*로 전송하므로,
+    // 정책은 "코드를 서버로 보내지 않는다"고 잘못 고지하면 안 되고 조회 전송을 밝혀야 한다.
+    @Test
+    fun `위치 폴리시는 지역 코드를 조회에 전송함을 밝힌다`() {
+        setPolicy(PolicyKind.LOCATION)
+        composeTestRule.onAllNodesWithText("지역 코드를 우리 API 서버로 보내요", substring = true)
+            .fetchSemanticsNodes().isNotEmpty().let { assertEquals(true, it) }
+        assertNoText("이 코드는 회사 서버로 보내지 않아요")
+    }
+
     @Test
     fun `이용약관은 예측 참고_공식 우선 면책을 밝힌다`() {
         setPolicy(PolicyKind.TERMS)
@@ -55,6 +65,15 @@ class PolicyScreenTest : RobolectricComposeTest() {
             .fetchSemanticsNodes().isNotEmpty().let { assertEquals(true, it) }
         assertNoText("로그인")
         assertNoText("알림")
+    }
+
+    // 회귀 방지: 조회에 지역 코드가 전송됨을 밝히고, 잘못된 "보내지 않아요" 고지가 없어야 한다.
+    @Test
+    fun `개인정보 처리방침은 지역 코드 전송을 밝히고 미전송 오고지가 없다`() {
+        setPolicy(PolicyKind.PRIVACY)
+        composeTestRule.onAllNodesWithText("지역 코드를 우리 API 서버로 보내요", substring = true)
+            .fetchSemanticsNodes().isNotEmpty().let { assertEquals(true, it) }
+        assertNoText("이 정보는 회사 서버로 보내지 않아요")
     }
 
     private fun assertNoText(text: String) {
