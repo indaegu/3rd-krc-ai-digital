@@ -10,9 +10,6 @@ import com.mulsigye.app.feature.coach.domain.CoachRepository
 import com.mulsigye.app.feature.forecast.data.DefaultForecastRepository
 import com.mulsigye.app.feature.forecast.data.remote.ForecastApi
 import com.mulsigye.app.feature.forecast.domain.ForecastRepository
-import com.mulsigye.app.feature.health.data.DefaultHealthRepository
-import com.mulsigye.app.feature.health.data.remote.HealthApi
-import com.mulsigye.app.feature.health.domain.HealthRepository
 import com.mulsigye.app.feature.region.data.DefaultRegionRepository
 import com.mulsigye.app.feature.region.data.remote.RegionApi
 import com.mulsigye.app.feature.region.domain.RegionRepository
@@ -50,8 +47,4 @@ class AppContainer(
 
     val coachRepository: CoachRepository =
         DefaultCoachRepository(retrofit.create(CoachApi::class.java), json)
-
-    // 기존 health 저장소는 유지한다(Task 7에서 화면 정리).
-    val healthRepository: HealthRepository =
-        DefaultHealthRepository(retrofit.create(HealthApi::class.java), json)
 }

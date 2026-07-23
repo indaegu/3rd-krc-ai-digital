@@ -5,7 +5,7 @@ import retrofit2.Response
 
 /**
  * 저장소 계층이 공유하는 오류 표현. 각 feature의 도메인 Failure로 옮겨 담는다.
- * health 조각과 동일한 코드·문구·retryable 규칙을 한곳에 모아 재사용한다.
+ * status·forecast·coach·region 저장소가 동일한 코드·문구·retryable 규칙을 재사용한다.
  */
 data class ApiFailure(
     val code: String,
