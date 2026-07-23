@@ -1,0 +1,13 @@
+{
+  "schemaVersion": "1",
+  "candidates": [
+    {
+      "label": "전라남도 나주시 시청길 22 (송월동)",
+      "admCd": "1217010200",
+      "legalCode": "4617010200"
+    }
+  ],
+  "asOf": "2026-07-21T00:00:00.000Z",
+  "sources": ["도로명주소 API"],
+  "stale": false
+}

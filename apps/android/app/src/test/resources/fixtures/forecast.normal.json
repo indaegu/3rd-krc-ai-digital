@@ -1,0 +1,241 @@
+{
+  "schemaVersion": "1",
+  "sigunCode": "44230",
+  "sigunName": "논산시",
+  "basis": {
+    "observedOn": "2026-07-20",
+    "avgRatio": 103,
+    "officialStage": {
+      "code": "ok",
+      "label": "정상"
+    }
+  },
+  "history": [
+    {
+      "observedOn": "2026-06-21",
+      "avgRatio": 106.48
+    },
+    {
+      "observedOn": "2026-06-22",
+      "avgRatio": 106.36
+    },
+    {
+      "observedOn": "2026-06-23",
+      "avgRatio": 106.24
+    },
+    {
+      "observedOn": "2026-06-24",
+      "avgRatio": 106.12
+    },
+    {
+      "observedOn": "2026-06-25",
+      "avgRatio": 106
+    },
+    {
+      "observedOn": "2026-06-26",
+      "avgRatio": 105.88
+    },
+    {
+      "observedOn": "2026-06-27",
+      "avgRatio": 105.76
+    },
+    {
+      "observedOn": "2026-06-28",
+      "avgRatio": 105.64
+    },
+    {
+      "observedOn": "2026-06-29",
+      "avgRatio": 105.52
+    },
+    {
+      "observedOn": "2026-06-30",
+      "avgRatio": 105.4
+    },
+    {
+      "observedOn": "2026-07-01",
+      "avgRatio": 105.28
+    },
+    {
+      "observedOn": "2026-07-02",
+      "avgRatio": 105.16
+    },
+    {
+      "observedOn": "2026-07-03",
+      "avgRatio": 105.04
+    },
+    {
+      "observedOn": "2026-07-04",
+      "avgRatio": 104.92
+    },
+    {
+      "observedOn": "2026-07-05",
+      "avgRatio": 104.8
+    },
+    {
+      "observedOn": "2026-07-06",
+      "avgRatio": 104.68
+    },
+    {
+      "observedOn": "2026-07-07",
+      "avgRatio": 104.56
+    },
+    {
+      "observedOn": "2026-07-08",
+      "avgRatio": 104.44
+    },
+    {
+      "observedOn": "2026-07-09",
+      "avgRatio": 104.32
+    },
+    {
+      "observedOn": "2026-07-10",
+      "avgRatio": 104.2
+    },
+    {
+      "observedOn": "2026-07-11",
+      "avgRatio": 104.08
+    },
+    {
+      "observedOn": "2026-07-12",
+      "avgRatio": 103.96
+    },
+    {
+      "observedOn": "2026-07-13",
+      "avgRatio": 103.84
+    },
+    {
+      "observedOn": "2026-07-14",
+      "avgRatio": 103.72
+    },
+    {
+      "observedOn": "2026-07-15",
+      "avgRatio": 103.6
+    },
+    {
+      "observedOn": "2026-07-16",
+      "avgRatio": 103.48
+    },
+    {
+      "observedOn": "2026-07-17",
+      "avgRatio": 103.36
+    },
+    {
+      "observedOn": "2026-07-18",
+      "avgRatio": 103.24
+    },
+    {
+      "observedOn": "2026-07-19",
+      "avgRatio": 103.12
+    },
+    {
+      "observedOn": "2026-07-20",
+      "avgRatio": 103
+    }
+  ],
+  "forecast": [
+    {
+      "observedOn": "2026-07-21",
+      "avgRatio": 103,
+      "low": 102.5,
+      "high": 103.2
+    },
+    {
+      "observedOn": "2026-07-22",
+      "avgRatio": 103,
+      "low": 102,
+      "high": 108.17
+    },
+    {
+      "observedOn": "2026-07-23",
+      "avgRatio": 103,
+      "low": 101.9,
+      "high": 108.04
+    },
+    {
+      "observedOn": "2026-07-24",
+      "avgRatio": 103,
+      "low": 101.8,
+      "high": 107.87
+    },
+    {
+      "observedOn": "2026-07-25",
+      "avgRatio": 103,
+      "low": 101,
+      "high": 108.17
+    },
+    {
+      "observedOn": "2026-07-26",
+      "avgRatio": 103,
+      "low": 100.7,
+      "high": 109.9
+    },
+    {
+      "observedOn": "2026-07-27",
+      "avgRatio": 103,
+      "low": 100.4,
+      "high": 110.2
+    },
+    {
+      "observedOn": "2026-07-28",
+      "avgRatio": 103,
+      "low": 100.23,
+      "high": 111.27
+    },
+    {
+      "observedOn": "2026-07-29",
+      "avgRatio": 103,
+      "low": 99.7,
+      "high": 111.44
+    },
+    {
+      "observedOn": "2026-07-30",
+      "avgRatio": 103,
+      "low": 99.6,
+      "high": 111.51
+    },
+    {
+      "observedOn": "2026-07-31",
+      "avgRatio": 103,
+      "low": 99.5,
+      "high": 111.54
+    },
+    {
+      "observedOn": "2026-08-01",
+      "avgRatio": 103,
+      "low": 99.1,
+      "high": 111.87
+    },
+    {
+      "observedOn": "2026-08-02",
+      "avgRatio": 103,
+      "low": 98.6,
+      "high": 111.67
+    },
+    {
+      "observedOn": "2026-08-03",
+      "avgRatio": 103,
+      "low": 98.53,
+      "high": 111.27
+    }
+  ],
+  "trend": {
+    "dailyDelta": -0.12,
+    "bucket": "falling"
+  },
+  "reach": {
+    "days": null,
+    "bucket": "none",
+    "targetStage": null
+  },
+  "model": {
+    "name": "naive",
+    "version": "pred-v1",
+    "mae7": 1.9168,
+    "mae14": 2.8337,
+    "bandMethod": "residual_quantile_p10_p90"
+  },
+  "officialOutlook": null,
+  "asOf": "2026-07-21T00:00:00.000Z",
+  "sources": ["논가뭄지도"],
+  "stale": false
+}

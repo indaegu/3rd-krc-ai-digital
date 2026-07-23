@@ -46,6 +46,24 @@ describe("폴리시 화면 콘텐츠 가드", () => {
     expect(container.textContent).toMatch(/저장하지 않아요/);
   });
 
+  // 회귀 방지: 상태·예측·코치 조회는 sigunCode를 /api/v1/*로 전송하므로,
+  // 정책은 코드 미전송을 잘못 고지하면 안 되고 조회 전송을 밝혀야 한다.
+  it("위치·개인정보 폴리시는 지역 코드가 조회에 전송됨을 밝히고 미전송 오고지가 없다", () => {
+    for (const Page of [LocationPolicy, PrivacyPolicy]) {
+      const { container } = render(<Page />);
+      expect(container.textContent).toMatch(
+        /지역 코드를 우리 API 서버로 보내요/,
+      );
+      expect(container.textContent).not.toMatch(
+        /코드는 회사 서버로 보내지 않아요/,
+      );
+      expect(container.textContent).not.toMatch(
+        /이 정보는 회사 서버로 보내지 않아요/,
+      );
+      cleanup();
+    }
+  });
+
   it("이용약관은 예측이 참고이고 공식 예·경보가 우선임을 밝힌다", () => {
     const { container } = render(<TermsPolicy />);
     expect(container.textContent).toMatch(/공식 가뭄 예·경보가 우선/);

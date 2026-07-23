@@ -1,0 +1,34 @@
+{
+  "schemaVersion": "1",
+  "mode": "static",
+  "dataStale": true,
+  "cacheHit": false,
+  "generatedAt": "2026-07-21T00:00:00.000Z",
+  "promptVersion": "coach-v1",
+  "actionCatalogVersion": "actions-v1",
+  "coach": {
+    "headline": "지금 할 일을 하나씩 확인해요.",
+    "summary": "예측은 참고 정보예요. 공식 가뭄 예·경보를 먼저 확인해요.",
+    "actions": [
+      {
+        "id": "care_save_paddy_water",
+        "title": "물꼬를 조금만 열어 두어요",
+        "reason": "논물을 아껴 쓰면 다음 단계까지 여유가 생겨요."
+      },
+      {
+        "id": "care_check_official_notice",
+        "title": "공식 가뭄 안내를 확인해요",
+        "reason": "우리 지역 공식 예·경보가 가장 정확한 기준이에요."
+      },
+      {
+        "id": "care_plan_water_order",
+        "title": "물 대는 순서를 정해요",
+        "reason": "필요한 논부터 차례로 물을 대면 부담이 줄어요."
+      }
+    ]
+  },
+  "fallbackReason": "disabled",
+  "asOf": "2026-07-21T00:00:00.000Z",
+  "sources": ["Supabase 스냅샷", "논가뭄지도"],
+  "stale": true
+}
