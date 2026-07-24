@@ -86,7 +86,9 @@ fun RegionListScreen(
         }
 
         if (state.items.isNotEmpty()) {
-            CtaButton(text = "물시계 시작하기", onClick = onStart)
+            // 지역 이름을 아직 불러오는 중(스켈레톤)이면 시작을 막는다 — 확정 전 진입 방지.
+            val resolving = state.items.any { it.name is RegionNameState.Loading }
+            CtaButton(text = "물시계 시작하기", onClick = onStart, enabled = !resolving)
         }
     }
 }
@@ -135,8 +137,11 @@ private fun RegionRow(
         ) {
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 when (val name = item.name) {
-                    is RegionNameState.Loading ->
-                        Shimmer(modifier = Modifier.width(140.dp).height(24.dp))
+                    is RegionNameState.Loading -> {
+                        // 로드 후 레이아웃(제목 + 대표 저수지 한 줄)과 같은 2줄 스켈레톤으로 자리 유지.
+                        Shimmer(modifier = Modifier.width(120.dp).height(22.dp))
+                        Shimmer(modifier = Modifier.width(180.dp).height(15.dp))
+                    }
 
                     is RegionNameState.Ready -> {
                         Text(text = name.sigunName, style = MaterialTheme.typography.titleMedium)

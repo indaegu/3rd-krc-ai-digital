@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
@@ -16,8 +17,11 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
@@ -69,10 +73,17 @@ fun ConsentSheet(
     onOpenPolicy: (PolicyKind) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // 필수 동의라 스와이프로 내리거나 닫을 수 없다. Hidden 전이를 막고(confirmValueChange),
+    // 부분 확장 없이 항상 완전히 펼쳐 "조금 내려가 있다 다시 올라오는" 어정쩡한 상태를 없앤다.
+    val sheetState = rememberModalBottomSheetState(
+        skipPartiallyExpanded = true,
+        confirmValueChange = { it != SheetValue.Hidden },
+    )
     MulsigyeBottomSheet(
         // 필수 동의 — 딤/스와이프/뒤로가기로 닫히지 않도록 dismiss 요청을 무시한다.
         onDismissRequest = {},
         required = true,
+        sheetState = sheetState,
         modifier = modifier,
     ) {
         ConsentSheetContent(onAgree = onAgree, onOpenPolicy = onOpenPolicy)
@@ -98,55 +109,74 @@ fun ConsentSheetContent(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(start = 24.dp, end = 24.dp, bottom = 24.dp, top = 8.dp),
+            .navigationBarsPadding()
+            // 시트 상단 모서리와 제목 사이에 여유 공간을 둔다(그랩바가 없는 필수 시트).
+            .padding(start = 24.dp, end = 24.dp, bottom = 24.dp, top = 28.dp),
     ) {
         Text(
-            text = "물시계를 시작하려면 동의가 필요해요",
-            style = MaterialTheme.typography.headlineLarge,
+            text = "물시계를 시작하려면\n동의가 필요해요",
+            style = MaterialTheme.typography.titleLarge,
             color = Ink,
             modifier = Modifier.semantics { heading() },
         )
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(12.dp))
         Text(
             text = "주소는 시군구와 대표 저수지를 정한 뒤에는 저장하지 않아요.",
             style = MaterialTheme.typography.bodyLarge,
             color = Ink2,
         )
-        Spacer(Modifier.height(20.dp))
+        Spacer(Modifier.height(24.dp))
 
-        // 모두 동의합니다.
-        CheckRow(
-            label = "모두 동의합니다",
-            checked = allChecked,
-            emphasize = true,
-            onToggle = {
-                val next = !allChecked
-                REQUIRED_ITEMS.forEach { checks[it.key] = next }
-            },
-        )
+        // 동의 항목 묶음 — 요소 간 넉넉한 간격으로 배치(고령 사용자 가독성·터치 여유).
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            // 모두 동의합니다.
+            CheckRow(
+                label = "모두 동의합니다",
+                checked = allChecked,
+                emphasize = true,
+                onToggle = {
+                    val next = !allChecked
+                    REQUIRED_ITEMS.forEach { checks[it.key] = next }
+                },
+            )
 
-        Spacer(Modifier.height(4.dp))
-        REQUIRED_ITEMS.forEach { item ->
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                CheckRow(
-                    label = item.label,
-                    checked = checks[item.key] == true,
-                    required = true,
+            HorizontalDivider(color = Gray200, modifier = Modifier.padding(vertical = 4.dp))
+
+            REQUIRED_ITEMS.forEach { item ->
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    CheckRow(
+                        label = item.label,
+                        checked = checks[item.key] == true,
+                        required = true,
+                        modifier = Modifier.weight(1f),
+                        onToggle = { checks[item.key] = !(checks[item.key] ?: false) },
+                    )
+                    PolicyLink(label = item.linkLabel, onClick = { onOpenPolicy(item.key) })
+                }
+            }
+
+            // 개인정보 처리방침 — 동의 대상이 아닌 안내 링크. 라벨을 함께 둬 외로운 '보기'를 없앤다.
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth().padding(start = 4.dp),
+            ) {
+                Text(
+                    text = "개인정보 처리방침",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = Ink2,
                     modifier = Modifier.weight(1f),
-                    onToggle = { checks[item.key] = !(checks[item.key] ?: false) },
                 )
-                PolicyLink(label = item.linkLabel, onClick = { onOpenPolicy(item.key) })
+                PolicyLink(
+                    label = "개인정보 처리방침 보기",
+                    onClick = { onOpenPolicy(PolicyKind.PRIVACY) },
+                )
             }
         }
 
-        Spacer(Modifier.height(8.dp))
-        PolicyLink(
-            label = "개인정보 처리방침 보기",
-            onClick = { onOpenPolicy(PolicyKind.PRIVACY) },
-            modifier = Modifier.padding(start = 4.dp),
-        )
-
-        Spacer(Modifier.height(20.dp))
+        Spacer(Modifier.height(24.dp))
         CtaButton(
             text = "동의하고 시작하기",
             enabled = allChecked,

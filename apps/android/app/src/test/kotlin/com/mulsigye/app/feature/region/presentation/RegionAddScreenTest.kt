@@ -72,6 +72,7 @@ class RegionAddScreenTest : RobolectricComposeTest() {
                     onCandidateSelect = vm::onCandidateSelect,
                     onRetrySearch = vm::retrySearch,
                     onRetryResolve = vm::retryResolve,
+                    onDismissResolve = vm::dismissResolve,
                     onRegister = { vm.register { done = true } },
                     onBack = {},
                 )
@@ -118,6 +119,7 @@ class RegionAddScreenTest : RobolectricComposeTest() {
                     onCandidateSelect = {},
                     onRetrySearch = {},
                     onRetryResolve = {},
+                    onDismissResolve = {},
                     onRegister = {},
                     onBack = {},
                 )

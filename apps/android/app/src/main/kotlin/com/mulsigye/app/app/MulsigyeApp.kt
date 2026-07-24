@@ -3,13 +3,10 @@ package com.mulsigye.app.app
 import android.app.Activity
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -20,7 +17,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mulsigye.app.core.designsystem.theme.Bg
@@ -30,6 +26,8 @@ import com.mulsigye.app.feature.consent.presentation.CONSENT_VERSION
 import com.mulsigye.app.feature.consent.presentation.ConsentSheet
 import com.mulsigye.app.feature.forecast.presentation.ForecastUiState
 import com.mulsigye.app.feature.forecast.presentation.ForecastViewModel
+import com.mulsigye.app.feature.forecast.presentation.TrendErrorScreen
+import com.mulsigye.app.feature.forecast.presentation.TrendLoadingScreen
 import com.mulsigye.app.feature.forecast.presentation.TrendScreen
 import com.mulsigye.app.feature.onboarding.presentation.OnboardingScreen
 import com.mulsigye.app.feature.policy.presentation.PolicyScreen
@@ -85,25 +83,30 @@ fun AppRouter(container: AppContainer, store: RegionStoreState) {
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        when (val current = backStack.current) {
-            Screen.Onboarding -> OnboardingScreen(
-                // CTA → 지역 설정으로. 그곳에서 동의 시트가 자동으로 열린다(consent 없을 때).
-                onDone = { backStack.push(Screen.Regions) },
-            )
+    Box(modifier = Modifier.fillMaxSize().background(Bg)) {
+        // 상태바·내비게이션 바 인셋만큼 콘텐츠를 밀어 각 화면 상단 제목이 상태바에 먹히지 않게 한다
+        // (targetSdk 35+는 edge-to-edge가 강제되므로 인셋 패딩이 필수다). 스플래시 오버레이는
+        // 풀블리드로 보이도록 이 패딩 밖에 둔다.
+        Box(modifier = Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
+            when (val current = backStack.current) {
+                Screen.Onboarding -> OnboardingScreen(
+                    // CTA → 지역 설정으로. 그곳에서 동의 시트가 자동으로 열린다(consent 없을 때).
+                    onDone = { backStack.push(Screen.Regions) },
+                )
 
-            Screen.Regions -> RegionsRoute(container, store, backStack, scope)
-            Screen.RegionAdd -> RegionAddRoute(container, backStack)
-            Screen.Main -> MainRoute(container, store, backStack)
-            Screen.Trend -> TrendRoute(container, store, backStack)
+                Screen.Regions -> RegionsRoute(container, store, backStack, scope)
+                Screen.RegionAdd -> RegionAddRoute(container, backStack)
+                Screen.Main -> MainRoute(container, store, backStack)
+                Screen.Trend -> TrendRoute(container, store, backStack)
 
-            is Screen.Policy -> PolicyScreen(
-                kind = current.kind,
-                onBack = { backStack.pop() },
-            )
+                is Screen.Policy -> PolicyScreen(
+                    kind = current.kind,
+                    onBack = { backStack.pop() },
+                )
 
-            // Splash는 오버레이로 다루므로 백스택 항목으로는 도달하지 않는다.
-            Screen.Splash -> SplashScreen(onDone = { backStack.replaceAll(Screen.Main) })
+                // Splash는 오버레이로 다루므로 백스택 항목으로는 도달하지 않는다.
+                Screen.Splash -> SplashScreen(onDone = { backStack.replaceAll(Screen.Main) })
+            }
         }
 
         // 게이팅 완료 후 메인을 처음 보여줄 때만 스플래시 오버레이.
@@ -155,6 +158,7 @@ private fun RegionAddRoute(container: AppContainer, backStack: BackStack) {
         onCandidateSelect = vm::onCandidateSelect,
         onRetrySearch = vm::retrySearch,
         onRetryResolve = vm::retryResolve,
+        onDismissResolve = vm::dismissResolve,
         // 등록 후 지역 목록으로 복귀한다.
         onRegister = { vm.register { backStack.pop() } },
         onBack = { backStack.pop() },
@@ -219,19 +223,13 @@ private fun TrendRoute(container: AppContainer, store: RegionStoreState, backSta
 
     when (val forecast = state) {
         is ForecastUiState.Ready -> TrendScreen(data = forecast.data, onBack = { backStack.pop() })
-        is ForecastUiState.Loading -> TrendPlaceholder(text = "불러오는 중…", onBack = { backStack.pop() })
-        is ForecastUiState.Error -> TrendPlaceholder(text = forecast.message, onBack = { backStack.pop() })
-    }
-}
-
-@Composable
-private fun TrendPlaceholder(text: String, onBack: () -> Unit) {
-    // 흐름 상세 로딩·오류의 최소 표시. 실제 차트는 Ready에서만 그린다.
-    Column(
-        modifier = Modifier.fillMaxSize().background(Bg),
-        verticalArrangement = Arrangement.Top,
-    ) {
-        TextButton(onClick = onBack) { Text("← 뒤로") }
-        Text(text = text, modifier = Modifier.padding(20.dp))
+        // 로딩은 흐름 상세 레이아웃을 그대로 흉내 낸 스켈레톤으로(풀스크린 스피너·밋밋한 텍스트 금지).
+        is ForecastUiState.Loading -> TrendLoadingScreen(onBack = { backStack.pop() })
+        is ForecastUiState.Error -> TrendErrorScreen(
+            message = forecast.message,
+            retryable = forecast.retryable,
+            onRetry = forecastVm::refresh,
+            onBack = { backStack.pop() },
+        )
     }
 }

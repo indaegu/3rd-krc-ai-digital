@@ -39,3 +39,6 @@ keystore.properties
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# 로컬 실기기 QA 스크린샷 (커밋 금지)
+.qa/
