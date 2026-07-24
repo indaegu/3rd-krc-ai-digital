@@ -166,18 +166,26 @@ describe("buildForecast — 정상 경로 (90일 하강 -0.45/day, 최신 68)", 
     expect(dates).toEqual([...dates].sort());
   });
 
-  it("forecast는 naive 수평 14개 + 리포트 잔차 p10/p90 밴드", async () => {
+  it("forecast는 naive 수평 14개 + 리포트 잔차 p25/p75×bandScale 밴드", async () => {
     const body = await okBody(deps);
     expect(body.forecast).toHaveLength(14);
     expect(body.forecast[0]?.observedOn).toBe("2026-07-21");
     expect(body.forecast.at(-1)?.observedOn).toBe("2026-08-03");
+    // 44230(논산) 지역 밴드 배율 — 리포트 채택 모델 byRegion에서 조회.
+    const bandScale =
+      REPORT.models[REPORT.selectedModel.name].byRegion["44230"]?.bandScale ??
+      1;
     body.forecast.forEach((point, i) => {
       const quantile = REPORT.residualQuantiles[i];
       expect(point.avgRatio).toBe(68); // naive: 마지막 값 유지
-      expect(point.low).toBe(round2(68 + (quantile?.p10 ?? Number.NaN)));
-      expect(point.high).toBe(round2(68 + (quantile?.p90 ?? Number.NaN)));
-      expect(point.low).toBeLessThan(point.avgRatio);
-      expect(point.high).toBeGreaterThan(point.avgRatio);
+      expect(point.low).toBe(
+        round2(68 + (quantile?.p25 ?? Number.NaN) * bandScale),
+      );
+      expect(point.high).toBe(
+        round2(68 + (quantile?.p75 ?? Number.NaN) * bandScale),
+      );
+      expect(point.low).toBeLessThanOrEqual(point.avgRatio);
+      expect(point.high).toBeGreaterThanOrEqual(point.avgRatio);
     });
   });
 
@@ -203,7 +211,7 @@ describe("buildForecast — 정상 경로 (90일 하강 -0.45/day, 최신 68)", 
       version: REPORT.modelParams.modelVersion,
       mae7: REPORT.selectedModel.mae7,
       mae14: REPORT.selectedModel.mae14,
-      bandMethod: "residual_quantile_p10_p90",
+      bandMethod: "residual_quantile_p25_p75_regional",
     });
   });
 

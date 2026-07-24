@@ -76,7 +76,7 @@ function makeForecast(overrides: {
       version: "pred-v1",
       mae7: 1.9168,
       mae14: 2.8337,
-      bandMethod: "residual_quantile_p10_p90",
+      bandMethod: "residual_quantile_p25_p75_regional",
     },
     officialOutlook: null,
     asOf: FIXED_NOW.toISOString(),

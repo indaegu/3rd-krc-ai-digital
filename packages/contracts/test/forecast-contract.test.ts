@@ -25,22 +25,22 @@ const addDays = (isoDate: string, days: number): string => {
   return date.toISOString().slice(0, 10);
 };
 
-/** data/backtest-report.json residualQuantiles[1..14]의 p10/p90 (채택 모델 naive) */
+/** data/backtest-report.json residualQuantiles[1..14]의 p25/p75 (채택 모델 naive) */
 const RESIDUAL_QUANTILES: ReadonlyArray<readonly [number, number]> = [
+  [-0.2, 0],
+  [-0.4, 0.3],
   [-0.5, 0.2],
-  [-1, 5.17],
-  [-1.1, 5.04],
-  [-1.2, 4.87],
-  [-2, 5.17],
-  [-2.3, 6.9],
-  [-2.6, 7.2],
-  [-2.77, 8.27],
-  [-3.3, 8.44],
-  [-3.4, 8.51],
-  [-3.5, 8.54],
-  [-3.9, 8.87],
-  [-4.4, 8.67],
-  [-4.47, 8.27],
+  [-0.6, 0.2],
+  [-0.8, 0.6],
+  [-0.9, 0.7],
+  [-1, 0.7],
+  [-1.1, 0.9],
+  [-1.3, 0.9],
+  [-1.4, 0.9],
+  [-1.425, 0.9],
+  [-1.6, 1.1],
+  [-1.8, 1.2],
+  [-2, 1.2],
 ];
 
 const buildHistory = (
@@ -61,11 +61,11 @@ const buildNaiveForecast = (
   basisDate: string,
   basisValue: number,
 ): ForecastBandPoint[] =>
-  RESIDUAL_QUANTILES.map(([p10, p90], index) => ({
+  RESIDUAL_QUANTILES.map(([p25, p75], index) => ({
     observedOn: addDays(basisDate, index + 1),
     avgRatio: basisValue,
-    low: round2(basisValue + p10),
-    high: round2(basisValue + p90),
+    low: round2(basisValue + p25),
+    high: round2(basisValue + p75),
   }));
 
 /** data/backtest-report.json selectedModel 실측값 */
@@ -74,7 +74,7 @@ const backtestedModel = {
   version: "pred-v1",
   mae7: 1.9168,
   mae14: 2.8337,
-  bandMethod: "residual_quantile_p10_p90",
+  bandMethod: "residual_quantile_p25_p75_regional",
 } as const;
 
 describe("forecast contract fixtures", () => {
@@ -307,7 +307,9 @@ describe("forecast contract type unions", () => {
       "naive" | "ma7" | "linear" | "ses"
     >();
     expectTypeOf<ForecastResponse["model"]["bandMethod"]>().toEqualTypeOf<
-      "residual_quantile_p10_p90" | "recent_mae"
+      | "residual_quantile_p25_p75_regional"
+      | "residual_quantile_p10_p90"
+      | "recent_mae"
     >();
   });
 });

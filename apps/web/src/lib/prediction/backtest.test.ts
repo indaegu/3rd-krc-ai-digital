@@ -145,13 +145,13 @@ describe("runBacktest — 완전 선형 지역", () => {
     expect(core.selectedModel.tiedWith).toEqual([]);
   });
 
-  it("채택 모델의 horizon 1..14 잔차 p10/p90 ≈ 0", () => {
+  it("채택 모델의 horizon 1..14 잔차 p25/p75 ≈ 0", () => {
     expect(core.residualQuantiles).toHaveLength(14);
     core.residualQuantiles.forEach((entry, index) => {
       expect(entry.horizon).toBe(index + 1);
       expect(entry.count).toBe(6);
-      expect(entry.p10).toBeCloseTo(0, 4);
-      expect(entry.p90).toBeCloseTo(0, 4);
+      expect(entry.p25).toBeCloseTo(0, 4);
+      expect(entry.p75).toBeCloseTo(0, 4);
     });
   });
 });

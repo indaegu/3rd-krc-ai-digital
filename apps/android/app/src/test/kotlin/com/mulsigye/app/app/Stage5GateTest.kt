@@ -479,8 +479,8 @@ class Stage5GateTest : RobolectricComposeTest() {
         assertEquals(2.8337, watchDto.model.mae14, 0.0)
         // 밴드는 forecast.low/high 그대로(임의 산식 없음).
         val firstBand = watchDto.forecast.first()
-        assertEquals(67.5, firstBand.low, 0.0)
-        assertEquals(68.2, firstBand.high, 0.0)
+        assertEquals(67.8, firstBand.low, 0.0)
+        assertEquals(68.0, firstBand.high, 0.0)
     }
 
     @Test

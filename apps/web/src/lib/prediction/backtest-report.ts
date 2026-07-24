@@ -28,6 +28,8 @@ const regionMetricsSchema = z.strictObject({
   rmse7: z.number(),
   mae14: z.number(),
   rmse14: z.number(),
+  /** 지역 밴드 배율 = clamp(round2(지역 rmse14 / 모델 macro rmse14), 0.6, 1.6). */
+  bandScale: z.number(),
 });
 
 const modelResultSchema = z.strictObject({
@@ -75,14 +77,14 @@ export const backtestReportSchema = z.strictObject({
     mae14: z.number(),
     rmse14: z.number(),
   }),
-  /** 채택 모델의 horizon 1..14 잔차(실측-예측) 경험적 분위수. */
+  /** 채택 모델의 horizon 1..14 잔차(실측-예측) 경험적 분위수(p25/p75, 50% 구간). */
   residualQuantiles: z
     .array(
       z.strictObject({
         horizon: z.number().int().min(1).max(14),
         count: z.number().int().nonnegative(),
-        p10: z.number(),
-        p90: z.number(),
+        p25: z.number(),
+        p75: z.number(),
       }),
     )
     .length(14),
