@@ -2,8 +2,10 @@
 // 실 Supabase 호출 금지 — 클라이언트 전부 mock. 수치는 리포트(data/backtest-report.json)
 // 실측값과 손계산으로 검증한다(임의 수치 금지).
 import type { ForecastResponse } from "@mulsigye/contracts";
+import { STAGE_ACTIONS } from "@mulsigye/llm";
 import { describe, expect, it } from "vitest";
 import type { RegionResolverDeps } from "../data/region-resolver";
+import { STAGE_LABEL_BY_CODE } from "../data/drought-stage.ts";
 import { backtestReportSchema } from "./backtest-report.ts";
 import {
   DROUGHT_MAP_SOURCE,
@@ -228,9 +230,16 @@ describe("buildForecast — 정상 경로 (90일 하강 -0.45/day, 최신 68)", 
     expect(body.sources).toContain(OFFICIAL_OUTLOOK_SOURCE);
   });
 
-  it("참고 표현 가드: 직렬화 응답에 한국어 문장·금지 단정 표현이 없다", async () => {
+  it("참고 표현 가드: 예측 본문은 문장을 만들지 않는다(stageGuide는 승인 카탈로그 카피라 제외)", async () => {
     const body = await okBody(deps);
-    expect(JSON.stringify(body)).not.toMatch(FORBIDDEN_SENTENCE_PATTERN);
+    // stageGuide 행동 제목은 서버 카탈로그의 승인된 ~해요체 카피다(규칙 6).
+    // 예측 본문이 문장을 지어내지 않는지 검사할 때는 stageGuide를 분리한다.
+    const { stageGuide, ...rest } = body;
+    expect(JSON.stringify(rest)).not.toMatch(FORBIDDEN_SENTENCE_PATTERN);
+    // 행동 카피에도 금지 단정 표현(규칙 3)은 없어야 한다.
+    expect(JSON.stringify(stageGuide)).not.toMatch(
+      /위험합니다|발생합니다|됩니다|내려가요|습니다|입니다/,
+    );
   });
 });
 
@@ -261,6 +270,40 @@ describe("buildForecast — 상승 시계열", () => {
       bucket: "none",
       targetStage: null,
     });
+  });
+});
+
+describe("buildForecast — 단계별 행동 가이드(stageGuide)", () => {
+  const STAGE_ORDER = ["ok", "watch", "care", "alert", "crit"] as const;
+
+  it("5개 단계를 ok→crit 순서로 조립하고 행동 제목을 카탈로그에서 가져온다", async () => {
+    // 상승 시계열(93.5, +0.32) → 현재 단계 정상(ok).
+    const body = await okBody(
+      makeDeps(makeClient({ regional: regionalRows(90, 93.5, 0.32) })),
+    );
+    expect(body.basis.officialStage.code).toBe("ok");
+    expect(body.stageGuide).toHaveLength(5);
+    expect(body.stageGuide?.map((s) => s.code)).toEqual([...STAGE_ORDER]);
+
+    for (const entry of body.stageGuide ?? []) {
+      const label = STAGE_LABEL_BY_CODE[entry.code];
+      expect(entry.label).toBe(label);
+      // 행동 제목은 서버 카탈로그(STAGE_ACTIONS)의 approvedTitle과 정확히 일치.
+      expect(entry.actions).toEqual(
+        STAGE_ACTIONS[label].map((a) => a.approvedTitle),
+      );
+      expect(entry.actions.length).toBeGreaterThanOrEqual(1);
+    }
+  });
+
+  it("현재 공인 단계 하나만 current=true다 (정상 경로: 68 → 관심)", async () => {
+    const body = await okBody(
+      makeDeps(makeClient({ regional: regionalRows(90, 68, -0.45) })),
+    );
+    expect(body.basis.officialStage.code).toBe("watch");
+    const current = (body.stageGuide ?? []).filter((s) => s.current);
+    expect(current).toHaveLength(1);
+    expect(current[0]?.code).toBe("watch");
   });
 });
 

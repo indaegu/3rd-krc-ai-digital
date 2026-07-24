@@ -295,6 +295,58 @@ describe("forecast demo fixtures — 도달일·단계 산술 정합", () => {
   }
 });
 
+describe("forecast contract stageGuide", () => {
+  it("keeps stageGuide optional — the absent fixture stays valid", () => {
+    // stageGuide는 선택 필드다: 없는 페이로드도 여전히 ForecastResponse다.
+    const withoutGuide = forecastOk as ForecastResponse;
+    expect("stageGuide" in withoutGuide).toBe(false);
+    expect(withoutGuide.stageGuide).toBeUndefined();
+    expectTypeOf<ForecastResponse["stageGuide"]>().toEqualTypeOf<
+      NonNullable<ForecastResponse["stageGuide"]> | undefined
+    >();
+  });
+
+  it("accepts a 5-entry ok→crit guide with exactly one current stage", () => {
+    const guide: NonNullable<ForecastResponse["stageGuide"]> = [
+      { code: "ok", label: "정상", actions: ["a1", "a2", "a3"], current: true },
+      { code: "watch", label: "관심", actions: ["a1"], current: false },
+      { code: "care", label: "주의", actions: ["a1"], current: false },
+      { code: "alert", label: "경계", actions: ["a1"], current: false },
+      { code: "crit", label: "심각", actions: ["a1"], current: false },
+    ];
+    const withGuide: ForecastResponse = {
+      ...(forecastOk as ForecastResponse),
+      stageGuide: guide,
+    };
+
+    expectTypeOf(withGuide).toMatchTypeOf<ForecastResponse>();
+    expect(withGuide.stageGuide).toHaveLength(5);
+    expect(withGuide.stageGuide?.map((s) => s.code)).toEqual([
+      "ok",
+      "watch",
+      "care",
+      "alert",
+      "crit",
+    ]);
+    expect(withGuide.stageGuide?.filter((s) => s.current)).toHaveLength(1);
+    for (const entry of withGuide.stageGuide ?? []) {
+      expect(entry.actions.length).toBeGreaterThanOrEqual(1);
+    }
+  });
+
+  it("constrains stageGuide code to the drought-stage enum", () => {
+    expectTypeOf<
+      NonNullable<ForecastResponse["stageGuide"]>[number]["code"]
+    >().toEqualTypeOf<"ok" | "watch" | "care" | "alert" | "crit">();
+    expectTypeOf<
+      NonNullable<ForecastResponse["stageGuide"]>[number]["current"]
+    >().toEqualTypeOf<boolean>();
+    expectTypeOf<
+      NonNullable<ForecastResponse["stageGuide"]>[number]["actions"]
+    >().toEqualTypeOf<string[]>();
+  });
+});
+
 describe("forecast contract type unions", () => {
   it("keeps trend and reach bucket unions to the fixed contract values", () => {
     expectTypeOf<ForecastResponse["trend"]["bucket"]>().toEqualTypeOf<

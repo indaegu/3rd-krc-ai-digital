@@ -32,7 +32,20 @@ data class StatusRegionDto(
     val officialStage: DroughtStageDto,
 )
 
-/** openapi.yaml `StatusResponse`와 1:1. */
+/**
+ * openapi.yaml `StatusResponse.yearlyPosition`와 1:1. 올해(2025) 저수율 분포 속 현재 위치.
+ * 서버 확정값이며 클라이언트는 재계산하지 않는다(표시 전용). 스냅샷에 없는 지역은 null.
+ */
+@Serializable
+data class YearlyPositionDto(
+    val year: Int,
+    val percentile: Double,
+    val bucket: String,
+    val min: Double,
+    val max: Double,
+)
+
+/** openapi.yaml `StatusResponse`와 1:1. yearlyPosition은 v1 additive 옵션 필드다. */
 @Serializable
 data class StatusResponseDto(
     val schemaVersion: String,
@@ -44,4 +57,5 @@ data class StatusResponseDto(
     val asOf: String,
     val sources: List<String>,
     val stale: Boolean,
+    val yearlyPosition: YearlyPositionDto? = null,
 )

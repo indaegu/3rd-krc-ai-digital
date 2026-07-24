@@ -10,6 +10,7 @@ import com.mulsigye.app.feature.forecast.domain.ForecastResult
 import com.mulsigye.app.feature.forecast.domain.ForecastStage
 import com.mulsigye.app.feature.forecast.domain.ForecastTrend
 import com.mulsigye.app.feature.forecast.domain.OfficialOutlook
+import com.mulsigye.app.feature.forecast.domain.StageGuideEntry
 import java.time.Instant
 import kotlinx.serialization.json.Json
 
@@ -54,6 +55,9 @@ object ForecastFixtures {
                     outlook2m = ForecastStage(it.outlook2m.code, it.outlook2m.label),
                     outlook3m = ForecastStage(it.outlook3m.code, it.outlook3m.label),
                 )
+            },
+            stageGuide = dto.stageGuide?.map {
+                StageGuideEntry(it.code, it.label, it.actions, it.current)
             },
             asOf = Instant.parse(dto.asOf),
             sources = dto.sources,

@@ -70,3 +70,21 @@
   font-size: 0.9375rem;
   font-weight: 600;
 }
+
+.yearly {
+  margin-top: 6px;
+}
+
+.yearlyHeadline {
+  margin: 0;
+  color: var(--ink);
+  font-size: 0.9375rem;
+  font-weight: 700;
+}
+
+.yearlyDetail {
+  margin: 2px 0 0;
+  color: var(--ink3);
+  font-size: 0.8125rem;
+  font-weight: 500;
+}

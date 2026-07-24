@@ -30,6 +30,25 @@ const HEADLINE_BY_STAGE: Record<DroughtStageCode, string> = {
 /** 만수위 참고(서버 확정 highWaterNotice)일 때의 헤드라인. */
 const HIGH_WATER_HEADLINE = "비가 많아 물은 충분해요";
 
+/**
+ * 올해 흐름 속 현재 위치 카피(서버 확정 yearlyPosition.bucket). 웹·안드로이드 공통 SSOT.
+ * 두 줄: 주 문장 + 보조 세부. ~해요체·짧은 문장, 예측 단정 표현 금지.
+ */
+type YearlyBucket = NonNullable<StatusResponse["yearlyPosition"]>["bucket"];
+
+const YEARLY_HEADLINE_BY_BUCKET: Record<YearlyBucket, string> = {
+  low: "올해 흐름 속 낮은 편이에요",
+  mid: "올해 흐름 속 보통 수준이에요",
+  high: "올해 흐름 속 높은 편이에요",
+};
+
+/** 보조 세부 문구. low는 하위 N%, high는 상위 100-N%, mid는 중간. */
+function yearlyDetail(bucket: YearlyBucket, percentile: number): string {
+  if (bucket === "low") return `올해 저수율 중 하위 ${percentile}%`;
+  if (bucket === "high") return `올해 저수율 중 상위 ${100 - percentile}%`;
+  return "올해 저수율 중 중간";
+}
+
 function formatRate(value: number): string {
   return Number.isInteger(value) ? String(value) : value.toFixed(1);
 }
@@ -73,6 +92,8 @@ export function TodayCard({ status }: TodayCardProps) {
     ? HIGH_WATER_HEADLINE
     : HEADLINE_BY_STAGE[status.region.officialStage.code];
 
+  const yearly = status.yearlyPosition;
+
   return (
     <Card>
       <h2 className={styles.eyebrow}>우리 지역 대표 저수지</h2>
@@ -94,6 +115,16 @@ export function TodayCard({ status }: TodayCardProps) {
             <StageChip code={status.region.officialStage.code} />
           </div>
           <p className={styles.headline}>{headline}</p>
+          {yearly != null && (
+            <div className={styles.yearly}>
+              <p className={styles.yearlyHeadline}>
+                {YEARLY_HEADLINE_BY_BUCKET[yearly.bucket]}
+              </p>
+              <p className={styles.yearlyDetail}>
+                {yearlyDetail(yearly.bucket, yearly.percentile)}
+              </p>
+            </div>
+          )}
         </div>
         <ReservoirGauge rate={rate} />
       </div>

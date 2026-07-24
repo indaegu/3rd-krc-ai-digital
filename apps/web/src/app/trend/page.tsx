@@ -10,59 +10,19 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { StageGuideCard } from "../../components/StageGuideCard";
 import { TrendChart } from "../../components/TrendChart";
 import { Card } from "../../components/ui/Card";
 import { CtaButton } from "../../components/ui/CtaButton";
 import { Skeleton } from "../../components/ui/Skeleton";
 import { getForecast } from "../../lib/client/api-client";
 import { currentRegion, loadRegionStore } from "../../lib/client/region-store";
-import {
-  DROUGHT_STAGE_THRESHOLDS,
-  STAGE_LABEL_BY_CODE,
-  type DroughtStageCode,
-} from "../../lib/data/drought-stage";
 import styles from "./page.module.css";
 
 type ForecastState =
   | { kind: "loading" }
   | { kind: "ready"; data: ForecastResponse }
   | { kind: "error"; message: string; retryable: boolean };
-
-/**
- * 가뭄 단계 기준 표 — 5단계 + 기준 + 한 줄 행동.
- * 기준 문구는 임계값을 하드코딩하지 않고 drought-stage 단일 출처에서 조립한다.
- */
-const STAGE_GUIDE: ReadonlyArray<{
-  code: DroughtStageCode;
-  range: string;
-  action: string;
-}> = [
-  {
-    code: "ok",
-    range: `평년 대비 ${DROUGHT_STAGE_THRESHOLDS.ok}% 초과`,
-    action: "평소처럼 관리하면 돼요",
-  },
-  {
-    code: "watch",
-    range: `평년 대비 ${DROUGHT_STAGE_THRESHOLDS.ok}% 이하`,
-    action: "물 사용을 조금씩 아껴요",
-  },
-  {
-    code: "care",
-    range: `평년 대비 ${DROUGHT_STAGE_THRESHOLDS.watch}% 이하`,
-    action: "공동 급수 일정을 확인해요",
-  },
-  {
-    code: "alert",
-    range: `평년 대비 ${DROUGHT_STAGE_THRESHOLDS.care}% 이하`,
-    action: "제한급수·대체수원을 준비해요",
-  },
-  {
-    code: "crit",
-    range: `평년 대비 ${DROUGHT_STAGE_THRESHOLDS.alert}% 이하`,
-    action: "관계기관 안내에 따라요",
-  },
-];
 
 /** MAE %p 표시 — model 메타 실값을 소수 1자리로(하드코딩 금지). */
 function formatMae(value: number): string {
@@ -198,22 +158,7 @@ function TrendDetail({ data }: { data: ForecastResponse }) {
         </ul>
       </Card>
 
-      <Card>
-        <h2 className={styles.sectionTitle}>가뭄 단계 기준</h2>
-        <ul className={styles.stageGuide}>
-          {STAGE_GUIDE.map((stage) => (
-            <li key={stage.code} className={styles.stageRow}>
-              <span className={`${styles.stageChip} ${styles[stage.code]}`}>
-                {STAGE_LABEL_BY_CODE[stage.code]}
-              </span>
-              <span className={styles.stageBody}>
-                <b className={styles.stageRange}>{stage.range}</b>
-                <small className={styles.stageAction}>{stage.action}</small>
-              </span>
-            </li>
-          ))}
-        </ul>
-      </Card>
+      <StageGuideCard stageGuide={data.stageGuide} />
 
       <Card>
         <h2 className={styles.sectionTitle}>예측은 이렇게 계산해요</h2>

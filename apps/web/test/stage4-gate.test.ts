@@ -119,6 +119,19 @@ function stubApiFetch(status: StatusResponse, forecast: ForecastResponse) {
     if (url.includes("/api/v1/coach")) {
       return Promise.resolve(jsonResponse(COACH_STATIC));
     }
+    if (url.includes("/api/v1/regions/nearby")) {
+      // 주변 비교는 비차단 — 이 게이트에서는 감춰지도록 404를 돌려준다.
+      return Promise.resolve(
+        jsonResponse(
+          {
+            code: "REGION_NOT_PREPARED",
+            message: "이 지역은 아직 준비 중이에요.",
+            retryable: false,
+          },
+          404,
+        ),
+      );
+    }
     return Promise.resolve(jsonResponse(status));
   });
   vi.stubGlobal("fetch", fetchMock);

@@ -176,6 +176,12 @@ paths:
                       - 농촌용수 저수지 수위정보 조회
                       - 논가뭄지도
                     stale: false
+                    yearlyPosition:
+                      year: 2025
+                      percentile: 10
+                      bucket: low
+                      min: 71.4
+                      max: 141.8
                 stale:
                   value:
                     schemaVersion: "1"
@@ -201,6 +207,12 @@ paths:
                       - Supabase 스냅샷
                       - 논가뭄지도
                     stale: true
+                    yearlyPosition:
+                      year: 2025
+                      percentile: 93
+                      bucket: high
+                      min: 107
+                      max: 143.3
         "400":
           description: sigunCode가 없거나 5자리 숫자가 아님 (retryable=false)
           content:
@@ -547,6 +559,42 @@ paths:
                       mae14: 2.8337
                       bandMethod: residual_quantile_p25_p75_regional
                     officialOutlook: null
+                    stageGuide:
+                      - code: ok
+                        label: 정상
+                        actions:
+                          - 지금처럼 물 관리를 이어가요
+                          - 논물 상태를 가끔 확인해요
+                          - 일주일에 한 번 저수율을 봐요
+                        current: true
+                      - code: watch
+                        label: 관심
+                        actions:
+                          - 논물이 새는 곳을 살펴봐요
+                          - 물 대는 날을 미리 정해요
+                          - 저수율 흐름을 자주 확인해요
+                        current: false
+                      - code: care
+                        label: 주의
+                        actions:
+                          - 논물 상태를 확인해요
+                          - 급수 일정을 이웃과 맞춰요
+                          - 논에 댄 물을 오래 가둬요
+                        current: false
+                      - code: alert
+                        label: 경계
+                        actions:
+                          - 물 댈 논의 순서를 정해요
+                          - 마을 급수 조율에 참여해요
+                          - 가뭄 예·경보를 확인해요
+                        current: false
+                      - code: crit
+                        label: 심각
+                        actions:
+                          - 공식 안내를 먼저 확인해요
+                          - 마을 급수 순서를 지켜요
+                          - 지사에 도움을 요청해요
+                        current: false
                     asOf: "2026-07-21T00:00:00.000Z"
                     sources:
                       - 논가뭄지도
@@ -632,6 +680,65 @@ paths:
                 $ref: "#/components/schemas/ApiError"
         "503":
           description: 상태·예측 조회와 커밋 스냅샷 폴백이 모두 실패함 (retryable=true)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/v1/regions/nearby:
+    get:
+      operationId: getNearby
+      summary: 같은 시·도 안의 지역별 가뭄단계·평년대비 저수율 비교 조회
+      parameters:
+        - name: sigunCode
+          in: query
+          required: true
+          description: KRC 시군 코드 5자리
+          schema:
+            type: string
+            pattern: "^[0-9]{5}$"
+      responses:
+        "200":
+          description: >-
+            요청 지역과 같은 시·도에 속한 지역들의 최신 공식 단계·평년 대비
+            저수율 목록(가뭄 심한 순). 커밋 스냅샷 기반이라 stale=true다
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NearbyResponse"
+              examples:
+                ok:
+                  value:
+                    schemaVersion: "1"
+                    sidoName: 충남
+                    asOf: "2025-12-31"
+                    regions:
+                      - sigunCode: "44270"
+                        sigunName: 당진시
+                        avgRatio: 71.9
+                        stageCode: ok
+                        current: false
+                      - sigunCode: "44230"
+                        sigunName: 논산시
+                        avgRatio: 112.7
+                        stageCode: ok
+                        current: true
+                    stale: true
+                    sources:
+                      - 커밋 스냅샷(기준 2025-12-31)
+        "400":
+          description: sigunCode가 없거나 5자리 숫자가 아님 (retryable=false)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "404":
+          description: 스냅샷에 없는 시군구 코드 (retryable=false)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "503":
+          description: 커밋 스냅샷을 불러오지 못함 (retryable=true)
           content:
             application/json:
               schema:
@@ -926,6 +1033,109 @@ components:
             type: string
         stale:
           type: boolean
+        yearlyPosition:
+          description: >-
+            올해(2025) 저수율 분포 속 현재 avgRatio의 위치(참고 표시 전용).
+            서버가 커밋 스냅샷의 지역 분포로 백분위·구간을 확정하며 클라이언트는
+            재계산하지 않는다. 스냅샷에 없는 지역은 null. v1 호환 additive 필드다
+          type:
+            - object
+            - "null"
+          additionalProperties: false
+          required:
+            - year
+            - percentile
+            - bucket
+            - min
+            - max
+          properties:
+            year:
+              type: integer
+              description: 분포 기준 연도(2025)
+            percentile:
+              type: number
+              minimum: 0
+              maximum: 100
+              description: 올해 분포에서 현재 avgRatio의 백분위(0..100, 정수)
+            bucket:
+              type: string
+              enum:
+                - low
+                - mid
+                - high
+              description: 백분위 구간. low<33.3, mid<66.7, 그 이상 high
+            min:
+              type: number
+              description: 올해 분포 최솟값(avgRatio %)
+            max:
+              type: number
+              description: 올해 분포 최댓값(avgRatio %)
+    NearbyResponse:
+      type: object
+      additionalProperties: false
+      description: >-
+        요청 지역과 같은 시·도에 속한 지역들의 최신 공식 단계·평년 대비
+        저수율 비교. 좌표가 없어 '주변'은 같은 시·도로 정의한다. 커밋
+        스냅샷 기반이라 stale=true다
+      required:
+        - schemaVersion
+        - sidoName
+        - asOf
+        - regions
+        - stale
+        - sources
+      properties:
+        schemaVersion:
+          type: string
+          const: "1"
+        sidoName:
+          type: string
+          minLength: 1
+          description: 요청 지역이 속한 시·도 이름(예 충남)
+        asOf:
+          type: string
+          description: 이 시·도 안에서 관측된 최신 날짜(YYYY-MM-DD)
+        regions:
+          type: array
+          description: 같은 시·도 지역 목록. 가뭄 심한 순(avgRatio 오름차순)으로 정렬한다
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - sigunCode
+              - sigunName
+              - avgRatio
+              - stageCode
+              - current
+            properties:
+              sigunCode:
+                type: string
+                pattern: "^[0-9]{5}$"
+              sigunName:
+                type: string
+                minLength: 1
+              avgRatio:
+                type: number
+                minimum: 0
+                description: 평년 대비 저수율 %. 100 초과 가능(실측 140.1)
+              stageCode:
+                type: string
+                enum:
+                  - ok
+                  - watch
+                  - care
+                  - alert
+                  - crit
+                description: 공식 가뭄단계 코드. 스냅샷의 officialStage에서 그대로 매핑한다
+              current:
+                type: boolean
+                description: 요청한 우리 지역이면 true
+        stale:
+          type: boolean
+        sources:
+          type: array
+          items:
+            type: string
     ForecastPoint:
       type: object
       additionalProperties: false
@@ -1134,6 +1344,43 @@ components:
                   $ref: "#/components/schemas/DroughtStage"
             - type: "null"
           description: 공식 가뭄예경보 전망 병기. 최신 발행분이 없으면 null
+        stageGuide:
+          type: array
+          minItems: 5
+          maxItems: 5
+          description: >-
+            단계별 행동 가이드. 5개 공인 단계(ok→crit 순)별 권장 행동 제목과
+            우리 지역 현재 단계 표시. 행동 카피의 단일 출처는 서버 행동 카탈로그다.
+            구 페이로드에는 없을 수 있다(선택).
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - code
+              - label
+              - actions
+              - current
+            properties:
+              code:
+                type: string
+                enum:
+                  - ok
+                  - watch
+                  - care
+                  - alert
+                  - crit
+              label:
+                type: string
+                description: 단계 한국어 라벨
+              actions:
+                type: array
+                minItems: 1
+                items:
+                  type: string
+                description: 해당 단계 권장 행동 제목(카탈로그 approvedTitle)
+              current:
+                type: boolean
+                description: 우리 지역의 현재 공인 단계면 true. 정확히 1개만 true
         asOf:
           type: string
           format: date-time

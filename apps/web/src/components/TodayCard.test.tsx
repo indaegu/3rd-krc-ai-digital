@@ -105,6 +105,65 @@ describe("TodayCard 관측 실패", () => {
   });
 });
 
+describe("TodayCard 올해 흐름 속 현재 위치", () => {
+  it("low 버킷이면 낮은 편·하위 N% 두 줄을 보여준다", () => {
+    const status: StatusResponse = {
+      ...NORMAL,
+      yearlyPosition: {
+        year: 2025,
+        percentile: 10,
+        bucket: "low",
+        min: 71.4,
+        max: 141.8,
+      },
+    };
+    render(<TodayCard status={status} />);
+    expect(screen.getByText("올해 흐름 속 낮은 편이에요")).toBeInTheDocument();
+    expect(screen.getByText("올해 저수율 중 하위 10%")).toBeInTheDocument();
+  });
+
+  it("high 버킷이면 높은 편·상위 100-N% 두 줄을 보여준다", () => {
+    const status: StatusResponse = {
+      ...NORMAL,
+      yearlyPosition: {
+        year: 2025,
+        percentile: 93,
+        bucket: "high",
+        min: 107,
+        max: 143.3,
+      },
+    };
+    render(<TodayCard status={status} />);
+    expect(screen.getByText("올해 흐름 속 높은 편이에요")).toBeInTheDocument();
+    expect(screen.getByText("올해 저수율 중 상위 7%")).toBeInTheDocument();
+  });
+
+  it("mid 버킷이면 보통 수준·중간 두 줄을 보여준다", () => {
+    const status: StatusResponse = {
+      ...NORMAL,
+      yearlyPosition: {
+        year: 2025,
+        percentile: 50,
+        bucket: "mid",
+        min: 71.4,
+        max: 141.8,
+      },
+    };
+    render(<TodayCard status={status} />);
+    expect(
+      screen.getByText("올해 흐름 속 보통 수준이에요"),
+    ).toBeInTheDocument();
+    expect(screen.getByText("올해 저수율 중 중간")).toBeInTheDocument();
+  });
+
+  it("yearlyPosition이 없으면 올해 흐름 문구를 렌더하지 않는다", () => {
+    // NORMAL 데모 픽스처에는 yearlyPosition이 없다.
+    render(<TodayCard status={NORMAL} />);
+    expect(screen.queryByText(/올해 흐름 속/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/올해 저수율 중/)).not.toBeInTheDocument();
+  });
+});
+
 describe("TodayCard reduced motion 안전 가드", () => {
   it("matchMedia가 없는 환경(jsdom)에서도 즉시 최종 값을 보여준다", () => {
     vi.unstubAllGlobals();

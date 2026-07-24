@@ -5,7 +5,9 @@ import com.mulsigye.app.feature.status.domain.DroughtStage
 import com.mulsigye.app.feature.status.domain.RegionStatus
 import com.mulsigye.app.feature.status.domain.ReservoirStatus
 import com.mulsigye.app.feature.status.domain.StatusResult
+import com.mulsigye.app.feature.status.domain.YearlyPosition
 import java.time.Instant
+import kotlin.math.roundToInt
 import kotlinx.serialization.json.Json
 
 /**
@@ -39,6 +41,15 @@ object StatusFixtures {
                 ),
             ),
             highWaterNotice = dto.highWaterNotice,
+            yearlyPosition = dto.yearlyPosition?.let {
+                YearlyPosition(
+                    year = it.year,
+                    percentile = it.percentile.roundToInt(),
+                    bucket = it.bucket,
+                    min = it.min,
+                    max = it.max,
+                )
+            },
             asOf = Instant.parse(dto.asOf),
             sources = dto.sources,
             stale = dto.stale,

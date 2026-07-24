@@ -538,6 +538,64 @@ describe("buildStatus — 만수위 참고(highWaterNotice)", () => {
   });
 });
 
+describe("buildStatus — 올해 흐름 속 현재 위치(yearlyPosition)", () => {
+  // 결정적 균등 분포 [0..100] decile 경계 — 백분위가 avgRatio와 1:1로 예측된다.
+  const UNIFORM = {
+    [NONSAN]: {
+      year: 2025 as const,
+      count: 100,
+      breakpoints: [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100],
+    },
+  };
+
+  it("스냅샷에 지역이 있으면 percentile·bucket·min·max를 서버가 확정한다", async () => {
+    const { client } = makeStatusClient({
+      regional: {
+        data: [{ ...REGIONAL_ROW, avg_ratio: 45 }],
+        error: null,
+      },
+    });
+    const result = await buildStatus(
+      NONSAN,
+      makeDeps(okFetch, client, { snapshotYearly: UNIFORM }),
+    );
+
+    if (result.kind !== "ok") throw new Error("ok여야 한다");
+    expect(result.body.yearlyPosition).toEqual({
+      year: 2025,
+      percentile: 45,
+      bucket: "mid",
+      min: 0,
+      max: 100,
+    });
+  });
+
+  it("낮은 avgRatio는 low 버킷으로 나온다", async () => {
+    const { client } = makeStatusClient({
+      regional: { data: [{ ...REGIONAL_ROW, avg_ratio: 12 }], error: null },
+    });
+    const result = await buildStatus(
+      NONSAN,
+      makeDeps(okFetch, client, { snapshotYearly: UNIFORM }),
+    );
+    if (result.kind !== "ok") throw new Error("ok여야 한다");
+    expect(result.body.yearlyPosition?.percentile).toBe(12);
+    expect(result.body.yearlyPosition?.bucket).toBe("low");
+  });
+
+  it("스냅샷에 지역이 없으면 yearlyPosition은 null이다", async () => {
+    const { client } = makeStatusClient({
+      regional: { data: [REGIONAL_ROW], error: null },
+    });
+    const result = await buildStatus(
+      NONSAN,
+      makeDeps(okFetch, client, { snapshotYearly: {} }),
+    );
+    if (result.kind !== "ok") throw new Error("ok여야 한다");
+    expect(result.body.yearlyPosition).toBeNull();
+  });
+});
+
 describe("buildStatus — 준비되지 않은 지역", () => {
   it("논가뭄지도에 없는 광역시 구 코드(27140)는 not_prepared", async () => {
     const { client } = makeStatusClient({});

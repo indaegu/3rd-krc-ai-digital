@@ -2,6 +2,7 @@ package com.mulsigye.app.feature.forecast.data
 
 import com.mulsigye.app.core.testing.Fixtures
 import com.mulsigye.app.feature.forecast.data.remote.ForecastResponseDto
+import com.mulsigye.app.feature.forecast.data.remote.ForecastStageGuideDto
 import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -43,6 +44,24 @@ class ForecastResponseDtoTest {
         assertNull(d.reach.targetStage)
         assertNull(d.officialOutlook)
         assertTrue(d.trend.dailyDelta > 0)
+    }
+
+    @Test
+    fun stageGuideDefaultsToNullWhenAbsentFromPayload() {
+        // 구 페이로드(stageGuide 없음)도 디코드되어야 한다(선택 필드).
+        val d = json.decodeFromString<ForecastResponseDto>(Fixtures.read("forecast.watch.json"))
+        assertNull(d.stageGuide)
+    }
+
+    @Test
+    fun decodesStageGuideEntryShape() {
+        val entry = json.decodeFromString<ForecastStageGuideDto>(
+            """{"code":"ok","label":"정상","actions":["a1","a2","a3"],"current":true}""",
+        )
+        assertEquals("ok", entry.code)
+        assertEquals("정상", entry.label)
+        assertEquals(3, entry.actions.size)
+        assertTrue(entry.current)
     }
 
     @Test

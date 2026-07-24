@@ -68,6 +68,15 @@ data class OfficialOutlookDto(
     val outlook3m: ForecastStageDto,
 )
 
+/** openapi.yaml `ForecastResponse.stageGuide` 원소와 1:1. 행동 카피는 서버 카탈로그가 출처다. */
+@Serializable
+data class ForecastStageGuideDto(
+    val code: String,
+    val label: String,
+    val actions: List<String>,
+    val current: Boolean,
+)
+
 /** openapi.yaml `ForecastResponse`와 1:1. */
 @Serializable
 data class ForecastResponseDto(
@@ -81,6 +90,7 @@ data class ForecastResponseDto(
     val reach: ForecastReachDto,
     val model: ForecastModelDto,
     val officialOutlook: OfficialOutlookDto? = null,
+    val stageGuide: List<ForecastStageGuideDto>? = null,
     val asOf: String,
     val sources: List<String>,
     val stale: Boolean,

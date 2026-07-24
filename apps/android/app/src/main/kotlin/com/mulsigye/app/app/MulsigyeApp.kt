@@ -39,6 +39,7 @@ import com.mulsigye.app.feature.splash.presentation.SplashScreen
 import com.mulsigye.app.feature.status.presentation.StatusUiState
 import com.mulsigye.app.feature.status.presentation.StatusViewModel
 import com.mulsigye.app.feature.coach.presentation.CoachViewModel
+import com.mulsigye.app.feature.nearby.presentation.NearbyViewModel
 import kotlinx.coroutines.launch
 
 /**
@@ -186,22 +187,29 @@ private fun MainRoute(container: AppContainer, store: RegionStoreState, backStac
         key = "coach-$regionCode",
         factory = CoachViewModel.Factory(container.coachRepository, regionCode),
     )
+    val nearbyVm: NearbyViewModel = viewModel(
+        key = "nearby-$regionCode",
+        factory = NearbyViewModel.Factory(container.nearbyRepository, regionCode),
+    )
 
     val statusState by statusVm.uiState.collectAsStateWithLifecycle()
     val forecastState by forecastVm.uiState.collectAsStateWithLifecycle()
     val coachState by coachVm.uiState.collectAsStateWithLifecycle()
+    val nearbyState by nearbyVm.uiState.collectAsStateWithLifecycle()
 
-    // 새로고침·모듈 재시도는 세 모듈을 함께 다시 부른다(웹 refresh와 동일, 각 VM이 로딩 중이면 무시).
+    // 새로고침·모듈 재시도는 네 모듈을 함께 다시 부른다(웹 refresh와 동일, 각 VM이 로딩 중이면 무시).
     val refresh: () -> Unit = {
         statusVm.refresh()
         forecastVm.refresh()
         coachVm.refresh()
+        nearbyVm.refresh()
     }
 
     MainScreen(
         statusState = statusState,
         forecastState = forecastState,
         coachState = coachState,
+        nearbyState = nearbyState,
         onRefresh = refresh,
         onNavigateRegions = { backStack.push(Screen.Regions) },
         onNavigateTrend = { backStack.push(Screen.Trend) },
