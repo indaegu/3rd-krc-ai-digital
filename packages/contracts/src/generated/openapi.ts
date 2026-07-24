@@ -106,6 +106,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/regions/nearby": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** 같은 시·도 안의 지역별 가뭄단계·평년대비 저수율 비교 조회 */
+    get: operations["getNearby"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -231,6 +248,31 @@ export interface components {
         /** @description 올해 분포 최댓값(avgRatio %) */
         max: number;
       } | null;
+    };
+    /** @description 요청 지역과 같은 시·도에 속한 지역들의 최신 공식 단계·평년 대비 저수율 비교. 좌표가 없어 '주변'은 같은 시·도로 정의한다. 커밋 스냅샷 기반이라 stale=true다 */
+    NearbyResponse: {
+      /** @constant */
+      schemaVersion: "1";
+      /** @description 요청 지역이 속한 시·도 이름(예 충남) */
+      sidoName: string;
+      /** @description 이 시·도 안에서 관측된 최신 날짜(YYYY-MM-DD) */
+      asOf: string;
+      /** @description 같은 시·도 지역 목록. 가뭄 심한 순(avgRatio 오름차순)으로 정렬한다 */
+      regions: {
+        sigunCode: string;
+        sigunName: string;
+        /** @description 평년 대비 저수율 %. 100 초과 가능(실측 140.1) */
+        avgRatio: number;
+        /**
+         * @description 공식 가뭄단계 코드. 스냅샷의 officialStage에서 그대로 매핑한다
+         * @enum {string}
+         */
+        stageCode: "ok" | "watch" | "care" | "alert" | "crit";
+        /** @description 요청한 우리 지역이면 true */
+        current: boolean;
+      }[];
+      stale: boolean;
+      sources: string[];
     };
     /** @description 실측 avgRatio 시계열 점 */
     ForecastPoint: {
@@ -656,6 +698,56 @@ export interface operations {
         };
       };
       /** @description 상태·예측 조회와 커밋 스냅샷 폴백이 모두 실패함 (retryable=true) */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+    };
+  };
+  getNearby: {
+    parameters: {
+      query: {
+        /** @description KRC 시군 코드 5자리 */
+        sigunCode: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description 요청 지역과 같은 시·도에 속한 지역들의 최신 공식 단계·평년 대비 저수율 목록(가뭄 심한 순). 커밋 스냅샷 기반이라 stale=true다 */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["NearbyResponse"];
+        };
+      };
+      /** @description sigunCode가 없거나 5자리 숫자가 아님 (retryable=false) */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description 스냅샷에 없는 시군구 코드 (retryable=false) */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+      /** @description 커밋 스냅샷을 불러오지 못함 (retryable=true) */
       503: {
         headers: {
           [name: string]: unknown;

@@ -39,6 +39,8 @@ import com.mulsigye.app.feature.coach.presentation.CoachUiState
 import com.mulsigye.app.feature.forecast.presentation.ForecastUiState
 import com.mulsigye.app.feature.forecast.presentation.ReachCard
 import com.mulsigye.app.feature.forecast.presentation.TrendChartCard
+import com.mulsigye.app.feature.nearby.presentation.NearbyCompareCard
+import com.mulsigye.app.feature.nearby.presentation.NearbyUiState
 import com.mulsigye.app.feature.status.presentation.HighWaterBanner
 import com.mulsigye.app.feature.status.presentation.MainHeader
 import com.mulsigye.app.feature.status.presentation.SourcesCard
@@ -60,6 +62,7 @@ fun MainScreen(
     statusState: StatusUiState,
     forecastState: ForecastUiState,
     coachState: CoachUiState,
+    nearbyState: NearbyUiState,
     onRefresh: () -> Unit,
     onNavigateRegions: () -> Unit,
     onNavigateTrend: () -> Unit,
@@ -143,6 +146,10 @@ fun MainScreen(
 
             // ④ 물시계 코치 — 비차단(스켈레톤·오류는 모듈이 소유).
             CoachCard(state = coachState, onRetry = onRefresh)
+
+            // ④-b 주변 지역 비교 — 같은 시·도 안에서 우리 지역 물 사정 비교(비차단).
+            // 준비되면 보여주고, 로딩·실패면 카드를 조용히 감춘다(웹과 동일 — 화면을 깨지 않는다).
+            (nearbyState as? NearbyUiState.Ready)?.let { NearbyCompareCard(data = it.data) }
 
             // ⑤ 근거·한계 고지 — coach와 무관하게 status가 로드되면 항상 표시.
             if (statusState is StatusUiState.Ready) {

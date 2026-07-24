@@ -5,13 +5,18 @@
 // 게이팅 우선순위: 동의(consentVersion) 없음 → /onboarding, 동의는 있으나
 // 등록 지역 없음 → /regions. 둘 다 있으면 스플래시 오버레이 1.5s 뒤 메인.
 
-import type { ForecastResponse, StatusResponse } from "@mulsigye/contracts";
+import type {
+  ForecastResponse,
+  NearbyResponse,
+  StatusResponse,
+} from "@mulsigye/contracts";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { CoachCard, type CoachCardState } from "../components/CoachCard";
 import { HighWaterBanner } from "../components/HighWaterBanner";
 import { MainHeader } from "../components/MainHeader";
+import { NearbyCompareCard } from "../components/NearbyCompareCard";
 import { ReachCard } from "../components/ReachCard";
 import { SourcesCard } from "../components/SourcesCard";
 import { Splash } from "../components/Splash";
@@ -20,7 +25,12 @@ import { TrendChartCard } from "../components/TrendChartCard";
 import { Card } from "../components/ui/Card";
 import { CtaButton } from "../components/ui/CtaButton";
 import { Skeleton } from "../components/ui/Skeleton";
-import { getCoach, getForecast, getStatus } from "../lib/client/api-client";
+import {
+  getCoach,
+  getForecast,
+  getNearby,
+  getStatus,
+} from "../lib/client/api-client";
 import {
   currentRegion,
   loadRegionStore,
@@ -41,6 +51,12 @@ type ForecastState =
 // 코치 모듈 상태는 CoachCard가 소유하는 discriminated union을 그대로 쓴다.
 // 코치는 다른 모듈을 막지 않는 비차단 페치이며 실패해도 이 모듈만 오류 카드가 된다.
 type CoachState = CoachCardState;
+
+// 주변 지역 비교는 비차단 페치 — 실패하면 카드를 감춘다(오류 카드도 그리지 않는다).
+type NearbyState =
+  | { kind: "loading" }
+  | { kind: "ready"; data: NearbyResponse }
+  | { kind: "hidden" };
 
 const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
 
@@ -136,6 +152,7 @@ export default function HomePage() {
   const [status, setStatus] = useState<StatusState>({ kind: "loading" });
   const [forecast, setForecast] = useState<ForecastState>({ kind: "loading" });
   const [coach, setCoach] = useState<CoachState>({ kind: "loading" });
+  const [nearby, setNearby] = useState<NearbyState>({ kind: "loading" });
   const [splashDone, setSplashDone] = useState(false);
   const mountedRef = useRef(true);
 
@@ -171,6 +188,7 @@ export default function HomePage() {
     setStatus({ kind: "loading" });
     setForecast({ kind: "loading" });
     setCoach({ kind: "loading" });
+    setNearby({ kind: "loading" });
     void getStatus(sigunCode).then((result) => {
       if (!mountedRef.current) {
         return;
@@ -213,6 +231,17 @@ export default function HomePage() {
           retryable: result.retryable,
         });
       }
+    });
+    // 주변 지역 비교도 비차단 — 실패하면 카드를 숨기고 화면은 그대로 둔다.
+    void getNearby(sigunCode).then((result) => {
+      if (!mountedRef.current) {
+        return;
+      }
+      setNearby(
+        result.kind === "ok"
+          ? { kind: "ready", data: result.data }
+          : { kind: "hidden" },
+      );
     });
   }, []);
 
@@ -296,6 +325,12 @@ export default function HomePage() {
 
         {/* ④ 물시계 코치 — 비차단. 스켈레톤·오류 카드는 모듈이 스스로 소유한다. */}
         <CoachCard state={coach} onRetry={refresh} />
+
+        {/* ④-b 주변 지역 비교 — 같은 시·도 안에서 우리 지역 물 사정 비교(비차단).
+            준비되면 보여주고, 실패하면 조용히 감춘다(오류 카드 없음). */}
+        {nearby.kind === "ready" ? (
+          <NearbyCompareCard data={nearby.data} />
+        ) : null}
 
         {/* ⑤ 근거·한계 고지 — 공인 기준·공식 우선 문구는 화면의 핵심 규정 준수
             메시지다. coach 실패와 무관하게 status가 로드되면 항상 보여준다.

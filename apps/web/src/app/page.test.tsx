@@ -5,6 +5,7 @@ import type {
   ApiError,
   CoachResponse,
   ForecastResponse,
+  NearbyResponse,
   StatusResponse,
 } from "@mulsigye/contracts";
 import {
@@ -85,6 +86,7 @@ function stubApiFetch(handlers: {
   status: () => Response | Promise<Response>;
   forecast?: () => Response | Promise<Response>;
   coach?: () => Response | Promise<Response>;
+  nearby?: () => Response | Promise<Response>;
 }) {
   const fetchMock = vi.fn((input: RequestInfo | URL) => {
     const url = String(input);
@@ -98,11 +100,41 @@ function stubApiFetch(handlers: {
         (handlers.coach ?? (() => jsonResponse(COACH_STATIC)))(),
       );
     }
+    if (url.includes("/api/v1/regions/nearby")) {
+      // 주변 비교는 비차단 — 지정 없으면 감춰지도록 404를 돌려준다.
+      return Promise.resolve(
+        (handlers.nearby ?? (() => jsonResponse({}, 404)))(),
+      );
+    }
     return Promise.resolve(handlers.status());
   });
   vi.stubGlobal("fetch", fetchMock);
   return fetchMock;
 }
+
+const NEARBY_OK: NearbyResponse = {
+  schemaVersion: "1",
+  sidoName: "충남",
+  asOf: "2025-12-31",
+  regions: [
+    {
+      sigunCode: "44270",
+      sigunName: "당진시",
+      avgRatio: 71.9,
+      stageCode: "ok",
+      current: false,
+    },
+    {
+      sigunCode: "44230",
+      sigunName: "논산시",
+      avgRatio: 112.7,
+      stageCode: "ok",
+      current: true,
+    },
+  ],
+  stale: true,
+  sources: ["커밋 스냅샷(기준 2025-12-31)"],
+};
 
 function seedRegion() {
   window.localStorage.setItem(
@@ -337,13 +369,13 @@ describe("메인 오류·재시도", () => {
     expect(
       await screen.findByText(String(NORMAL.reservoir.rate)),
     ).toBeInTheDocument();
-    // 병렬 페치: status+forecast+coach 3종을 2회씩 = 총 6회.
-    expect(fetchMock).toHaveBeenCalledTimes(6);
+    // 병렬 페치: status+forecast+coach+nearby 4종을 2회씩 = 총 8회.
+    expect(fetchMock).toHaveBeenCalledTimes(8);
   });
 });
 
 describe("메인 로고 새로고침", () => {
-  it("로고를 누르면 status·forecast·coach를 다시 요청한다", async () => {
+  it("로고를 누르면 status·forecast·coach·주변 비교를 다시 요청한다", async () => {
     seedRegion();
     // Response 본문은 1회만 읽을 수 있어 호출마다 새 Response를 만든다.
     const fetchMock = stubApiFetch({ status: () => jsonResponse(NORMAL) });
@@ -353,13 +385,53 @@ describe("메인 로고 새로고침", () => {
     expect(
       await screen.findByText(String(NORMAL.reservoir.rate)),
     ).toBeInTheDocument();
-    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(fetchMock).toHaveBeenCalledTimes(4);
 
     fireEvent.click(screen.getByRole("button", { name: "새로고침" }));
 
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(6));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(8));
     expect(
       await screen.findByText(String(NORMAL.reservoir.rate)),
     ).toBeInTheDocument();
+  });
+});
+
+describe("메인 주변 지역 비교 모듈", () => {
+  it("nearby가 오면 같은 시·도 목록·순위 요약·우리 지역 강조를 보여준다", async () => {
+    seedRegion();
+    stubApiFetch({
+      status: () => jsonResponse(NORMAL),
+      nearby: () => jsonResponse(NEARBY_OK),
+    });
+
+    render(<HomePage />);
+
+    // 시·도 이름을 쓴 제목과 목록(가뭄 심한 순: 당진 → 논산).
+    expect(await screen.findByText("충남 안에서 비교")).toBeInTheDocument();
+    expect(screen.getByText("당진시")).toBeInTheDocument();
+    expect(screen.getByText("논산시")).toBeInTheDocument();
+    // 순위 요약: 논산(112.7)이 가장 넉넉 → 1번째.
+    expect(screen.getByText("1번째")).toBeInTheDocument();
+    // 우리 지역 강조 마커.
+    expect(screen.getByText("우리 지역")).toBeInTheDocument();
+    // 평년 대비 저수율 표시.
+    expect(screen.getByText("평년 대비 71.9%")).toBeInTheDocument();
+  });
+
+  it("nearby 실패는 화면을 깨지 않고 카드만 조용히 감춘다(비차단)", async () => {
+    seedRegion();
+    stubApiFetch({
+      status: () => jsonResponse(NORMAL),
+      nearby: () => jsonResponse({}, 503),
+    });
+
+    render(<HomePage />);
+
+    // 다른 모듈은 정상 렌더.
+    expect(
+      await screen.findByText(String(NORMAL.reservoir.rate)),
+    ).toBeInTheDocument();
+    // 주변 비교 카드는 뜨지 않는다.
+    expect(screen.queryByText("충남 안에서 비교")).not.toBeInTheDocument();
   });
 });

@@ -10,6 +10,9 @@ import com.mulsigye.app.feature.coach.domain.CoachRepository
 import com.mulsigye.app.feature.forecast.data.DefaultForecastRepository
 import com.mulsigye.app.feature.forecast.data.remote.ForecastApi
 import com.mulsigye.app.feature.forecast.domain.ForecastRepository
+import com.mulsigye.app.feature.nearby.data.DefaultNearbyRepository
+import com.mulsigye.app.feature.nearby.data.remote.NearbyApi
+import com.mulsigye.app.feature.nearby.domain.NearbyRepository
 import com.mulsigye.app.feature.region.data.DefaultRegionRepository
 import com.mulsigye.app.feature.region.data.remote.RegionApi
 import com.mulsigye.app.feature.region.domain.RegionRepository
@@ -47,4 +50,7 @@ class AppContainer(
 
     val coachRepository: CoachRepository =
         DefaultCoachRepository(retrofit.create(CoachApi::class.java), json)
+
+    val nearbyRepository: NearbyRepository =
+        DefaultNearbyRepository(retrofit.create(NearbyApi::class.java), json)
 }

@@ -6,6 +6,7 @@ import type {
   ApiError,
   CoachResponse,
   ForecastResponse,
+  NearbyResponse,
   RegionResolveRequest,
   RegionResolveResponse,
   RegionSearchResponse,
@@ -130,6 +131,16 @@ export function getCoach(
 ): Promise<ApiResult<CoachResponse>> {
   return requestJson<CoachResponse>(
     `/api/v1/coach?sigunCode=${encodeURIComponent(sigunCode)}`,
+    baseInit(options),
+  );
+}
+
+export function getNearby(
+  sigunCode: string,
+  options?: RequestOptions,
+): Promise<ApiResult<NearbyResponse>> {
+  return requestJson<NearbyResponse>(
+    `/api/v1/regions/nearby?sigunCode=${encodeURIComponent(sigunCode)}`,
     baseInit(options),
   );
 }

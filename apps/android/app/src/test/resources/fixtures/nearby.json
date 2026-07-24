@@ -1,0 +1,30 @@
+{
+  "schemaVersion": "1",
+  "sidoName": "충남",
+  "asOf": "2025-12-31",
+  "regions": [
+    {
+      "sigunCode": "44180",
+      "sigunName": "보령시",
+      "avgRatio": 48.2,
+      "stageCode": "alert",
+      "current": false
+    },
+    {
+      "sigunCode": "44270",
+      "sigunName": "당진시",
+      "avgRatio": 71.9,
+      "stageCode": "ok",
+      "current": false
+    },
+    {
+      "sigunCode": "44230",
+      "sigunName": "논산시",
+      "avgRatio": 112.7,
+      "stageCode": "ok",
+      "current": true
+    }
+  ],
+  "stale": true,
+  "sources": ["커밋 스냅샷(기준 2025-12-31)"]
+}

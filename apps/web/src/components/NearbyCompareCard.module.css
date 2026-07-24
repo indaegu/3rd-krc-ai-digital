@@ -1,0 +1,97 @@
+.title {
+  margin: 0 0 8px;
+  font-size: 1.1875rem;
+}
+
+.summary {
+  margin: 0 0 12px;
+  color: var(--ink2);
+  font-size: 0.9375rem;
+  line-height: 1.6;
+}
+
+.rank {
+  color: var(--blue-deep);
+}
+
+.list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 8px 10px;
+  background: var(--gray50);
+  border-radius: var(--r-sm);
+}
+
+.row.current {
+  background: var(--blue-soft);
+  outline: 2px solid var(--blue);
+  outline-offset: -2px;
+}
+
+.name {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.currentMark {
+  padding: 2px 8px;
+  color: var(--blue-deep);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  background: var(--bg);
+  border-radius: 999px;
+}
+
+.ratio {
+  margin-left: auto;
+  color: var(--ink2);
+  font-size: 0.9375rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 단계 색 칩 — design-system 토큰만 사용 */
+.chip {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.ok {
+  color: var(--ok-fg);
+  background: var(--ok-bg);
+}
+
+.watch {
+  color: var(--watch-fg);
+  background: var(--watch-bg);
+}
+
+.care {
+  color: var(--care-fg);
+  background: var(--care-bg);
+}
+
+.alert {
+  color: var(--alert-fg);
+  background: var(--alert-bg);
+}
+
+.crit {
+  color: var(--crit-fg);
+  background: var(--crit-bg);
+}

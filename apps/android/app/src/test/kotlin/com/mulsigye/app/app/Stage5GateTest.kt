@@ -27,6 +27,7 @@ import com.mulsigye.app.feature.coach.data.DefaultCoachRepository
 import com.mulsigye.app.feature.coach.data.remote.CoachApi
 import com.mulsigye.app.feature.coach.data.remote.CoachResponseDto
 import com.mulsigye.app.feature.coach.presentation.CoachUiState
+import com.mulsigye.app.feature.nearby.presentation.NearbyUiState
 import com.mulsigye.app.feature.coach.presentation.CoachViewModel
 import com.mulsigye.app.feature.forecast.data.DefaultForecastRepository
 import com.mulsigye.app.feature.forecast.data.remote.ForecastApi
@@ -197,6 +198,7 @@ class Stage5GateTest : RobolectricComposeTest() {
                     statusState = statusState,
                     forecastState = forecastState,
                     coachState = coachState,
+                    nearbyState = NearbyUiState.Loading,
                     onRefresh = {},
                     onNavigateRegions = {},
                     onNavigateTrend = {},
@@ -333,7 +335,7 @@ class Stage5GateTest : RobolectricComposeTest() {
                 val statusState by statusVm.uiState.collectAsState()
                 val forecastState by forecastVm.uiState.collectAsState()
                 val coachState by coachVm.uiState.collectAsState()
-                MainScreen(statusState, forecastState, coachState, {}, {}, {})
+                MainScreen(statusState, forecastState, coachState, NearbyUiState.Loading, {}, {}, {})
             }
         }
 
@@ -398,7 +400,7 @@ class Stage5GateTest : RobolectricComposeTest() {
         val coach = CoachUiState.Ready(CoachFixtures.success(scenario.coachFixture))
         composeTestRule.setContent {
             MulsigyeTheme {
-                MainScreen(status, forecast, coach, {}, {}, {})
+                MainScreen(status, forecast, coach, NearbyUiState.Loading, {}, {}, {})
             }
         }
     }

@@ -78,6 +78,7 @@ apps/web browser UI + apps/android
 | `GET /api/v1/status` | `sigunCode` | 대표 저수지 원저수율 + 지역 `avgRatio` + 공식 단계 + 만수위 참고 `highWaterNotice` | 두 저수율의 의미를 분리, 3단 폴백으로 HTTP 200 유지. 만수위 참고(원저수율 95% 이상 + 상승)는 각 폴백 단에서 확보한 시계열로 서버가 확정하며 클라이언트는 재판정하지 않는다 |
 | `GET /api/v1/forecast` | `sigunCode` | 14일 예측, 오차, 도달 가능 시점, 공식 전망 | 참고 표현만 반환 |
 | `GET /api/v1/coach` | `sigunCode` | 서버가 상태를 조회해 허용 행동 안에서 코칭 | 임의 프롬프트 입력 금지 |
+| `GET /api/v1/regions/nearby` | `sigunCode` | 같은 시·도 내 시군의 최신 `avgRatio`·공식 단계 비교 목록(우리 지역 표시) | 커밋 스냅샷 기반(`stale: true`), 단계는 저장된 `officialStage`만 사용(임계값 재계산 금지) |
 
 ### 공통 응답·오류 원칙
 

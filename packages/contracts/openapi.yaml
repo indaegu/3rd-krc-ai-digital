@@ -684,6 +684,65 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
+  /api/v1/regions/nearby:
+    get:
+      operationId: getNearby
+      summary: 같은 시·도 안의 지역별 가뭄단계·평년대비 저수율 비교 조회
+      parameters:
+        - name: sigunCode
+          in: query
+          required: true
+          description: KRC 시군 코드 5자리
+          schema:
+            type: string
+            pattern: "^[0-9]{5}$"
+      responses:
+        "200":
+          description: >-
+            요청 지역과 같은 시·도에 속한 지역들의 최신 공식 단계·평년 대비
+            저수율 목록(가뭄 심한 순). 커밋 스냅샷 기반이라 stale=true다
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NearbyResponse"
+              examples:
+                ok:
+                  value:
+                    schemaVersion: "1"
+                    sidoName: 충남
+                    asOf: "2025-12-31"
+                    regions:
+                      - sigunCode: "44270"
+                        sigunName: 당진시
+                        avgRatio: 71.9
+                        stageCode: ok
+                        current: false
+                      - sigunCode: "44230"
+                        sigunName: 논산시
+                        avgRatio: 112.7
+                        stageCode: ok
+                        current: true
+                    stale: true
+                    sources:
+                      - 커밋 스냅샷(기준 2025-12-31)
+        "400":
+          description: sigunCode가 없거나 5자리 숫자가 아님 (retryable=false)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "404":
+          description: 스냅샷에 없는 시군구 코드 (retryable=false)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "503":
+          description: 커밋 스냅샷을 불러오지 못함 (retryable=true)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
 components:
   schemas:
     HealthResponse:
@@ -1011,6 +1070,72 @@ components:
             max:
               type: number
               description: 올해 분포 최댓값(avgRatio %)
+    NearbyResponse:
+      type: object
+      additionalProperties: false
+      description: >-
+        요청 지역과 같은 시·도에 속한 지역들의 최신 공식 단계·평년 대비
+        저수율 비교. 좌표가 없어 '주변'은 같은 시·도로 정의한다. 커밋
+        스냅샷 기반이라 stale=true다
+      required:
+        - schemaVersion
+        - sidoName
+        - asOf
+        - regions
+        - stale
+        - sources
+      properties:
+        schemaVersion:
+          type: string
+          const: "1"
+        sidoName:
+          type: string
+          minLength: 1
+          description: 요청 지역이 속한 시·도 이름(예 충남)
+        asOf:
+          type: string
+          description: 이 시·도 안에서 관측된 최신 날짜(YYYY-MM-DD)
+        regions:
+          type: array
+          description: 같은 시·도 지역 목록. 가뭄 심한 순(avgRatio 오름차순)으로 정렬한다
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - sigunCode
+              - sigunName
+              - avgRatio
+              - stageCode
+              - current
+            properties:
+              sigunCode:
+                type: string
+                pattern: "^[0-9]{5}$"
+              sigunName:
+                type: string
+                minLength: 1
+              avgRatio:
+                type: number
+                minimum: 0
+                description: 평년 대비 저수율 %. 100 초과 가능(실측 140.1)
+              stageCode:
+                type: string
+                enum:
+                  - ok
+                  - watch
+                  - care
+                  - alert
+                  - crit
+                description: 공식 가뭄단계 코드. 스냅샷의 officialStage에서 그대로 매핑한다
+              current:
+                type: boolean
+                description: 요청한 우리 지역이면 true
+        stale:
+          type: boolean
+        sources:
+          type: array
+          items:
+            type: string
     ForecastPoint:
       type: object
       additionalProperties: false
