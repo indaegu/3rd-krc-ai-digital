@@ -29,7 +29,9 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.Canvas
+import com.mulsigye.app.core.designsystem.component.CtaButton
 import com.mulsigye.app.core.designsystem.component.MulsigyeCard
+import com.mulsigye.app.core.designsystem.component.Shimmer
 import com.mulsigye.app.core.designsystem.theme.Bg
 import com.mulsigye.app.core.designsystem.theme.Ink
 import com.mulsigye.app.core.designsystem.theme.Ink2
@@ -76,29 +78,7 @@ fun TrendScreen(
             .verticalScroll(rememberScrollState()),
     ) {
         // 뒤로 헤더.
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Row(
-                modifier = Modifier
-                    .clickable(onClick = onBack)
-                    .semantics(mergeDescendants = true) { contentDescription = "뒤로" }
-                    .size(48.dp),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                BackArrow()
-            }
-            Spacer(Modifier.width(4.dp))
-            Text(
-                text = "지역 평년 대비 흐름",
-                style = MaterialTheme.typography.titleMedium,
-                color = Ink,
-            )
-        }
+        TrendTopBar(onBack = onBack)
 
         Column(
             modifier = Modifier.padding(horizontal = 20.dp),
@@ -176,6 +156,117 @@ fun TrendScreen(
             }
 
             Spacer(Modifier.height(8.dp))
+        }
+    }
+}
+
+/** 흐름 상세 공통 상단바 — 뒤로가기 + 제목. 로딩·오류·본문이 같은 헤더를 쓴다. */
+@Composable
+private fun TrendTopBar(onBack: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Row(
+            modifier = Modifier
+                .clickable(onClick = onBack)
+                .semantics(mergeDescendants = true) { contentDescription = "뒤로" }
+                .size(48.dp),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            BackArrow()
+        }
+        Spacer(Modifier.width(4.dp))
+        Text(
+            text = "지역 평년 대비 흐름",
+            style = MaterialTheme.typography.titleMedium,
+            color = Ink,
+        )
+    }
+}
+
+/**
+ * 흐름 상세 로딩 화면 — 실제 상세 레이아웃(제목·큰 차트·단계 표)을 그대로 흉내 낸 스켈레톤.
+ * 밋밋한 "불러오는 중…" 텍스트 대신 모듈별 shimmer로 채워 로딩임을 부드럽게 드러낸다
+ * (reduced-motion이면 Shimmer가 정적 회색으로 정지). 장식이라 화면 자체 안내는 최소로 둔다.
+ */
+@Composable
+fun TrendLoadingScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .background(Bg)
+            .verticalScroll(rememberScrollState()),
+    ) {
+        TrendTopBar(onBack = onBack)
+        Column(
+            modifier = Modifier.padding(horizontal = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(24.dp),
+        ) {
+            // 제목 자리.
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Shimmer(modifier = Modifier.fillMaxWidth(0.7f).height(28.dp))
+                Shimmer(modifier = Modifier.fillMaxWidth(0.5f).height(16.dp))
+            }
+            // 큰 차트 카드 자리.
+            MulsigyeCard {
+                Shimmer(modifier = Modifier.fillMaxWidth().height(300.dp))
+                Spacer(Modifier.height(12.dp))
+                Shimmer(modifier = Modifier.width(180.dp).height(14.dp))
+            }
+            // 단계 기준 표 자리.
+            MulsigyeCard {
+                Shimmer(modifier = Modifier.width(140.dp).height(20.dp))
+                Spacer(Modifier.height(12.dp))
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    repeat(3) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Shimmer(modifier = Modifier.width(56.dp).height(28.dp))
+                            Spacer(Modifier.width(12.dp))
+                            Shimmer(modifier = Modifier.width(180.dp).height(16.dp))
+                        }
+                    }
+                }
+            }
+            Spacer(Modifier.height(8.dp))
+        }
+    }
+}
+
+/** 흐름 상세 오류 화면 — 뒤로가기 헤더 + 안내 카드(재시도 가능하면 다시 시도 버튼). */
+@Composable
+fun TrendErrorScreen(
+    message: String,
+    retryable: Boolean,
+    onRetry: () -> Unit,
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .background(Bg)
+            .verticalScroll(rememberScrollState()),
+    ) {
+        TrendTopBar(onBack = onBack)
+        Column(modifier = Modifier.padding(horizontal = 20.dp)) {
+            MulsigyeCard {
+                Text(
+                    text = "흐름을 불러오지 못했어요",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = Ink,
+                    modifier = Modifier.semantics { heading() },
+                )
+                Spacer(Modifier.height(8.dp))
+                Text(text = message, style = MaterialTheme.typography.bodyLarge, color = Ink2)
+                if (retryable) {
+                    Spacer(Modifier.height(16.dp))
+                    CtaButton(text = "다시 시도하기", onClick = onRetry)
+                }
+            }
         }
     }
 }

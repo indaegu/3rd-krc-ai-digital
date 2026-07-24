@@ -113,6 +113,15 @@ class RegionAddViewModel(
         resolveJob = viewModelScope.launch(dispatcher) { runResolve(candidate) }
     }
 
+    /**
+     * 확인 팝업 닫기 — 진행 중 확인 Job을 취소하고 선택·확인 상태만 비운다(검색 결과·검색어는 유지).
+     * 사용자가 후보를 잘못 골랐을 때 팝업 딤/닫기로 되돌아오는 경로다.
+     */
+    fun dismissResolve() {
+        resolveJob?.cancel()
+        _uiState.update { it.copy(selected = null, resolve = ResolvePhase.Idle) }
+    }
+
     private suspend fun runResolve(candidate: RegionCandidate) {
         val phase = when (val result = regionRepository.resolve(candidate.admCd, candidate.legalCode)) {
             is RegionResolveResult.Success -> ResolvePhase.Ready(result)
@@ -137,6 +146,9 @@ class RegionAddViewModel(
         _uiState.update { it.copy(registering = true) }
         viewModelScope.launch(dispatcher) {
             regionStore.addRegion(StoredRegion(sigunCode = sigunCode, facCode = reservoir.facCode))
+            // ViewModel은 Activity 스코프라 화면을 떠나도 인스턴스가 유지된다. 초기화하지 않으면
+            // 두 번째 지역 추가 진입 때 registering=true가 남아 '등록하기'가 무한 스피너로 잠긴다.
+            _uiState.value = RegionAddUiState()
             onRegistered()
         }
     }

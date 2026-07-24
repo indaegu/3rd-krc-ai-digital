@@ -22,7 +22,8 @@ class OnboardingScreenTest : RobolectricComposeTest() {
                 OnboardingScreen(onDone = {})
             }
         }
-        composeTestRule.onNodeWithText("우리 동네 물 사정을 며칠 앞서 알려드려요").assertIsDisplayed()
+        // 제목은 표시용 줄바꿈(\n)을 포함하므로 부분 문자열로 확인한다.
+        composeTestRule.onNodeWithText("우리 동네 물 사정을", substring = true).assertIsDisplayed()
         composeTestRule.onNodeWithText("가입 없이 바로 시작해요").assertIsDisplayed()
     }
 

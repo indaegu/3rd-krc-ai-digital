@@ -1,6 +1,8 @@
 package com.mulsigye.app.feature.region.presentation
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -35,41 +37,55 @@ fun RegionAddScreen(
     onCandidateSelect: (RegionCandidate) -> Unit,
     onRetrySearch: () -> Unit,
     onRetryResolve: () -> Unit,
+    onDismissResolve: () -> Unit,
     onRegister: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(20.dp),
-        verticalArrangement = Arrangement.spacedBy(20.dp),
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            IconButton(
-                onClick = onBack,
-                modifier = Modifier
-                    .size(48.dp)
-                    .semantics { contentDescription = "지역 설정으로 돌아가기" },
-            ) {
-                Text(text = "←", style = MaterialTheme.typography.headlineLarge)
+    Box(modifier = modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp),
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(
+                    onClick = onBack,
+                    modifier = Modifier
+                        .size(48.dp)
+                        .semantics { contentDescription = "지역 설정으로 돌아가기" },
+                ) {
+                    Text(text = "←", style = MaterialTheme.typography.headlineLarge)
+                }
+                Spacer(Modifier.width(4.dp))
+                Text(
+                    text = "지역 추가",
+                    style = MaterialTheme.typography.headlineLarge,
+                    modifier = Modifier.semantics { heading() },
+                )
             }
-            Spacer(Modifier.width(4.dp))
-            Text(
-                text = "지역 추가",
-                style = MaterialTheme.typography.headlineLarge,
-                modifier = Modifier.semantics { heading() },
+
+            AddressSearch(
+                state = state,
+                onQueryChange = onQueryChange,
+                onCandidateSelect = onCandidateSelect,
+                onRetrySearch = onRetrySearch,
             )
         }
 
-        AddressSearch(
-            state = state,
-            onQueryChange = onQueryChange,
-            onCandidateSelect = onCandidateSelect,
-            onRetrySearch = onRetrySearch,
-            onRetryResolve = onRetryResolve,
-            onRegister = onRegister,
-        )
+        // 후보 확인(Loading/Ready/Error)은 화면 위 팝업으로 띄운다.
+        if (state.resolve !is ResolvePhase.Idle) {
+            // 팝업이 떠 있을 때 시스템 뒤로가기는 화면을 나가지 않고 팝업만 닫는다.
+            // (라우터의 상시 BackHandler보다 안쪽에서 먼저 소비 — 잘못 고른 후보 취소 경로.)
+            BackHandler(enabled = true, onBack = onDismissResolve)
+            ResolveConfirmOverlay(
+                state = state,
+                onRegister = onRegister,
+                onRetryResolve = onRetryResolve,
+                onDismiss = onDismissResolve,
+            )
+        }
     }
 }

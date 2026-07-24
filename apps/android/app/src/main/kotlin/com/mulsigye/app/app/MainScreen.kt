@@ -12,9 +12,16 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -47,6 +54,7 @@ import com.mulsigye.app.feature.status.presentation.mergeSources
  * 모듈 순서: MainHeader · 기준시각 스탬프 · (HighWaterBanner) · TodayCard(+게이지) ·
  * ReachCard · TrendChartCard · CoachCard · SourcesCard · 면책 문구.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(
     statusState: StatusUiState,
@@ -61,12 +69,28 @@ fun MainScreen(
         "${it.sigunName} · ${it.reservoir.name}"
     }
 
-    Column(
+    // 당겨서 새로고침 — 사용자가 화면을 끌어내렸을 때만 상단 인디케이터를 돌린다.
+    // (첫 진입 로딩은 모듈 스켈레톤이 담당하므로 인디케이터를 띄우지 않는다.)
+    var pullRefreshing by remember { mutableStateOf(false) }
+    LaunchedEffect(statusState) {
+        if (statusState !is StatusUiState.Loading) pullRefreshing = false
+    }
+
+    PullToRefreshBox(
+        isRefreshing = pullRefreshing,
+        onRefresh = {
+            pullRefreshing = true
+            onRefresh()
+        },
         modifier = modifier
             .fillMaxSize()
-            .background(Bg)
-            .verticalScroll(rememberScrollState()),
+            .background(Bg),
     ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState()),
+        ) {
         MainHeader(
             regionLabel = regionLabel,
             refreshing = statusState is StatusUiState.Loading,
@@ -132,6 +156,7 @@ fun MainScreen(
 
             Disclaimer()
             Spacer(Modifier.height(8.dp))
+            }
         }
     }
 }
