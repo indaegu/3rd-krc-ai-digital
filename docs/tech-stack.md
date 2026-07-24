@@ -30,7 +30,9 @@
 | 구조 | ViewModel + Repository + 단방향 UI 상태 | 네트워크·저장소와 화면을 분리해 테스트 가능 |
 | 네트워크 | Retrofit + OkHttp + kotlinx.serialization | `/api/v1/*` JSON 계약 소비 |
 | 비동기 | Coroutines + Flow | API·DataStore 결과를 Compose 상태로 연결 |
-| 로컬 저장 | Jetpack DataStore | 지역 코드·대표 시설 코드·동의 버전만 기기 저장 |
+| 로컬 저장 | Jetpack DataStore `datastore-preferences 1.1.7` | 지역 코드·대표 시설 코드·동의 버전만 기기 저장(주소 원문 미저장) |
+| UI 프리미티브 | Compose `foundation`(BOM 2026.06.00) | HorizontalPager·Canvas 게이지/차트를 라이브러리 없이 직접 렌더 |
+| 단위 UI 테스트 | Robolectric `4.15.1` + `androidx.compose.ui:ui-test-junit4`(BOM) + `androidx.test:core 1.7.0` | device 없이 `testDebugUnitTest`에서 Compose 화면·reduced-motion 분기 검증(`@Config(sdk=[34])`·NATIVE 그래픽스) |
 | SDK | `minSdk 26`, `compileSdk 36`, `targetSdk 36` | 지원 범위를 과도하게 넓히지 않고 Android 16·Play 기준 대비 |
 | 빌드 버전 | 호환되는 안정 JDK·Kotlin·Compose·AGP를 Version Catalog에 정확히 고정 | 스캐폴드 후 문서와 실제 빌드의 불일치 방지 |
 | 배포 | 동일 서명키의 release APK + Play용 AAB | 심사용 설치와 최종 네이티브 배포를 함께 준비 |

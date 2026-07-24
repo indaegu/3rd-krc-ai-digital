@@ -1,0 +1,26 @@
+{
+  "schemaVersion": "1",
+  "sigunCode": "50110",
+  "sigunName": "제주시",
+  "reservoir": {
+    "facCode": "5011010004",
+    "name": "상대",
+    "rate": 33,
+    "waterLevel": 4.1,
+    "observedOn": "2026-07-20"
+  },
+  "region": {
+    "observedOn": "2026-07-20",
+    "regionalRate": 36.8,
+    "normalRate": 80,
+    "avgRatio": 46,
+    "officialStage": {
+      "code": "alert",
+      "label": "경계"
+    }
+  },
+  "highWaterNotice": false,
+  "asOf": "2026-07-21T00:00:00.000Z",
+  "sources": ["농촌용수 저수지 수위정보 조회", "논가뭄지도"],
+  "stale": false
+}

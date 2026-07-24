@@ -1,0 +1,26 @@
+{
+  "schemaVersion": "1",
+  "sigunCode": "26710",
+  "sigunName": "기장군",
+  "reservoir": {
+    "facCode": "2671010067",
+    "name": "병산",
+    "rate": 96,
+    "waterLevel": 14.9,
+    "observedOn": "2026-07-20"
+  },
+  "region": {
+    "observedOn": "2026-07-20",
+    "regionalRate": 94.4,
+    "normalRate": 80,
+    "avgRatio": 118,
+    "officialStage": {
+      "code": "ok",
+      "label": "정상"
+    }
+  },
+  "highWaterNotice": true,
+  "asOf": "2026-07-21T00:00:00.000Z",
+  "sources": ["농촌용수 저수지 수위정보 조회", "논가뭄지도"],
+  "stale": false
+}

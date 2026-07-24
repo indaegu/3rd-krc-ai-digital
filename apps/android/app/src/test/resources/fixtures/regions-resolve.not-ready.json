@@ -1,0 +1,10 @@
+{
+  "schemaVersion": "1",
+  "sigunCode": "27260",
+  "sigunName": null,
+  "prepared": false,
+  "reservoir": null,
+  "asOf": "2026-07-21T00:00:00.000Z",
+  "sources": ["농업기반시설 시설제원_저수지"],
+  "stale": false
+}
