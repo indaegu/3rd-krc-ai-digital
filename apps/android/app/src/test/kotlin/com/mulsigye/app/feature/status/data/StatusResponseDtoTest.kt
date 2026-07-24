@@ -56,4 +56,21 @@ class StatusResponseDtoTest {
         val d = json.decodeFromString<StatusResponseDto>(Fixtures.read("status.flood.json"))
         assertTrue(d.highWaterNotice)
     }
+
+    @Test
+    fun decodesYearlyPositionWhenPresent() {
+        val d = json.decodeFromString<StatusResponseDto>(Fixtures.read("status.position.json"))
+        val yp = d.yearlyPosition!!
+        assertEquals(2025, yp.year)
+        assertEquals(10.0, yp.percentile, 0.0)
+        assertEquals("low", yp.bucket)
+        assertEquals(71.4, yp.min, 0.0)
+        assertEquals(141.8, yp.max, 0.0)
+    }
+
+    @Test
+    fun yearlyPositionIsNullWhenAbsent() {
+        val d = json.decodeFromString<StatusResponseDto>(Fixtures.read("status.ok.json"))
+        assertNull(d.yearlyPosition)
+    }
 }

@@ -176,6 +176,12 @@ paths:
                       - 농촌용수 저수지 수위정보 조회
                       - 논가뭄지도
                     stale: false
+                    yearlyPosition:
+                      year: 2025
+                      percentile: 10
+                      bucket: low
+                      min: 71.4
+                      max: 141.8
                 stale:
                   value:
                     schemaVersion: "1"
@@ -201,6 +207,12 @@ paths:
                       - Supabase 스냅샷
                       - 논가뭄지도
                     stale: true
+                    yearlyPosition:
+                      year: 2025
+                      percentile: 93
+                      bucket: high
+                      min: 107
+                      max: 143.3
         "400":
           description: sigunCode가 없거나 5자리 숫자가 아님 (retryable=false)
           content:
@@ -926,6 +938,43 @@ components:
             type: string
         stale:
           type: boolean
+        yearlyPosition:
+          description: >-
+            올해(2025) 저수율 분포 속 현재 avgRatio의 위치(참고 표시 전용).
+            서버가 커밋 스냅샷의 지역 분포로 백분위·구간을 확정하며 클라이언트는
+            재계산하지 않는다. 스냅샷에 없는 지역은 null. v1 호환 additive 필드다
+          type:
+            - object
+            - "null"
+          additionalProperties: false
+          required:
+            - year
+            - percentile
+            - bucket
+            - min
+            - max
+          properties:
+            year:
+              type: integer
+              description: 분포 기준 연도(2025)
+            percentile:
+              type: number
+              minimum: 0
+              maximum: 100
+              description: 올해 분포에서 현재 avgRatio의 백분위(0..100, 정수)
+            bucket:
+              type: string
+              enum:
+                - low
+                - mid
+                - high
+              description: 백분위 구간. low<33.3, mid<66.7, 그 이상 high
+            min:
+              type: number
+              description: 올해 분포 최솟값(avgRatio %)
+            max:
+              type: number
+              description: 올해 분포 최댓값(avgRatio %)
     ForecastPoint:
       type: object
       additionalProperties: false

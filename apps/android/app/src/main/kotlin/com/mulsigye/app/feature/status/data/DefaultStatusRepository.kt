@@ -9,9 +9,11 @@ import com.mulsigye.app.feature.status.domain.RegionStatus
 import com.mulsigye.app.feature.status.domain.ReservoirStatus
 import com.mulsigye.app.feature.status.domain.StatusRepository
 import com.mulsigye.app.feature.status.domain.StatusResult
+import com.mulsigye.app.feature.status.domain.YearlyPosition
 import java.io.IOException
 import java.time.Instant
 import java.time.format.DateTimeParseException
+import kotlin.math.roundToInt
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 
@@ -49,6 +51,15 @@ class DefaultStatusRepository(
                             ),
                         ),
                         highWaterNotice = body.highWaterNotice,
+                        yearlyPosition = body.yearlyPosition?.let {
+                            YearlyPosition(
+                                year = it.year,
+                                percentile = it.percentile.roundToInt(),
+                                bucket = it.bucket,
+                                min = it.min,
+                                max = it.max,
+                            )
+                        },
                         asOf = Instant.parse(body.asOf),
                         sources = body.sources,
                         stale = body.stale,

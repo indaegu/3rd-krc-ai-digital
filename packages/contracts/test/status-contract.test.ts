@@ -87,6 +87,62 @@ describe("status contract fixtures", () => {
   it("requires highWaterNotice as a boolean on every status fixture", () => {
     expectTypeOf<StatusResponse["highWaterNotice"]>().toEqualTypeOf<boolean>();
   });
+
+  it("keeps yearlyPosition optional and nullable (v1 additive)", () => {
+    const base: StatusResponse = {
+      schemaVersion: "1",
+      sigunCode: "44230",
+      sigunName: "논산시",
+      reservoir: {
+        facCode: "4423010045",
+        name: "탑정",
+        rate: 87.5,
+        waterLevel: 32.1,
+        observedOn: "2026-07-20",
+      },
+      region: {
+        observedOn: "2026-07-20",
+        regionalRate: 82.4,
+        normalRate: 88.1,
+        avgRatio: 93.5,
+        officialStage: { code: "ok", label: "정상" },
+      },
+      highWaterNotice: false,
+      asOf: "2026-07-21T00:00:00.000Z",
+      sources: ["논가뭄지도"],
+      stale: false,
+    };
+
+    // 필드가 없어도 계약에 정합해야 한다(옵션 필드).
+    const withoutPosition = { ...base } satisfies StatusResponse;
+    expectTypeOf(withoutPosition).toMatchTypeOf<StatusResponse>();
+
+    // 값을 붙인 픽스처도 정합해야 한다.
+    const withPosition = {
+      ...base,
+      yearlyPosition: {
+        year: 2025,
+        percentile: 10,
+        bucket: "low" as const,
+        min: 71.4,
+        max: 141.8,
+      },
+    } satisfies StatusResponse;
+    expect(withPosition.yearlyPosition.bucket).toBe("low");
+
+    // null도 허용한다(스냅샷에 없는 지역).
+    const nullPosition = {
+      ...base,
+      yearlyPosition: null,
+    } satisfies StatusResponse;
+    expect(nullPosition.yearlyPosition).toBeNull();
+  });
+
+  it("limits yearlyPosition.bucket to the low/mid/high tokens", () => {
+    type Bucket = NonNullable<StatusResponse["yearlyPosition"]>["bucket"];
+    const buckets = ["low", "mid", "high"] as const;
+    expectTypeOf<(typeof buckets)[number]>().toEqualTypeOf<Bucket>();
+  });
 });
 
 // 4개 상태 데모 픽스처 — product.md 상태 표(정상·가뭄 진행·심각 임박·장마 만수위)의

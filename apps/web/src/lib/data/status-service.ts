@@ -20,8 +20,15 @@ import {
   fetchLatestWaterLevel,
   type WaterLevelApiDeps,
 } from "./waterlevel-api.ts";
+import {
+  bucketOf,
+  percentileOf,
+  yearlyPositionSchema,
+  type YearlyPositionSnapshot,
+} from "./yearly-position.ts";
 import observationsSnapshotJson from "../../../../../data/snapshots/reservoir-observations.json" with { type: "json" };
 import regionalSnapshotJson from "../../../../../data/snapshots/regional-drought-daily.json" with { type: "json" };
+import yearlyPositionJson from "../../../../../data/yearly-position.json" with { type: "json" };
 
 export const WATERLEVEL_API_SOURCE = "농촌용수 저수지 수위정보 조회";
 export const SUPABASE_SNAPSHOT_SOURCE = "Supabase 스냅샷";
@@ -91,6 +98,8 @@ export type StatusServiceDeps = {
   resolver?: RegionResolverDeps;
   snapshotObservations?: ObservationsSnapshot;
   snapshotRegional?: readonly RegionalSnapshotRow[];
+  /** 올해 흐름 속 현재 위치 스냅샷(커밋 JSON) — 테스트에서 주입 가능. */
+  snapshotYearly?: YearlyPositionSnapshot;
   now?: () => Date;
 };
 
@@ -101,6 +110,8 @@ export type StatusResult =
 
 const OBSERVATIONS_SNAPSHOT: ObservationsSnapshot = observationsSnapshotJson;
 const REGIONAL_SNAPSHOT: readonly RegionalSnapshotRow[] = regionalSnapshotJson;
+const YEARLY_SNAPSHOT: YearlyPositionSnapshot =
+  yearlyPositionSchema.parse(yearlyPositionJson);
 
 const observationRowSchema = z.object({
   observed_on: z.string().min(1),
@@ -280,6 +291,36 @@ function toOfficialStage(region: RegionalView): {
   return { code, label: STAGE_LABEL_BY_CODE[code] };
 }
 
+type StatusYearlyPosition = NonNullable<StatusResponse["yearlyPosition"]>;
+
+/**
+ * 올해(2025) 저수율 분포 속 현재 avgRatio의 위치를 서버가 확정한다.
+ * 스냅샷에 지역이 있으면 백분위·구간·분포 최소·최대를 반환하고, 없으면 null.
+ * 클라이언트는 이 값을 재계산하지 않는다(참고 표시 전용).
+ */
+function resolveYearlyPosition(
+  snapshot: YearlyPositionSnapshot,
+  sigunCode: string,
+  avgRatio: number,
+): StatusYearlyPosition | null {
+  const entry = Object.hasOwn(snapshot, sigunCode)
+    ? snapshot[sigunCode]
+    : undefined;
+  if (entry === undefined) return null;
+  const { breakpoints } = entry;
+  const min = breakpoints[0];
+  const max = breakpoints[breakpoints.length - 1];
+  if (min === undefined || max === undefined) return null;
+  const percentile = percentileOf(breakpoints, avgRatio);
+  return {
+    year: entry.year,
+    percentile,
+    bucket: bucketOf(percentile),
+    min,
+    max,
+  };
+}
+
 /** 정상 응답만 Supabase에 저장한다 — 실패는 응답에 영향을 주지 않는다(fire-and-forget). */
 async function upsertObservations(
   client: StatusSupabaseClient | null,
@@ -429,6 +470,12 @@ export async function buildStatus(
     asOf: (deps.now ?? (() => new Date()))().toISOString(),
     sources,
     stale,
+    // 올해 흐름 속 현재 위치 — 서버 확정 값. 스냅샷에 없는 지역은 null.
+    yearlyPosition: resolveYearlyPosition(
+      deps.snapshotYearly ?? YEARLY_SNAPSHOT,
+      resolution.sigunCode ?? sigunCode,
+      region.avgRatio,
+    ),
   };
   return { kind: "ok", body };
 }

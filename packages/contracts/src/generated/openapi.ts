@@ -215,6 +215,22 @@ export interface components {
       asOf: string;
       sources: string[];
       stale: boolean;
+      /** @description 올해(2025) 저수율 분포 속 현재 avgRatio의 위치(참고 표시 전용). 서버가 커밋 스냅샷의 지역 분포로 백분위·구간을 확정하며 클라이언트는 재계산하지 않는다. 스냅샷에 없는 지역은 null. v1 호환 additive 필드다 */
+      yearlyPosition?: {
+        /** @description 분포 기준 연도(2025) */
+        year: number;
+        /** @description 올해 분포에서 현재 avgRatio의 백분위(0..100, 정수) */
+        percentile: number;
+        /**
+         * @description 백분위 구간. low<33.3, mid<66.7, 그 이상 high
+         * @enum {string}
+         */
+        bucket: "low" | "mid" | "high";
+        /** @description 올해 분포 최솟값(avgRatio %) */
+        min: number;
+        /** @description 올해 분포 최댓값(avgRatio %) */
+        max: number;
+      } | null;
     };
     /** @description 실측 avgRatio 시계열 점 */
     ForecastPoint: {

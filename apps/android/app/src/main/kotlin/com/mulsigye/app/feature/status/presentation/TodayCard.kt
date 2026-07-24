@@ -50,6 +50,23 @@ private val HEADLINE_BY_STAGE: Map<String, String> = mapOf(
 /** 만수위 참고(서버 확정 highWaterNotice)일 때의 헤드라인. 웹과 동일. */
 private const val HIGH_WATER_HEADLINE = "비가 많아 물은 충분해요"
 
+/**
+ * 올해 흐름 속 현재 위치 카피(서버 확정 yearlyPosition.bucket). 웹 TodayCard와 동일 문구(공통 SSOT).
+ * 스냅샷에 없는 지역(yearlyPosition == null)은 렌더하지 않는다.
+ */
+private val YEARLY_HEADLINE_BY_BUCKET: Map<String, String> = mapOf(
+    "low" to "올해 흐름 속 낮은 편이에요",
+    "mid" to "올해 흐름 속 보통 수준이에요",
+    "high" to "올해 흐름 속 높은 편이에요",
+)
+
+/** 보조 세부 문구. low는 하위 N%, high는 상위 100-N%, mid는 중간. 웹과 동일. */
+private fun yearlyDetail(bucket: String, percentile: Int): String = when (bucket) {
+    "low" -> "올해 저수율 중 하위 $percentile%"
+    "high" -> "올해 저수율 중 상위 ${100 - percentile}%"
+    else -> "올해 저수율 중 중간"
+}
+
 // 정수면 소수점 없이, 아니면 소수 1자리로. 기기 로케일과 무관하게 결정적으로 포맷한다.
 private fun formatRate(value: Double): String =
     if (value % 1.0 == 0.0) value.toLong().toString() else (Math.round(value * 10.0) / 10.0).toString()
@@ -152,6 +169,19 @@ fun TodayCard(
                     style = MaterialTheme.typography.titleMedium,
                     color = Ink,
                 )
+                val yearly = status.yearlyPosition
+                if (yearly != null) {
+                    Text(
+                        text = YEARLY_HEADLINE_BY_BUCKET[yearly.bucket] ?: "",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = Ink,
+                    )
+                    Text(
+                        text = yearlyDetail(yearly.bucket, yearly.percentile),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Ink3,
+                    )
+                }
             }
             Spacer(Modifier.width(16.dp))
             ReservoirGauge(rate = rate)

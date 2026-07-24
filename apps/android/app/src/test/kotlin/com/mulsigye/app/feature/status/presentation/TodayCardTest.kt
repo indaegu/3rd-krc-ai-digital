@@ -85,6 +85,22 @@ class TodayCardTest : RobolectricComposeTest() {
     }
 
     @Test
+    fun yearlyPositionLowShowsTwoLines() {
+        setCard("status.position.json")
+        // low 버킷 → 낮은 편 + 하위 N%(웹과 동일 문구).
+        composeTestRule.onNodeWithText("올해 흐름 속 낮은 편이에요").assertIsDisplayed()
+        composeTestRule.onNodeWithText("올해 저수율 중 하위 10%").assertIsDisplayed()
+    }
+
+    @Test
+    fun yearlyPositionAbsentRendersNothing() {
+        // status.normal.json에는 yearlyPosition이 없다 → 올해 흐름 문구가 없어야 한다.
+        setCard("status.normal.json")
+        composeTestRule.onAllNodesWithText("올해 흐름 속", substring = true).assertCountEquals(0)
+        composeTestRule.onAllNodesWithText("올해 저수율 중", substring = true).assertCountEquals(0)
+    }
+
+    @Test
     fun nullRateShowsObservationFallback() {
         setCard("status.stale.json")
         composeTestRule.onNodeWithText("관측값을 불러오지 못했어요").assertIsDisplayed()

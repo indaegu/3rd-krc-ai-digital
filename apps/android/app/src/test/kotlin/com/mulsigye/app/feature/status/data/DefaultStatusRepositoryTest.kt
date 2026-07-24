@@ -119,6 +119,23 @@ class DefaultStatusRepositoryTest {
     }
 
     @Test
+    fun mapsYearlyPositionIntoDomain() = runTest {
+        enqueue(200, Fixtures.read("status.position.json"))
+        val r = repository.load("44230") as StatusResult.Success
+        val yp = r.yearlyPosition!!
+        assertEquals(2025, yp.year)
+        assertEquals(10, yp.percentile)
+        assertEquals("low", yp.bucket)
+    }
+
+    @Test
+    fun yearlyPositionIsNullWhenServerOmitsIt() = runTest {
+        enqueue(200, Fixtures.read("status.ok.json"))
+        val r = repository.load("44230") as StatusResult.Success
+        assertNull(r.yearlyPosition)
+    }
+
+    @Test
     fun mapsNonRetryable400() = runTest {
         enqueue(400, """{"code":"BAD_REQUEST","message":"시군 코드를 확인해요.","retryable":false}""")
         val r = repository.load("x") as StatusResult.Failure

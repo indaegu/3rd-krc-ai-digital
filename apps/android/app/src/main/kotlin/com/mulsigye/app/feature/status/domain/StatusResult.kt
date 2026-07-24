@@ -26,6 +26,18 @@ data class RegionStatus(
     val officialStage: DroughtStage,
 )
 
+/**
+ * 올해(2025) 저수율 분포 속 현재 avgRatio의 위치. 서버 확정값이며 클라이언트가 재계산하지 않는다.
+ * bucket은 low/mid/high, percentile은 0..100 백분위(참고 표시 전용).
+ */
+data class YearlyPosition(
+    val year: Int,
+    val percentile: Int,
+    val bucket: String,
+    val min: Double,
+    val max: Double,
+)
+
 sealed interface StatusResult {
     data class Success(
         val sigunCode: String,
@@ -34,6 +46,8 @@ sealed interface StatusResult {
         val region: RegionStatus,
         /** 만수위 참고 안내 여부. 서버 확정값이며 클라이언트가 재판정하지 않는다. */
         val highWaterNotice: Boolean,
+        /** 올해 흐름 속 현재 위치. 서버 확정값이며, 스냅샷에 없는 지역은 null이다. */
+        val yearlyPosition: YearlyPosition? = null,
         val asOf: Instant,
         val sources: List<String>,
         val stale: Boolean,
