@@ -5,6 +5,7 @@
 // (docs/prediction-model.md "d의 정의(2026-07-22 확정)").
 // 참고 표현만: 숫자·버킷·단계만 반환하고 문장을 만들지 않는다(AGENTS.md 규칙 3).
 import type { DroughtStage, ForecastResponse } from "@mulsigye/contracts";
+import { STAGE_ACTIONS } from "@mulsigye/llm";
 import { z } from "zod";
 import {
   STAGE_LABEL_BY_CODE,
@@ -133,6 +134,33 @@ const NEXT_STAGE_CODE: Partial<Record<DroughtStageCode, DroughtStageCode>> = {
 
 function toStageDto(code: DroughtStageCode): DroughtStage {
   return { code, label: STAGE_LABEL_BY_CODE[code] };
+}
+
+/** 단계별 행동 가이드 표시 순서(공인 5단계 ok→crit). */
+const STAGE_GUIDE_ORDER: readonly DroughtStageCode[] = [
+  "ok",
+  "watch",
+  "care",
+  "alert",
+  "crit",
+];
+
+/**
+ * 5개 공인 단계별 행동 가이드를 조립한다. 행동 카피는 서버 카탈로그(STAGE_ACTIONS)가
+ * 유일 출처이며, 우리 지역 현재 단계 하나만 current=true다(카피를 새로 만들지 않는다).
+ */
+function buildStageGuide(
+  currentCode: DroughtStageCode,
+): NonNullable<ForecastResponse["stageGuide"]> {
+  return STAGE_GUIDE_ORDER.map((code) => {
+    const label = STAGE_LABEL_BY_CODE[code];
+    return {
+      code,
+      label,
+      actions: STAGE_ACTIONS[label].map((action) => action.approvedTitle),
+      current: code === currentCode,
+    };
+  });
 }
 
 function round2(value: number): number {
@@ -409,6 +437,7 @@ export async function buildForecast(
       bandMethod: "residual_quantile_p25_p75_regional",
     },
     officialOutlook,
+    stageGuide: buildStageGuide(officialStageCode),
     asOf: (deps.now ?? (() => new Date()))().toISOString(),
     sources,
     stale,

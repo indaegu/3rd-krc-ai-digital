@@ -33,12 +33,16 @@ import com.mulsigye.app.core.designsystem.component.CtaButton
 import com.mulsigye.app.core.designsystem.component.MulsigyeCard
 import com.mulsigye.app.core.designsystem.component.Shimmer
 import com.mulsigye.app.core.designsystem.theme.Bg
+import com.mulsigye.app.core.designsystem.theme.BlueDeep
+import com.mulsigye.app.core.designsystem.theme.BlueTint
+import com.mulsigye.app.core.designsystem.theme.Gray50
 import com.mulsigye.app.core.designsystem.theme.Ink
 import com.mulsigye.app.core.designsystem.theme.Ink2
 import com.mulsigye.app.core.designsystem.theme.Ink3
 import com.mulsigye.app.core.designsystem.theme.stageColorFor
 import com.mulsigye.app.feature.forecast.domain.ForecastResult
 import com.mulsigye.app.feature.forecast.domain.OfficialOutlook
+import com.mulsigye.app.feature.forecast.domain.StageGuideEntry
 import java.util.Locale
 
 /**
@@ -105,25 +109,8 @@ fun TrendScreen(
                 TrendLegend()
             }
 
-            // 가뭄 단계 기준 표.
-            MulsigyeCard {
-                SectionTitle("가뭄 단계 기준")
-                Spacer(Modifier.height(12.dp))
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    STAGE_GUIDE.forEach { row ->
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            StageBadge(code = row.code, label = row.label)
-                            Spacer(Modifier.width(12.dp))
-                            Text(
-                                text = row.meaning,
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = Ink2,
-                                modifier = Modifier.weight(1f),
-                            )
-                        }
-                    }
-                }
-            }
+            // 단계별 행동 가이드 — 서버 stageGuide. 없으면 기존 단계 기준 표로 폴백.
+            StageGuideCard(stageGuide = data.stageGuide)
 
             // 예측 방법 + 공식 우선 고지.
             MulsigyeCard {
@@ -156,6 +143,82 @@ fun TrendScreen(
             }
 
             Spacer(Modifier.height(8.dp))
+        }
+    }
+}
+
+/**
+ * 단계별 행동 가이드 — 서버 [StageGuideEntry] 목록(5단계 ok→crit)을 렌더한다.
+ * 행동 제목은 서버 카탈로그가 유일 출처이며(카피 복제 금지), 우리 지역 현재 단계를
+ * "지금 우리 지역" 표시로 강조한다. stageGuide가 null이면 기존 단계 기준 표로 폴백한다.
+ */
+@Composable
+internal fun StageGuideCard(stageGuide: List<StageGuideEntry>?) {
+    if (stageGuide.isNullOrEmpty()) {
+        StageGuideFallback()
+        return
+    }
+    MulsigyeCard {
+        SectionTitle("단계별 행동 가이드")
+        Spacer(Modifier.height(12.dp))
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            stageGuide.forEach { entry ->
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(
+                            if (entry.current) BlueTint else Gray50,
+                            RoundedCornerShape(12.dp),
+                        )
+                        .padding(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        StageBadge(code = entry.code, label = entry.label)
+                        if (entry.current) {
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                text = "지금 우리 지역",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = BlueDeep,
+                                fontWeight = FontWeight.Bold,
+                            )
+                        }
+                    }
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        entry.actions.forEach { action ->
+                            Text(
+                                text = "· $action",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = Ink2,
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** 폴백 표 — 서버 stageGuide가 없을 때만 쓰는 기존 5단계 기준. */
+@Composable
+private fun StageGuideFallback() {
+    MulsigyeCard {
+        SectionTitle("가뭄 단계 기준")
+        Spacer(Modifier.height(12.dp))
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            STAGE_GUIDE.forEach { row ->
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    StageBadge(code = row.code, label = row.label)
+                    Spacer(Modifier.width(12.dp))
+                    Text(
+                        text = row.meaning,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = Ink2,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+            }
         }
     }
 }

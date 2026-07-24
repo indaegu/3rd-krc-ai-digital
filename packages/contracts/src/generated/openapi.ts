@@ -325,6 +325,17 @@ export interface components {
         outlook2m: components["schemas"]["DroughtStage"];
         outlook3m: components["schemas"]["DroughtStage"];
       } | null;
+      /** @description 단계별 행동 가이드. 5개 공인 단계(ok→crit 순)별 권장 행동 제목과 우리 지역 현재 단계 표시. 행동 카피의 단일 출처는 서버 행동 카탈로그다. 구 페이로드에는 없을 수 있다(선택). */
+      stageGuide?: {
+        /** @enum {string} */
+        code: "ok" | "watch" | "care" | "alert" | "crit";
+        /** @description 단계 한국어 라벨 */
+        label: string;
+        /** @description 해당 단계 권장 행동 제목(카탈로그 approvedTitle) */
+        actions: string[];
+        /** @description 우리 지역의 현재 공인 단계면 true. 정확히 1개만 true */
+        current: boolean;
+      }[];
       /** Format: date-time */
       asOf: string;
       sources: string[];

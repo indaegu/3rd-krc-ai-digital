@@ -15,6 +15,7 @@ import com.mulsigye.app.feature.forecast.domain.ForecastResult
 import com.mulsigye.app.feature.forecast.domain.ForecastStage
 import com.mulsigye.app.feature.forecast.domain.ForecastTrend
 import com.mulsigye.app.feature.forecast.domain.OfficialOutlook
+import com.mulsigye.app.feature.forecast.domain.StageGuideEntry
 import java.io.IOException
 import java.time.Instant
 import java.time.format.DateTimeParseException
@@ -66,6 +67,14 @@ class DefaultForecastRepository(
                                 outlook1m = it.outlook1m.toDomain(),
                                 outlook2m = it.outlook2m.toDomain(),
                                 outlook3m = it.outlook3m.toDomain(),
+                            )
+                        },
+                        stageGuide = body.stageGuide?.map {
+                            StageGuideEntry(
+                                code = it.code,
+                                label = it.label,
+                                actions = it.actions,
+                                current = it.current,
                             )
                         },
                         asOf = Instant.parse(body.asOf),

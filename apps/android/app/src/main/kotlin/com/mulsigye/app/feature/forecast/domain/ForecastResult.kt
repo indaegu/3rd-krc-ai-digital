@@ -56,6 +56,17 @@ data class OfficialOutlook(
     val outlook3m: ForecastStage,
 )
 
+/**
+ * 단계별 행동 가이드 한 단계. 행동 제목은 서버 카탈로그가 유일 출처이며 재작성하지 않는다.
+ * current는 우리 지역의 현재 공인 단계면 true(정확히 1개).
+ */
+data class StageGuideEntry(
+    val code: String,
+    val label: String,
+    val actions: List<String>,
+    val current: Boolean,
+)
+
 sealed interface ForecastResult {
     data class Success(
         val sigunCode: String,
@@ -67,6 +78,7 @@ sealed interface ForecastResult {
         val reach: ForecastReach,
         val model: ForecastModel,
         val officialOutlook: OfficialOutlook?,
+        val stageGuide: List<StageGuideEntry>? = null,
         val asOf: Instant,
         val sources: List<String>,
         val stale: Boolean,

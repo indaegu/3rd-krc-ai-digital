@@ -559,6 +559,42 @@ paths:
                       mae14: 2.8337
                       bandMethod: residual_quantile_p25_p75_regional
                     officialOutlook: null
+                    stageGuide:
+                      - code: ok
+                        label: 정상
+                        actions:
+                          - 지금처럼 물 관리를 이어가요
+                          - 논물 상태를 가끔 확인해요
+                          - 일주일에 한 번 저수율을 봐요
+                        current: true
+                      - code: watch
+                        label: 관심
+                        actions:
+                          - 논물이 새는 곳을 살펴봐요
+                          - 물 대는 날을 미리 정해요
+                          - 저수율 흐름을 자주 확인해요
+                        current: false
+                      - code: care
+                        label: 주의
+                        actions:
+                          - 논물 상태를 확인해요
+                          - 급수 일정을 이웃과 맞춰요
+                          - 논에 댄 물을 오래 가둬요
+                        current: false
+                      - code: alert
+                        label: 경계
+                        actions:
+                          - 물 댈 논의 순서를 정해요
+                          - 마을 급수 조율에 참여해요
+                          - 가뭄 예·경보를 확인해요
+                        current: false
+                      - code: crit
+                        label: 심각
+                        actions:
+                          - 공식 안내를 먼저 확인해요
+                          - 마을 급수 순서를 지켜요
+                          - 지사에 도움을 요청해요
+                        current: false
                     asOf: "2026-07-21T00:00:00.000Z"
                     sources:
                       - 논가뭄지도
@@ -1183,6 +1219,43 @@ components:
                   $ref: "#/components/schemas/DroughtStage"
             - type: "null"
           description: 공식 가뭄예경보 전망 병기. 최신 발행분이 없으면 null
+        stageGuide:
+          type: array
+          minItems: 5
+          maxItems: 5
+          description: >-
+            단계별 행동 가이드. 5개 공인 단계(ok→crit 순)별 권장 행동 제목과
+            우리 지역 현재 단계 표시. 행동 카피의 단일 출처는 서버 행동 카탈로그다.
+            구 페이로드에는 없을 수 있다(선택).
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - code
+              - label
+              - actions
+              - current
+            properties:
+              code:
+                type: string
+                enum:
+                  - ok
+                  - watch
+                  - care
+                  - alert
+                  - crit
+              label:
+                type: string
+                description: 단계 한국어 라벨
+              actions:
+                type: array
+                minItems: 1
+                items:
+                  type: string
+                description: 해당 단계 권장 행동 제목(카탈로그 approvedTitle)
+              current:
+                type: boolean
+                description: 우리 지역의 현재 공인 단계면 true. 정확히 1개만 true
         asOf:
           type: string
           format: date-time
