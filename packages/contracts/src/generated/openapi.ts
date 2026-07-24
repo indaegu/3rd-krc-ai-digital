@@ -289,10 +289,13 @@ export interface components {
         /** @description 백테스트 14일 macro MAE %p */
         mae14: number;
         /**
-         * @description 밴드 산식. 잔차 충분 시 경험적 10~90 분위수, 부족 시 최근 14일 MAE
+         * @description 밴드 산식. 잔차 충분 시 경험적 25~75 분위수(50% 구간)에 지역 bandScale을 곱한다. 부족 시 최근 14일 MAE. residual_quantile_p10_p90은 v1 하위호환 값
          * @enum {string}
          */
-        bandMethod: "residual_quantile_p10_p90" | "recent_mae";
+        bandMethod:
+          | "residual_quantile_p25_p75_regional"
+          | "residual_quantile_p10_p90"
+          | "recent_mae";
       };
       /** @description 공식 가뭄예경보 전망 병기. 최신 발행분이 없으면 null */
       officialOutlook: {

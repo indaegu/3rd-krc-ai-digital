@@ -136,86 +136,86 @@
     {
       "observedOn": "2026-07-21",
       "avgRatio": 93.5,
-      "low": 93,
-      "high": 93.7
+      "low": 93.3,
+      "high": 93.5
     },
     {
       "observedOn": "2026-07-22",
       "avgRatio": 93.5,
-      "low": 92.5,
-      "high": 98.67
+      "low": 93.1,
+      "high": 93.8
     },
     {
       "observedOn": "2026-07-23",
       "avgRatio": 93.5,
-      "low": 92.4,
-      "high": 98.54
+      "low": 93,
+      "high": 93.7
     },
     {
       "observedOn": "2026-07-24",
       "avgRatio": 93.5,
-      "low": 92.3,
-      "high": 98.37
+      "low": 92.9,
+      "high": 93.7
     },
     {
       "observedOn": "2026-07-25",
       "avgRatio": 93.5,
-      "low": 91.5,
-      "high": 98.67
+      "low": 92.7,
+      "high": 94.1
     },
     {
       "observedOn": "2026-07-26",
       "avgRatio": 93.5,
-      "low": 91.2,
-      "high": 100.4
+      "low": 92.6,
+      "high": 94.2
     },
     {
       "observedOn": "2026-07-27",
       "avgRatio": 93.5,
-      "low": 90.9,
-      "high": 100.7
+      "low": 92.5,
+      "high": 94.2
     },
     {
       "observedOn": "2026-07-28",
       "avgRatio": 93.5,
-      "low": 90.73,
-      "high": 101.77
+      "low": 92.4,
+      "high": 94.4
     },
     {
       "observedOn": "2026-07-29",
       "avgRatio": 93.5,
-      "low": 90.2,
-      "high": 101.94
+      "low": 92.2,
+      "high": 94.4
     },
     {
       "observedOn": "2026-07-30",
       "avgRatio": 93.5,
-      "low": 90.1,
-      "high": 102.01
+      "low": 92.1,
+      "high": 94.4
     },
     {
       "observedOn": "2026-07-31",
       "avgRatio": 93.5,
-      "low": 90,
-      "high": 102.04
+      "low": 92.08,
+      "high": 94.4
     },
     {
       "observedOn": "2026-08-01",
       "avgRatio": 93.5,
-      "low": 89.6,
-      "high": 102.37
+      "low": 91.9,
+      "high": 94.6
     },
     {
       "observedOn": "2026-08-02",
       "avgRatio": 93.5,
-      "low": 89.1,
-      "high": 102.17
+      "low": 91.7,
+      "high": 94.7
     },
     {
       "observedOn": "2026-08-03",
       "avgRatio": 93.5,
-      "low": 89.03,
-      "high": 101.77
+      "low": 91.5,
+      "high": 94.7
     }
   ],
   "trend": {
@@ -232,7 +232,7 @@
     "version": "pred-v1",
     "mae7": 1.9168,
     "mae14": 2.8337,
-    "bandMethod": "residual_quantile_p10_p90"
+    "bandMethod": "residual_quantile_p25_p75_regional"
   },
   "officialOutlook": null,
   "asOf": "2026-07-21T00:00:00.000Z",

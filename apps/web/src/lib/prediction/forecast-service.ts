@@ -1,6 +1,6 @@
 // /api/v1/forecast 오케스트레이션 — 서버 전용.
 // 시계열: regional_drought_daily 최근 90일 → 실패 시 커밋 스냅샷(stale=true).
-// 예측선·밴드 = 백테스트 채택 모델 + 잔차 p10/p90(data/backtest-report.json),
+// 예측선·밴드 = 백테스트 채택 모델 + 잔차 p25/p75×지역 bandScale(data/backtest-report.json),
 // 추세·도달일 = 최근 14일 관측 OLS 기울기(observedDailyDelta) — 근거 분리
 // (docs/prediction-model.md "d의 정의(2026-07-22 확정)").
 // 참고 표현만: 숫자·버킷·단계만 반환하고 문장을 만들지 않는다(AGENTS.md 규칙 3).
@@ -339,11 +339,14 @@ export async function buildForecast(
   const officialStageCode = toOfficialStageCode(basisPoint);
   const values = series.map((point) => point.avgRatio);
 
-  // 예측선·밴드 — 채택 모델 + horizon별 잔차 p10/p90(리포트 실측 분위수).
+  // 예측선·밴드 — 채택 모델 + horizon별 잔차 p25/p75(리포트 실측 분위수).
+  // 지역 밴드 배율(bandScale)로 안정 지역은 좁히고 변동 지역은 넓힌다.
   const predictions = predict(modelName, values);
   const quantileByHorizon = new Map(
     report.residualQuantiles.map((q) => [q.horizon, q]),
   );
+  const bandScale =
+    report.models[modelName].byRegion[resolvedCode]?.bandScale ?? 1;
   const forecast: ForecastResponse["forecast"] = predictions.map((value, i) => {
     const horizon = i + 1;
     const quantile = quantileByHorizon.get(horizon);
@@ -353,8 +356,8 @@ export async function buildForecast(
     return {
       observedOn: addDaysIso(basisPoint.observedOn, horizon),
       avgRatio: round2(value),
-      low: round2(value + quantile.p10),
-      high: round2(value + quantile.p90),
+      low: round2(value + quantile.p25 * bandScale),
+      high: round2(value + quantile.p75 * bandScale),
     };
   });
 
@@ -403,7 +406,7 @@ export async function buildForecast(
       version: report.modelParams.modelVersion,
       mae7: report.selectedModel.mae7,
       mae14: report.selectedModel.mae14,
-      bandMethod: "residual_quantile_p10_p90",
+      bandMethod: "residual_quantile_p25_p75_regional",
     },
     officialOutlook,
     asOf: (deps.now ?? (() => new Date()))().toISOString(),

@@ -69,6 +69,17 @@ export function roundMetric(value: number): number {
   return Object.is(rounded, -0) ? 0 : rounded;
 }
 
+/** 소수 2자리 반올림(-0은 0으로 정규화) — bandScale 저장용. */
+function round2(value: number): number {
+  const rounded = Math.round(value * 100) / 100;
+  return Object.is(rounded, -0) ? 0 : rounded;
+}
+
+/** value를 [min, max]로 클램프한다. */
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
+}
+
 /**
  * 시계열 마지막 날짜 기준 rolling origin(오름차순).
  * origin_k = lastDate − 14·k (k=6..1) — 전부 마지막 90일 안이고, 각 origin 뒤에
@@ -254,15 +265,23 @@ export function runBacktest(
   const macroByModel = {} as Record<PredictionModelName, MetricSet>;
   const models = {} as BacktestCore["models"];
   for (const model of PREDICTION_MODEL_NAMES) {
-    const byRegion: Record<string, MetricSet & { originCount: number }> = {};
+    const byRegion: Record<
+      string,
+      MetricSet & { originCount: number; bandScale: number }
+    > = {};
     const regionSets: MetricSet[] = [];
+    // bandScale 계산에 쓸 지역별 원(raw) rmse14 — macro 확정 후 채운다.
+    const rawRmse14ByRegion: { code: string; rmse14: number }[] = [];
     for (const region of evaluated) {
       const set = metricsFrom(region.residuals[model]);
       regionSets.push(set);
       byRegion[region.sigunCode] = {
         originCount: region.originCount,
         ...roundMetricSet(set),
+        // 아래에서 이 모델 자신의 macro rmse14로 채운다(모델별 자기정합).
+        bandScale: 1,
       };
+      rawRmse14ByRegion.push({ code: region.sigunCode, rmse14: set.rmse14 });
     }
     const macro: MetricSet =
       regionSets.length === 0
@@ -274,6 +293,17 @@ export function runBacktest(
             rmse14: mean(regionSets.map((s) => s.rmse14)),
           };
     macroByModel[model] = macro;
+    // 지역별 밴드 배율 = clamp(round2(지역 rmse14 / macro rmse14), 0.6, 1.6).
+    // 안정 지역(작은 rmse14)은 <1로 좁히고, 변동 큰 지역은 >1로 넓힌다.
+    const globalRmse14 = macro.rmse14;
+    for (const entry of rawRmse14ByRegion) {
+      const scale =
+        globalRmse14 === 0
+          ? 1
+          : clamp(round2(entry.rmse14 / globalRmse14), 0.6, 1.6);
+      const target = byRegion[entry.code];
+      if (target !== undefined) target.bandScale = scale;
+    }
     models[model] = { macro: roundMetricSet(macro), byRegion };
   }
 
@@ -291,7 +321,7 @@ export function runBacktest(
   const rule = candidates.length > 1 ? "simplicity_tiebreak" : "lowest_mae14";
   const tiedWith = candidates.filter((model) => model !== selectedName);
 
-  // 채택 모델의 horizon별 잔차 경험적 p10/p90(전 지역·전 origin 풀링).
+  // 채택 모델의 horizon별 잔차 경험적 p25/p75(전 지역·전 origin 풀링, 50% 구간).
   const pooled: number[][] = Array.from(
     { length: FORECAST_HORIZON_DAYS },
     () => [],
@@ -306,8 +336,8 @@ export function runBacktest(
     return {
       horizon: index + 1,
       count: sorted.length,
-      p10: roundMetric(quantileSorted(sorted, 0.1)),
-      p90: roundMetric(quantileSorted(sorted, 0.9)),
+      p25: roundMetric(quantileSorted(sorted, 0.25)),
+      p75: roundMetric(quantileSorted(sorted, 0.75)),
     };
   });
 

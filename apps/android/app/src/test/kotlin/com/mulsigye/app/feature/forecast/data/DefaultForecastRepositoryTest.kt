@@ -51,8 +51,8 @@ class DefaultForecastRepositoryTest {
         val r = repository.load("46170") as ForecastResult.Success
         assertEquals(30, r.history.size)
         assertEquals(14, r.forecast.size)
-        assertEquals(67.5, r.forecast[0].low, 0.0)
-        assertEquals(68.2, r.forecast[0].high, 0.0)
+        assertEquals(67.8, r.forecast[0].low, 0.0)
+        assertEquals(68.0, r.forecast[0].high, 0.0)
         assertEquals(18, r.reach.days)
         assertEquals("care", r.reach.targetStage?.code)
         assertEquals(1.9168, r.model.mae7, 0.0)

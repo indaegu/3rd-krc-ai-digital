@@ -23,8 +23,8 @@ class ForecastResponseDtoTest {
         assertEquals(30, d.history.size)
         assertEquals(14, d.forecast.size)
         // 밴드 low/high는 서버 값 그대로.
-        assertEquals(67.5, d.forecast[0].low, 0.0)
-        assertEquals(68.2, d.forecast[0].high, 0.0)
+        assertEquals(67.8, d.forecast[0].low, 0.0)
+        assertEquals(68.0, d.forecast[0].high, 0.0)
         assertEquals("falling", d.trend.bucket)
         assertEquals(18, d.reach.days)
         assertEquals("care", d.reach.targetStage?.code)

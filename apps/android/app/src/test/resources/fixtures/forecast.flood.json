@@ -136,86 +136,86 @@
     {
       "observedOn": "2026-07-21",
       "avgRatio": 118,
-      "low": 117.5,
-      "high": 118.2
+      "low": 117.8,
+      "high": 118
     },
     {
       "observedOn": "2026-07-22",
       "avgRatio": 118,
-      "low": 117,
-      "high": 123.17
+      "low": 117.6,
+      "high": 118.3
     },
     {
       "observedOn": "2026-07-23",
       "avgRatio": 118,
-      "low": 116.9,
-      "high": 123.04
+      "low": 117.5,
+      "high": 118.2
     },
     {
       "observedOn": "2026-07-24",
       "avgRatio": 118,
-      "low": 116.8,
-      "high": 122.87
+      "low": 117.4,
+      "high": 118.2
     },
     {
       "observedOn": "2026-07-25",
       "avgRatio": 118,
-      "low": 116,
-      "high": 123.17
+      "low": 117.2,
+      "high": 118.6
     },
     {
       "observedOn": "2026-07-26",
       "avgRatio": 118,
-      "low": 115.7,
-      "high": 124.9
+      "low": 117.1,
+      "high": 118.7
     },
     {
       "observedOn": "2026-07-27",
       "avgRatio": 118,
-      "low": 115.4,
-      "high": 125.2
+      "low": 117,
+      "high": 118.7
     },
     {
       "observedOn": "2026-07-28",
       "avgRatio": 118,
-      "low": 115.23,
-      "high": 126.27
+      "low": 116.9,
+      "high": 118.9
     },
     {
       "observedOn": "2026-07-29",
       "avgRatio": 118,
-      "low": 114.7,
-      "high": 126.44
+      "low": 116.7,
+      "high": 118.9
     },
     {
       "observedOn": "2026-07-30",
       "avgRatio": 118,
-      "low": 114.6,
-      "high": 126.51
+      "low": 116.6,
+      "high": 118.9
     },
     {
       "observedOn": "2026-07-31",
       "avgRatio": 118,
-      "low": 114.5,
-      "high": 126.54
+      "low": 116.58,
+      "high": 118.9
     },
     {
       "observedOn": "2026-08-01",
       "avgRatio": 118,
-      "low": 114.1,
-      "high": 126.87
+      "low": 116.4,
+      "high": 119.1
     },
     {
       "observedOn": "2026-08-02",
       "avgRatio": 118,
-      "low": 113.6,
-      "high": 126.67
+      "low": 116.2,
+      "high": 119.2
     },
     {
       "observedOn": "2026-08-03",
       "avgRatio": 118,
-      "low": 113.53,
-      "high": 126.27
+      "low": 116,
+      "high": 119.2
     }
   ],
   "trend": {
@@ -232,10 +232,12 @@
     "version": "pred-v1",
     "mae7": 1.9168,
     "mae14": 2.8337,
-    "bandMethod": "residual_quantile_p10_p90"
+    "bandMethod": "residual_quantile_p25_p75_regional"
   },
   "officialOutlook": null,
   "asOf": "2026-07-21T00:00:00.000Z",
-  "sources": ["논가뭄지도"],
+  "sources": [
+    "논가뭄지도"
+  ],
   "stale": false
 }
