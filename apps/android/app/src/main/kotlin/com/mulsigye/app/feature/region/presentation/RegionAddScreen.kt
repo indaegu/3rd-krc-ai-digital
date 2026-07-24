@@ -1,5 +1,6 @@
 package com.mulsigye.app.feature.region.presentation
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -76,6 +77,9 @@ fun RegionAddScreen(
 
         // 후보 확인(Loading/Ready/Error)은 화면 위 팝업으로 띄운다.
         if (state.resolve !is ResolvePhase.Idle) {
+            // 팝업이 떠 있을 때 시스템 뒤로가기는 화면을 나가지 않고 팝업만 닫는다.
+            // (라우터의 상시 BackHandler보다 안쪽에서 먼저 소비 — 잘못 고른 후보 취소 경로.)
+            BackHandler(enabled = true, onBack = onDismissResolve)
             ResolveConfirmOverlay(
                 state = state,
                 onRegister = onRegister,
