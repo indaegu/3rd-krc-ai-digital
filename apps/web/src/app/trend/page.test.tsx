@@ -107,13 +107,9 @@ describe("흐름 상세 — 평평한 예측선 캡션과 날짜 축", () => {
       container.querySelector('[data-testid="trend-axis-end"]')?.textContent,
     ).toBe(lastDate);
 
-    // 그려-들어오기는 reduced-motion에서 즉시 최종 상태.
-    expect(
-      container
-        .querySelector('[data-testid="trend-reveal"]')
-        ?.getAttribute("data-reveal"),
-    ).toBe("shown");
-
+    // 그려-들어오기(reveal) 상태는 RAF·matchMedia 환경차로 불안정하므로 여기서 단언하지
+    // 않는다(TrendChart.test.tsx가 reduced-motion 즉시 표시를 전담 검증). 이 테스트는
+    // 캡션·날짜 축만 확인한다.
     expect(
       screen.getByRole("heading", { level: 1, name: /지역 평년 대비 저수율/ }),
     ).toBeInTheDocument();
