@@ -77,17 +77,6 @@ data class ForecastStageGuideDto(
     val current: Boolean,
 )
 
-/**
- * openapi.yaml `ForecastResponse.earlyWarning`(non-null 형태)와 1:1.
- * 공식 단계와 별개인 '감소 주의' 참고 신호. 서버가 확정하며 표시 전용이다.
- */
-@Serializable
-data class ForecastEarlyWarningDto(
-    val level: String,
-    val dailyDelta: Double,
-    val message: String,
-)
-
 /** openapi.yaml `ForecastResponse`와 1:1. */
 @Serializable
 data class ForecastResponseDto(
@@ -102,7 +91,6 @@ data class ForecastResponseDto(
     val model: ForecastModelDto,
     val officialOutlook: OfficialOutlookDto? = null,
     val stageGuide: List<ForecastStageGuideDto>? = null,
-    val earlyWarning: ForecastEarlyWarningDto? = null,
     val asOf: String,
     val sources: List<String>,
     val stale: Boolean,

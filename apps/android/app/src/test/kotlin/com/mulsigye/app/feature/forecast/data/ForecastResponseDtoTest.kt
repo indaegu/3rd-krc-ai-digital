@@ -1,7 +1,6 @@
 package com.mulsigye.app.feature.forecast.data
 
 import com.mulsigye.app.core.testing.Fixtures
-import com.mulsigye.app.feature.forecast.data.remote.ForecastEarlyWarningDto
 import com.mulsigye.app.feature.forecast.data.remote.ForecastResponseDto
 import com.mulsigye.app.feature.forecast.data.remote.ForecastStageGuideDto
 import kotlinx.serialization.json.Json
@@ -63,23 +62,6 @@ class ForecastResponseDtoTest {
         assertEquals("정상", entry.label)
         assertEquals(3, entry.actions.size)
         assertTrue(entry.current)
-    }
-
-    @Test
-    fun earlyWarningDefaultsToNullWhenAbsentFromPayload() {
-        // 구 페이로드(earlyWarning 없음)도 디코드되어야 한다(선택·nullable 필드).
-        val d = json.decodeFromString<ForecastResponseDto>(Fixtures.read("forecast.watch.json"))
-        assertNull(d.earlyWarning)
-    }
-
-    @Test
-    fun decodesEarlyWarningEntryShape() {
-        val ew = json.decodeFromString<ForecastEarlyWarningDto>(
-            """{"level":"watch","dailyDelta":-0.82,"message":"저수율이 빠르게 줄고 있어요."}""",
-        )
-        assertEquals("watch", ew.level)
-        assertEquals(-0.82, ew.dailyDelta, 0.0)
-        assertEquals("저수율이 빠르게 줄고 있어요.", ew.message)
     }
 
     @Test

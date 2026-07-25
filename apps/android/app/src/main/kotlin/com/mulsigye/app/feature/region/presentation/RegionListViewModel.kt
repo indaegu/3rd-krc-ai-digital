@@ -8,6 +8,7 @@ import com.mulsigye.app.feature.status.domain.StatusRepository
 import com.mulsigye.app.feature.status.domain.StatusResult
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -84,7 +85,17 @@ class RegionListViewModel(
             initialValue = RegionListUiState(loading = true),
         )
 
+    // 순서 변경 명령 큐 — 단일 소비자가 보낸 순서(FIFO)대로 하나씩 적용한다. 빠른 드래그로
+    // move가 연달아 오면 각각 별도 코루틴으로 IO에 던질 때 index 변환이 역순 적용돼 엉뚱한
+    // 지역이 옮겨질 수 있어(경쟁 조건), 명령을 직렬화해 순서를 보장한다.
+    private val moveCommands = Channel<Pair<Int, Int>>(Channel.UNLIMITED)
+
     init {
+        viewModelScope.launch(dispatcher) {
+            for ((from, to) in moveCommands) {
+                regionStore.moveRegion(from, to)
+            }
+        }
         viewModelScope.launch(dispatcher) {
             regionStore.regionStoreFlow.collect { store ->
                 store.regions.forEach { region ->
@@ -116,9 +127,10 @@ class RegionListViewModel(
         viewModelScope.launch(dispatcher) { regionStore.removeRegion(sigunCode) }
     }
 
-    /** 지역 순서 변경(#6). 관리 모드의 드래그 재정렬·접근성 위/아래 이동에 쓴다. */
+    /** 지역 순서 변경. 관리 모드의 드래그 재정렬·접근성 위/아래 이동에 쓴다. */
     fun move(from: Int, to: Int) {
-        viewModelScope.launch(dispatcher) { regionStore.moveRegion(from, to) }
+        // 단일 소비자 큐로 보내 보낸 순서대로 순차 적용(경쟁 조건 방지).
+        moveCommands.trySend(from to to)
     }
 
     /** 관리 모드 토글. 나갈 때는 골라 둔 선택을 비운다. */

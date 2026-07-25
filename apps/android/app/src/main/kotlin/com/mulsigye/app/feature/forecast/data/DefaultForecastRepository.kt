@@ -7,7 +7,6 @@ import com.mulsigye.app.feature.forecast.data.remote.ForecastApi
 import com.mulsigye.app.feature.forecast.data.remote.ForecastStageDto
 import com.mulsigye.app.feature.forecast.domain.ForecastBasis
 import com.mulsigye.app.feature.forecast.domain.ForecastBandPoint
-import com.mulsigye.app.feature.forecast.domain.ForecastEarlyWarning
 import com.mulsigye.app.feature.forecast.domain.ForecastModel
 import com.mulsigye.app.feature.forecast.domain.ForecastPoint
 import com.mulsigye.app.feature.forecast.domain.ForecastReach
@@ -76,13 +75,6 @@ class DefaultForecastRepository(
                                 label = it.label,
                                 actions = it.actions,
                                 current = it.current,
-                            )
-                        },
-                        earlyWarning = body.earlyWarning?.let {
-                            ForecastEarlyWarning(
-                                level = it.level,
-                                dailyDelta = it.dailyDelta,
-                                message = it.message,
                             )
                         },
                         asOf = Instant.parse(body.asOf),

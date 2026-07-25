@@ -387,18 +387,6 @@ export interface components {
         /** @description 우리 지역의 현재 공인 단계면 true. 정확히 1개만 true */
         current: boolean;
       }[];
-      /** @description '감소 주의' 조기경보(참고 신호). 공식 가뭄 단계(평년 대비 70/60/50/40)와 별개인 **앱 자체 휴리스틱**이다. 현재 공식 단계가 정상·관심일 때 관측 일일 변화량(trend.dailyDelta)이 앱 임계값 이하로 빠르게 떨어지면 서버가 확정한다. 공식 단계를 대체하지 않는 참고 표시 전용이며, 조건 미충족이면 null이다. 클라이언트는 이 값을 재판정하지 않는다. v1 호환 additive 옵션 필드다 */
-      earlyWarning?: {
-        /**
-         * @description 조기경보 수준. 현재는 watch만이며 향후 urgent 확장 여지로 enum이다
-         * @enum {string}
-         */
-        level: "watch";
-        /** @description 관측 일일 변화량 %p/day. trend.dailyDelta와 동일한 관측 기울기다 */
-        dailyDelta: number;
-        /** @description ~해요체 참고 문구. 서버가 확정하며 클라이언트는 그대로 표시한다 */
-        message: string;
-      } | null;
       /** Format: date-time */
       asOf: string;
       sources: string[];

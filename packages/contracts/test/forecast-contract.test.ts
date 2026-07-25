@@ -347,56 +347,6 @@ describe("forecast contract stageGuide", () => {
   });
 });
 
-describe("forecast contract earlyWarning", () => {
-  it("keeps earlyWarning optional/nullable — the absent fixture stays valid", () => {
-    // earlyWarning은 선택·nullable 필드다: 없는 페이로드도 여전히 ForecastResponse다.
-    const withoutWarning = forecastOk as ForecastResponse;
-    expect("earlyWarning" in withoutWarning).toBe(false);
-    expect(withoutWarning.earlyWarning).toBeUndefined();
-    expectTypeOf<ForecastResponse["earlyWarning"]>().toEqualTypeOf<
-      NonNullable<ForecastResponse["earlyWarning"]> | null | undefined
-    >();
-  });
-
-  it("accepts a present earlyWarning with level watch and a ~해요체 message", () => {
-    const withWarning: ForecastResponse = {
-      ...(forecastOk as ForecastResponse),
-      earlyWarning: {
-        level: "watch",
-        dailyDelta: -0.82,
-        message:
-          "저수율이 빠르게 줄고 있어요. 지금은 괜찮아도 미리 대비하면 좋아요. 공식 단계와 별개인 참고 신호예요.",
-      },
-    };
-
-    expectTypeOf(withWarning).toMatchTypeOf<ForecastResponse>();
-    expect(withWarning.earlyWarning?.level).toBe("watch");
-    expect(withWarning.earlyWarning?.dailyDelta).toBe(-0.82);
-    expect(withWarning.earlyWarning?.message).toContain("참고 신호");
-  });
-
-  it("accepts null earlyWarning (조건 미충족)", () => {
-    const nulled: ForecastResponse = {
-      ...(forecastOk as ForecastResponse),
-      earlyWarning: null,
-    };
-    expectTypeOf(nulled).toMatchTypeOf<ForecastResponse>();
-    expect(nulled.earlyWarning).toBeNull();
-  });
-
-  it("constrains earlyWarning level enum to watch", () => {
-    expectTypeOf<
-      NonNullable<ForecastResponse["earlyWarning"]>["level"]
-    >().toEqualTypeOf<"watch">();
-    expectTypeOf<
-      NonNullable<ForecastResponse["earlyWarning"]>["dailyDelta"]
-    >().toEqualTypeOf<number>();
-    expectTypeOf<
-      NonNullable<ForecastResponse["earlyWarning"]>["message"]
-    >().toEqualTypeOf<string>();
-  });
-});
-
 describe("forecast contract type unions", () => {
   it("keeps trend and reach bucket unions to the fixed contract values", () => {
     expectTypeOf<ForecastResponse["trend"]["bucket"]>().toEqualTypeOf<

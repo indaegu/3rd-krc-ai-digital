@@ -67,16 +67,6 @@ data class StageGuideEntry(
     val current: Boolean,
 )
 
-/**
- * '감소 주의' 조기경보 — 공식 단계와 별개인 앱 자체 참고 신호(공식 70/60/50/40 기준이 아님).
- * 서버가 정상·관심 단계 + 빠른 하락일 때만 확정한다. 없으면 null(표시 안 함).
- */
-data class ForecastEarlyWarning(
-    val level: String,
-    val dailyDelta: Double,
-    val message: String,
-)
-
 sealed interface ForecastResult {
     data class Success(
         val sigunCode: String,
@@ -89,7 +79,6 @@ sealed interface ForecastResult {
         val model: ForecastModel,
         val officialOutlook: OfficialOutlook?,
         val stageGuide: List<StageGuideEntry>? = null,
-        val earlyWarning: ForecastEarlyWarning? = null,
         val asOf: Instant,
         val sources: List<String>,
         val stale: Boolean,
