@@ -119,9 +119,23 @@
   gap: 8px;
 }
 
+/* 등록 확인 바텀시트(§10). */
+.confirmSheet {
+  display: grid;
+  gap: 6px;
+}
+
+/* 시트 딤에 blur를 더한다(§10). 미지원 브라우저는 기본 딤으로 폴백. */
+.sheetDim {
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
 .confirmTitle {
   margin: 0;
-  font-size: 1.25rem;
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
 }
 
 .address {
@@ -130,8 +144,28 @@
 }
 
 .reservoir {
-  margin: 0 0 8px;
+  margin: 2px 0 4px;
+  color: var(--blue-deep);
   font-weight: 700;
+}
+
+/* "기본 주소지로 설정" 체크박스 행 — 파란 체크(accent-color). */
+.defaultRow {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  min-height: 44px;
+  color: var(--ink2);
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+.checkbox {
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  min-height: 20px;
+  accent-color: var(--blue);
 }
 
 .confirmHint {

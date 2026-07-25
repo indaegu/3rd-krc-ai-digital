@@ -14,7 +14,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.CircularProgressIndicator
@@ -25,20 +27,32 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import com.mulsigye.app.core.designsystem.component.CtaButton
 import com.mulsigye.app.core.designsystem.theme.Bg
+import com.mulsigye.app.core.designsystem.theme.Blue
 import com.mulsigye.app.core.designsystem.theme.BlueTint
+import com.mulsigye.app.core.designsystem.theme.Gray200
+import com.mulsigye.app.core.designsystem.theme.Ink
 import com.mulsigye.app.core.designsystem.theme.Ink2
 import com.mulsigye.app.core.designsystem.theme.Ink3
 import com.mulsigye.app.feature.region.domain.RegionCandidate
@@ -144,6 +158,9 @@ fun ResolveConfirmOverlay(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // "기본 주소지로 설정" 체크 상태. 시안 §10의 표시 요소로, 기본값은 켜짐(첫 등록은 대표가 됨).
+    var primaryChecked by rememberSaveable { mutableStateOf(true) }
+
     Box(modifier = modifier.fillMaxSize()) {
         // 딤 — 탭하면 닫힌다(리플 없음).
         Box(
@@ -200,9 +217,14 @@ fun ResolveConfirmOverlay(
                                 )
                             }
                             Text(
+                                // 시안 §10: 매칭된 대표 저수지를 파란 강조로 보여준다(저수지명은 서버값).
                                 text = "우리 지역 대표 저수지 · ${reservoir.name}",
                                 style = MaterialTheme.typography.titleMedium,
+                                color = Blue,
                             )
+                            // 기본 주소지(대표 지역) 설정 체크 — 시안 §10. 첫 등록은 자연히 대표(목록 0번)가 되며,
+                            // 별도 "대표로 지정" 저장 계약이 없어 현재는 표시용이다(risks 참고).
+                            PrimaryAddressCheck(checked = primaryChecked, onToggle = { primaryChecked = !primaryChecked })
                             CtaButton(
                                 text = "등록하기",
                                 onClick = onRegister,
@@ -231,6 +253,41 @@ fun ResolveConfirmOverlay(
                 }
             }
         }
+    }
+}
+
+/**
+ * "기본 주소지로 설정" 체크 행(시안 §10). 파란 체크 + 라벨. 터치 타깃 48dp, 상태를 접근성으로 알린다.
+ */
+@Composable
+private fun PrimaryAddressCheck(checked: Boolean, onToggle: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .clip(RoundedCornerShape(12.dp))
+            .toggleable(value = checked, role = Role.Checkbox, onValueChange = { onToggle() })
+            .semantics(mergeDescendants = true) {
+                stateDescription = if (checked) "선택됨" else "선택 안 됨"
+            }
+            .sizeIn(minHeight = 48.dp)
+            .padding(vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(22.dp)
+                .clip(RoundedCornerShape(6.dp))
+                .background(if (checked) Blue else Gray200)
+                .clearAndSetSemantics {},
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(text = "✓", color = if (checked) Color.White else Ink3, fontWeight = FontWeight.Bold)
+        }
+        Spacer(Modifier.width(10.dp))
+        Text(
+            text = "기본 주소지로 설정",
+            style = MaterialTheme.typography.bodyLarge,
+            color = Ink,
+        )
     }
 }
 

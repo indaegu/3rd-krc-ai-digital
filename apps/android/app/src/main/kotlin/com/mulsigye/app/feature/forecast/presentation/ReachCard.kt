@@ -13,7 +13,7 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.mulsigye.app.core.designsystem.component.MulsigyeCard
-import com.mulsigye.app.core.designsystem.theme.Ink
+import com.mulsigye.app.core.designsystem.theme.Blue
 import com.mulsigye.app.core.designsystem.theme.Ink2
 import com.mulsigye.app.core.designsystem.theme.Ink3
 import com.mulsigye.app.feature.forecast.domain.ForecastResult
@@ -52,7 +52,7 @@ fun ReachCard(
                 Text(
                     text = days.toString(),
                     style = MaterialTheme.typography.displayLarge,
-                    color = Ink,
+                    color = Blue,
                 )
                 Text(
                     text = "일 뒤",
@@ -70,8 +70,8 @@ fun ReachCard(
         } else {
             Text(
                 text = "안정",
-                style = MaterialTheme.typography.headlineLarge,
-                color = Ink,
+                style = MaterialTheme.typography.displayLarge,
+                color = Blue,
             )
             Spacer(Modifier.height(4.dp))
             Text(

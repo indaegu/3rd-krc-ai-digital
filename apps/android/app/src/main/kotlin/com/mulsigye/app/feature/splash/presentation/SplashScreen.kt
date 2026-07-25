@@ -8,10 +8,12 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -25,10 +27,10 @@ import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.dp
-import com.mulsigye.app.core.designsystem.theme.Bg
 import com.mulsigye.app.core.designsystem.theme.Blue
 import com.mulsigye.app.core.designsystem.theme.Ink
-import com.mulsigye.app.core.designsystem.theme.Ink3
+import com.mulsigye.app.core.designsystem.theme.Ink2
+import com.mulsigye.app.core.designsystem.theme.brandGradientBrush
 import com.mulsigye.app.core.ui.rememberReducedMotion
 import kotlinx.coroutines.delay
 
@@ -47,6 +49,8 @@ private const val EXIT_MS = 340
  * 커지며(가벼운 오버슈트) 페이드인하고, 그 뒤로 잔물결(ripple)이 한 번 퍼진 다음 메인으로
  * 부드럽게 페이드아웃한다. reduced-motion이면 최종 로고를 정적으로 보여주고 모션을 만들지 않으며,
  * 대기 없이 즉시 [onDone]으로 통과시킨다(design-system 접근성). onDone 타이밍/콜백은 유지한다.
+ *
+ * 외관은 디자인 시안: 전체 브랜드 그라디언트 배경, 로고(물방울 + "수신호") 위에 태그라인.
  */
 @Composable
 fun SplashScreen(
@@ -88,55 +92,60 @@ fun SplashScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(Bg)
+            // 전체 브랜드 그라디언트 배경(디자인 시안: 스플래시·온보딩 전체 배경).
+            .background(brandGradientBrush())
             // 전체 콘텐츠를 마지막에 부드럽게 페이드아웃해 메인으로 자연스럽게 넘어간다.
             .graphicsLayer { alpha = exit.value },
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Canvas(
-            modifier = Modifier
-                .size(72.dp)
-                .clearAndSetSemantics {},
-        ) {
-            val w = size.width
-            val h = size.height
+        // 태그라인 — 로고 위. 브랜드 슬로건(서버값 아님, 고정 카피).
+        Text(
+            text = "물의 내일을 먼저 알리다",
+            style = MaterialTheme.typography.bodyMedium,
+            color = Ink2,
+            modifier = Modifier.graphicsLayer { alpha = fadeIn },
+        )
+        Spacer(Modifier.height(20.dp))
+        // 로고 — 물방울(애니메이션 유지) + "수신호" 워드마크를 가로로 배치(시안).
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Canvas(
+                modifier = Modifier
+                    .size(44.dp)
+                    .clearAndSetSemantics {},
+            ) {
+                val w = size.width
+                val h = size.height
 
-            // 잔물결 링 — 물방울 뒤에서 바깥으로 한 번 퍼지며 옅어진다.
-            if (rippleProgress > 0f && rippleProgress < 1f) {
-                val ringRadius = (w * 0.28f) + (w * 0.5f) * rippleProgress
-                drawCircle(
-                    color = Blue,
-                    radius = ringRadius,
-                    alpha = (1f - rippleProgress) * 0.35f,
-                    style = Stroke(width = 2.dp.toPx()),
-                )
-            }
-
-            // 물방울 — 중심 기준으로 스케일·페이드하며 등장한다.
-            scale(scale = dropScale, pivot = center) {
-                val drop = Path().apply {
-                    moveTo(w * 0.5f, h * 0.08f)
-                    cubicTo(w * 0.9f, h * 0.45f, w * 0.82f, h * 0.9f, w * 0.5f, h * 0.9f)
-                    cubicTo(w * 0.18f, h * 0.9f, w * 0.1f, h * 0.45f, w * 0.5f, h * 0.08f)
-                    close()
+                // 잔물결 링 — 물방울 뒤에서 바깥으로 한 번 퍼지며 옅어진다.
+                if (rippleProgress > 0f && rippleProgress < 1f) {
+                    val ringRadius = (w * 0.28f) + (w * 0.5f) * rippleProgress
+                    drawCircle(
+                        color = Blue,
+                        radius = ringRadius,
+                        alpha = (1f - rippleProgress) * 0.35f,
+                        style = Stroke(width = 2.dp.toPx()),
+                    )
                 }
-                drawPath(path = drop, color = Blue, alpha = fadeIn)
+
+                // 물방울 — 중심 기준으로 스케일·페이드하며 등장한다(회전 없음).
+                scale(scale = dropScale, pivot = center) {
+                    val drop = Path().apply {
+                        moveTo(w * 0.5f, h * 0.08f)
+                        cubicTo(w * 0.9f, h * 0.45f, w * 0.82f, h * 0.9f, w * 0.5f, h * 0.9f)
+                        cubicTo(w * 0.18f, h * 0.9f, w * 0.1f, h * 0.45f, w * 0.5f, h * 0.08f)
+                        close()
+                    }
+                    drawPath(path = drop, color = Blue, alpha = fadeIn)
+                }
             }
+            Spacer(Modifier.width(10.dp))
+            Text(
+                text = "수신호",
+                style = MaterialTheme.typography.displayLarge,
+                color = Ink,
+                modifier = Modifier.graphicsLayer { alpha = fadeIn },
+            )
         }
-        Spacer(Modifier.height(16.dp))
-        Text(
-            text = "수신호",
-            style = MaterialTheme.typography.displayLarge,
-            color = Ink,
-            modifier = Modifier.graphicsLayer { alpha = fadeIn },
-        )
-        Spacer(Modifier.height(8.dp))
-        Text(
-            text = "우리 동네 물 사정, 며칠 앞서",
-            style = MaterialTheme.typography.bodyLarge,
-            color = Ink3,
-            modifier = Modifier.graphicsLayer { alpha = fadeIn },
-        )
     }
 }

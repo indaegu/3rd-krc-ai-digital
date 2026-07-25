@@ -3,6 +3,7 @@ package com.mulsigye.app.feature.forecast.presentation
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
@@ -26,6 +27,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.mulsigye.app.core.designsystem.component.MulsigyeCard
 import com.mulsigye.app.core.designsystem.theme.Blue
+import com.mulsigye.app.core.designsystem.theme.Ink
 import com.mulsigye.app.core.designsystem.theme.Ink3
 import com.mulsigye.app.feature.forecast.domain.ForecastResult
 
@@ -45,14 +47,19 @@ fun TrendChartCard(
         Row(
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(
-                text = "지역 평년 대비 저수율 · 지난 ${forecast.history.size}일과 앞으로 ${forecast.forecast.size}일",
-                style = MaterialTheme.typography.labelMedium,
-                color = Ink3,
-                modifier = Modifier
-                    .weight(1f)
-                    .semantics { heading() },
-            )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "지역 평년 대비 저수율",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = Ink,
+                    modifier = Modifier.semantics { heading() },
+                )
+                Text(
+                    text = "지난 ${forecast.history.size}일과 앞으로 ${forecast.forecast.size}일",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = Ink3,
+                )
+            }
             Spacer(Modifier.width(8.dp))
             Row(
                 modifier = Modifier

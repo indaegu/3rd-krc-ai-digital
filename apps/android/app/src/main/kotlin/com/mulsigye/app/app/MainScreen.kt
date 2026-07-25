@@ -68,9 +68,8 @@ fun MainScreen(
     onNavigateTrend: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val regionLabel = (statusState as? StatusUiState.Ready)?.data?.let {
-        "${it.sigunName} · ${it.reservoir.name}"
-    }
+    // 헤더 드롭다운은 대표 지역명만 보여준다(시안 §3). 저수지명은 TodayCard 탭 라벨이 소유한다.
+    val regionLabel = (statusState as? StatusUiState.Ready)?.data?.sigunName
 
     // 당겨서 새로고침 — 사용자가 화면을 끌어내렸을 때만 상단 인디케이터를 돌린다.
     // (첫 진입 로딩은 모듈 스켈레톤이 담당하므로 인디케이터를 띄우지 않는다.)
@@ -223,7 +222,7 @@ private fun TodayCardSkeleton() {
                 Shimmer(modifier = Modifier.width(150.dp).height(14.dp))
             }
             Spacer(Modifier.width(16.dp))
-            Shimmer(modifier = Modifier.width(74.dp).height(196.dp))
+            Shimmer(modifier = Modifier.width(118.dp).height(196.dp))
         }
     }
 }

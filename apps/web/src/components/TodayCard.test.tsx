@@ -76,18 +76,18 @@ describe("TodayCard 상태 4종", () => {
     it(`${demo.name}: 평년 대비 큰 숫자·단계 칩·헤드라인·원저수율 보조 줄을 보여준다`, () => {
       const { container } = render(<TodayCard status={demo.status} />);
 
-      expect(screen.getByText("우리 지역 대표 저수지")).toBeInTheDocument();
+      // 좌상단 탭 라벨은 대표 저수지명(서버값).
+      expect(screen.getByText(demo.status.reservoir.name)).toBeInTheDocument();
       // 큰 숫자 = 지역 평년 대비 avgRatio(게이지·단계와 같은 축). reduced motion → 즉시 최종.
       expect(
         screen.getByText(String(demo.status.region.avgRatio)),
       ).toBeInTheDocument();
-      // 단계 칩 라벨은 <strong> — 게이지 단계 눈금 라벨(span)과 구분해 스코프.
+      // 단계는 "평년 대비 {단계}" 인라인 텍스트(<b>) — 게이지 눈금 라벨(span)과 구분해 스코프.
       expect(
         screen.getByText(demo.status.region.officialStage.label, {
-          selector: "strong",
+          selector: "b",
         }),
       ).toBeInTheDocument();
-      expect(screen.getByText("지역 평년 대비 기준")).toBeInTheDocument();
       expect(screen.getByText(demo.headline)).toBeInTheDocument();
       // 원저수율(rate)은 작은 보조 줄로 내려간다.
       expect(

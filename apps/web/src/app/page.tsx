@@ -267,10 +267,8 @@ export default function HomePage() {
   }
 
   const stamp = stampText(status);
-  const regionLabel =
-    status.kind === "ready"
-      ? `${status.data.sigunName} · ${status.data.reservoir.name}`
-      : null;
+  // 헤더 드롭다운은 대표 시군명만 보여준다(저수지명은 게이지 카드 탭 라벨이 담당).
+  const regionLabel = status.kind === "ready" ? status.data.sigunName : null;
 
   return (
     <main className={styles.main}>
@@ -278,12 +276,7 @@ export default function HomePage() {
           1.5s 덮었다 사라진다(reduced-motion이면 즉시 통과). */}
       {splashDone ? null : <Splash onDone={finishSplash} />}
       <h1 className={styles.srOnly}>수신호</h1>
-      <MainHeader
-        regionLabel={regionLabel}
-        refreshing={status.kind === "loading"}
-        onRefresh={refresh}
-      />
-      {stamp === null ? null : <p className={styles.stamp}>{stamp}</p>}
+      <MainHeader regionLabel={regionLabel} asOf={stamp} onRefresh={refresh} />
 
       <div className={styles.feed}>
         {status.kind === "loading" ? <TodayCardSkeleton /> : null}

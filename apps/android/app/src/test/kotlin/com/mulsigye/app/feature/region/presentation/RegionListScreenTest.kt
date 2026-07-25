@@ -112,7 +112,7 @@ class RegionListScreenTest : RobolectricComposeTest() {
     @Test
     fun primaryBadgeShownOnFirstRowOnly() {
         setContent(twoRegions())
-        composeTestRule.onNodeWithText("대표").assertIsDisplayed()
+        composeTestRule.onNodeWithText("기본 주소지").assertIsDisplayed()
     }
 
     @Test
@@ -124,7 +124,7 @@ class RegionListScreenTest : RobolectricComposeTest() {
                 currentIndex = 0,
             ),
         )
-        composeTestRule.onNodeWithText("수신호 시작하기").assertIsDisplayed()
+        composeTestRule.onNodeWithText("시작하기").assertIsDisplayed()
     }
 
     // ── 관리 모드 ────────────────────────────────────────────────────────────────
@@ -156,7 +156,7 @@ class RegionListScreenTest : RobolectricComposeTest() {
         // 각 줄에 드래그 손잡이가 보인다.
         composeTestRule.onNodeWithContentDescription("나주시 나주호 저수지 순서 이동 손잡이").assertIsDisplayed()
         // 관리 모드에서는 시작 CTA를 감춘다(정리에 집중).
-        composeTestRule.onAllNodesWithText("수신호 시작하기").assertCountEquals(0)
+        composeTestRule.onAllNodesWithText("시작하기").assertCountEquals(0)
     }
 
     @Test

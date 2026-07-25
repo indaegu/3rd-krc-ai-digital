@@ -2,6 +2,7 @@
 // 보여준다(규칙 10). mode·fallbackReason은 표시 차이를 만들지 않는다(계약 주석).
 // 자유 채팅/입력 UI는 절대 넣지 않는다(spec 15절). coach 실패 시 이 모듈만
 // 오류 카드로 대체하고 다른 모듈에는 영향을 주지 않는다.
+// 헤드라인은 파란 말풍선(꼬리), 행동은 번호 원(파랑)으로 — 레이아웃만 시안대로.
 
 import type { CoachResponse } from "@mulsigye/contracts";
 
@@ -25,14 +26,18 @@ interface CoachCardProps {
 function CoachHeader() {
   return (
     <div className={styles.who}>
-      <span className={styles.face} aria-hidden="true">
-        <svg viewBox="0 0 24 24">
-          <path d="M12 2C12 2 5 10.2 5 15a7 7 0 0 0 14 0C19 10.2 12 2 12 2Z" />
-        </svg>
-      </span>
+      {/* eslint-disable-next-line @next/next/no-img-element -- public 정적 브랜드 아바타, 최적화 불필요 */}
+      <img
+        className={styles.face}
+        src="/brand/coach_avatar.png"
+        alt=""
+        aria-hidden="true"
+        width={51}
+        height={51}
+      />
       <span className={styles.title}>
         <h2 className={styles.name}>수신호 코치</h2>
-        <span className={styles.sub}>우리 지역 물 사정을 쉬운 말로</span>
+        <span className={styles.sub}>우리 지역 수신호를 쉽게 알려드려요</span>
       </span>
     </div>
   );
@@ -71,7 +76,7 @@ export function CoachCard({ state, onRetry }: CoachCardProps) {
   return (
     <Card className={styles.card}>
       <CoachHeader />
-      <p className={styles.headline}>{coach.headline}</p>
+      <p className={styles.bubble}>{coach.headline}</p>
       <p className={styles.summary}>{coach.summary}</p>
       <ol className={styles.actions}>
         {actions.map((action, index) => (

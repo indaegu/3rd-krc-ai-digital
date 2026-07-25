@@ -214,7 +214,7 @@ class Stage5GateTest : RobolectricComposeTest() {
 
         // 실 네트워크(OkHttp 백그라운드) 완료 후 세 모듈이 Ready가 될 때까지 대기.
         composeTestRule.waitUntil(timeoutMillis = 10_000) {
-            hasText("우리 지역 대표 저수지") && // status Ready
+            hasText("저수지 실제 저수율은") && // status Ready(TodayCard 보조 줄 — 항상 렌더)
                 hasText("이 추세라면") && // forecast Ready
                 hasText("지금 할 일을 하나씩 확인해요.") // coach Ready(headline)
         }
@@ -269,9 +269,8 @@ class Stage5GateTest : RobolectricComposeTest() {
         // 원저수율(rate)은 작은 보조 줄로 내려간다.
         assertPresent("저수지 실제 저수율은 ${scenario.rate}%예요", substring = true)
 
-        // 단계 칩 라벨 + 보조 라벨.
+        // 단계 라벨(시안 §4: 알약 대신 "평년 대비 {단계}" 인라인 색상 텍스트).
         assertPresent(scenario.stageLabel, substring = true)
-        assertPresent("지역 평년 대비 기준")
 
         // 도달일(이 추세라면).
         val days = scenario.reachDays
@@ -347,14 +346,14 @@ class Stage5GateTest : RobolectricComposeTest() {
             }
         }
 
-        composeTestRule.waitUntil(timeoutMillis = 10_000) { hasText("우리 지역 대표 저수지") }
+        composeTestRule.waitUntil(timeoutMillis = 10_000) { hasText("저수지 실제 저수율은") }
 
         // 기준시각 스탬프에 지연 안내(관측 기준일 + "지연된 정보예요").
         assertPresent("2026-07-14 기준 · 지연된 정보예요")
         // 근거 고지의 지연 안내.
         assertPresent("일부 공공데이터가 지연되어", substring = true)
         // 화면 구조 유지: 상태 모듈은 그대로 뜨고 오류 카드로 대체되지 않는다.
-        assertPresent("우리 지역 대표 저수지")
+        assertPresent("저수지 실제 저수율은", substring = true)
         assertAbsent("지금은 물 사정을 불러오지 못했어요")
         // rate가 null이라 원저수율 보조 줄에 폴백 문구를 보여준다(구조 불변).
         assertPresent("저수지 실제 저수율은 아직 없어요")
@@ -430,7 +429,8 @@ class Stage5GateTest : RobolectricComposeTest() {
         setContentReadyMain(normal)
         // 모션 허용이면 카운트업이 0에서 시작하므로 첫 프레임에는 최종 값(평년 대비 103)이 아직 아니다.
         composeTestRule.mainClock.advanceTimeByFrame()
-        composeTestRule.onNodeWithText("우리 지역 대표 저수지").assertIsDisplayed()
+        // 대표 저수지명 탭(normal fixture reservoir.name = "탑정")은 첫 프레임부터 표시된다.
+        composeTestRule.onNodeWithText("탑정").assertIsDisplayed()
         composeTestRule.onAllNodesWithText("103").assertCountEquals(0)
     }
 

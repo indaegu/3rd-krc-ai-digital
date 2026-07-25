@@ -36,7 +36,6 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
@@ -82,7 +81,7 @@ internal fun dragTargetIndex(
 }
 
 /**
- * 등록 지역 목록 화면 — 선택 전환·관리 모드(드래그 재정렬·다중 삭제)·빈 상태와 "수신호 시작하기" CTA.
+ * 등록 지역 목록 화면 — 선택 전환·관리 모드(드래그 재정렬·다중 삭제)·빈 상태와 "시작하기" CTA.
  *
  * 순수 컴포저블(상태 + 콜백). 지역명·저수지명은 ViewModel이 status로 채운 [state]에서만
  * 읽고 저장소는 코드만 갖는다. 카피는 product.md·웹 RegionList와 동일 문구다.
@@ -92,7 +91,7 @@ internal fun dragTargetIndex(
  * 스크린리더 사용자를 위해 각 줄에 "위로/아래로 이동" 접근성 커스텀 액션을 함께 둔다.
  *
  * 레이아웃(#12): 헤더·상단 액션은 위에 고정, 지역 목록만 weight(1f)로 스크롤하고,
- * "수신호 시작하기" CTA는 하단에 고정한다(내비게이션 바 인셋 패딩 포함).
+ * "시작하기" CTA는 하단에 고정한다(내비게이션 바 인셋 패딩 포함).
  */
 @Composable
 fun RegionListScreen(
@@ -130,7 +129,7 @@ fun RegionListScreen(
                     verticalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
                     Text(
-                        text = if (manage) "지역 관리" else "지역 설정",
+                        text = if (manage) "지역 관리" else "우리 지역을 등록하면\n수신호를 알려드려요.",
                         style = MaterialTheme.typography.titleLarge,
                         modifier = Modifier.semantics { heading() },
                     )
@@ -138,7 +137,7 @@ fun RegionListScreen(
                         text = if (manage) {
                             "꾹 눌러 끌면 순서가 바뀌어요. 지울 지역을 골라 주세요."
                         } else {
-                            "우리 지역을 등록하면 물 사정을 알려드려요."
+                            "도로명 주소를 검색해서 우리 지역을 등록해 주세요."
                         },
                         style = MaterialTheme.typography.bodyLarge,
                         color = Ink2,
@@ -178,9 +177,7 @@ fun RegionListScreen(
                         )
                     }
                 } else {
-                    TextButton(onClick = onNavigateAdd) {
-                        Text("지역 추가하기", style = MaterialTheme.typography.labelLarge)
-                    }
+                    // "지역 추가하기"는 목록 아래 행 카드로 옮겼다(시안 §9). 여기에는 옵트인 알림 설정만 둔다.
                     Spacer(Modifier.weight(1f))
                     // 옵트인 알림 설정 진입(유도 문구 없이 중립적으로). 대표 지역 물 사정을 알림으로 받을 수 있다.
                     TextButton(
@@ -201,6 +198,7 @@ fun RegionListScreen(
             onMoveRegion = onMoveRegion,
             onToggleSelection = onToggleSelection,
             onEnterManageMode = { if (!manage) onToggleManageMode() },
+            onNavigateAdd = onNavigateAdd,
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth(),
@@ -216,7 +214,7 @@ fun RegionListScreen(
                     .navigationBarsPadding()
                     .padding(horizontal = 20.dp, vertical = 16.dp),
             ) {
-                CtaButton(text = "수신호 시작하기", onClick = onStart, enabled = !resolving)
+                CtaButton(text = "시작하기", onClick = onStart, enabled = !resolving)
             }
         }
     }
@@ -255,13 +253,16 @@ private fun RegionList(
     onMoveRegion: (Int, Int) -> Unit,
     onToggleSelection: (String) -> Unit,
     onEnterManageMode: () -> Unit,
+    onNavigateAdd: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     if (state.items.isEmpty()) {
         Column(
             modifier = modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             EmptyRegions()
+            AddRegionRow(onClick = onNavigateAdd)
         }
         return
     }
@@ -336,6 +337,39 @@ private fun RegionList(
                     .onSizeChanged { if (it.height > 0) rowHeightPx = it.height.toFloat() },
             )
         }
+
+        // "지역 추가하기" 행 카드(시안 §9). 관리 모드에서는 정리에 집중하도록 감춘다.
+        if (!state.manageMode) {
+            item(key = "add-region-row") {
+                AddRegionRow(onClick = onNavigateAdd)
+            }
+        }
+    }
+}
+
+/** "지역 추가하기" 행 카드(+ 아이콘). 목록 아래에 두어 새 지역을 등록하는 진입점이다. */
+@Composable
+private fun AddRegionRow(onClick: () -> Unit) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .semantics { contentDescription = "지역 추가하기" },
+        shape = RoundedCornerShape(12.dp),
+        color = Gray50,
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 20.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = "지역 추가하기",
+                style = MaterialTheme.typography.titleMedium,
+                color = Ink3,
+                modifier = Modifier.weight(1f),
+            )
+            Text(text = "+", style = MaterialTheme.typography.titleLarge, color = Ink3)
+        }
     }
 }
 
@@ -409,7 +443,7 @@ private fun RegionRow(
                             if (!isLast) add(CustomAccessibilityAction("아래로 이동") { onMoveDown(); true })
                         }
                     },
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(12.dp),
                 color = if (selected) BlueTint else Gray50,
             ) {
                 Row(
@@ -443,7 +477,7 @@ private fun RegionRow(
                     .pointerInput(Unit) {
                         detectDragGesturesAfterLongPress(onDragStart = { onLongPress() }, onDrag = { _, _ -> })
                     },
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(12.dp),
                 color = if (selected) BlueTint else Gray50,
             ) {
                 Column(
@@ -497,16 +531,19 @@ private fun RegionName(item: RegionListItem) {
     }
 }
 
-/** index 0 = 대표 지역 표식(#7). 콜드 스타트 시 처음 보여줄 지역임을 나타낸다. */
+/**
+ * index 0 = 대표 지역 표식(#7). 콜드 스타트 시 처음 보여줄 지역임을 나타낸다.
+ * 시안(§9): "기본 주소지" — blue-tint 배경 + 파란 글자(색만이 아니라 텍스트로 의미 전달).
+ */
 @Composable
 private fun PrimaryBadge() {
-    Surface(shape = RoundedCornerShape(8.dp), color = Blue) {
+    Surface(shape = RoundedCornerShape(14.dp), color = BlueTint) {
         Text(
-            text = "대표",
+            text = "기본 주소지",
             style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.Bold,
-            color = Color.White,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+            fontWeight = FontWeight.SemiBold,
+            color = Blue,
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
         )
     }
 }

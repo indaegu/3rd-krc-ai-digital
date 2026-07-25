@@ -1,5 +1,7 @@
 package com.mulsigye.app.feature.coach.presentation
 
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -11,20 +13,26 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.mulsigye.app.R
 import com.mulsigye.app.core.designsystem.component.CtaButton
 import com.mulsigye.app.core.designsystem.component.MulsigyeCard
-import com.mulsigye.app.core.designsystem.theme.BlueTint
+import com.mulsigye.app.core.designsystem.theme.Bg
+import com.mulsigye.app.core.designsystem.theme.Blue
 import com.mulsigye.app.core.designsystem.theme.Ink
 import com.mulsigye.app.core.designsystem.theme.Ink2
 import com.mulsigye.app.core.designsystem.theme.Ink3
@@ -80,12 +88,14 @@ fun CoachCard(
 @Composable
 private fun CoachHeader() {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        // 장식용 물방울 배지 — 접근성 트리에서 제외한다.
-        Box(
+        // 코치 원형 아바타(coach_avatar). 장식이라 접근성 트리에서 제외한다(이름은 제목이 소유).
+        Image(
+            painter = painterResource(R.drawable.coach_avatar),
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
             modifier = Modifier
-                .size(40.dp)
+                .size(48.dp)
                 .clip(CircleShape)
-                .background(BlueTint)
                 .clearAndSetSemantics {},
         )
         Spacer(Modifier.width(12.dp))
@@ -97,7 +107,7 @@ private fun CoachHeader() {
                 modifier = Modifier.semantics { heading() },
             )
             Text(
-                text = "우리 지역 물 사정을 쉬운 말로",
+                text = "우리 지역 수신호를 쉽게 알려드려요",
                 style = MaterialTheme.typography.bodyMedium,
                 color = Ink3,
             )
@@ -107,12 +117,9 @@ private fun CoachHeader() {
 
 @Composable
 private fun CoachBody(coach: CoachContent) {
-    Text(
-        text = coach.headline,
-        style = MaterialTheme.typography.titleMedium,
-        color = Ink,
-    )
-    Spacer(Modifier.height(8.dp))
+    // 코치 헤드라인 = 파란 말풍선(꼬리 포함) 한 줄. 서버값 그대로.
+    SpeechBubble(text = coach.headline)
+    Spacer(Modifier.height(12.dp))
     Text(
         text = coach.summary,
         style = MaterialTheme.typography.bodyLarge,
@@ -125,7 +132,7 @@ private fun CoachBody(coach: CoachContent) {
                 Text(
                     text = "${index + 1}",
                     style = MaterialTheme.typography.labelLarge,
-                    color = Ink3,
+                    color = Blue,
                     modifier = Modifier.width(24.dp),
                 )
                 Column {
@@ -143,6 +150,41 @@ private fun CoachBody(coach: CoachContent) {
                     )
                 }
             }
+        }
+    }
+}
+
+/** 파란 말풍선(위쪽 꼬리) — 코치 한 줄 인사/요약. 텍스트는 서버값을 그대로 받는다. */
+@Composable
+private fun SpeechBubble(text: String) {
+    Column {
+        Canvas(
+            modifier = Modifier
+                .padding(start = 18.dp)
+                .size(width = 16.dp, height = 8.dp)
+                .clearAndSetSemantics {},
+        ) {
+            val w = size.width
+            val h = size.height
+            val tail = Path().apply {
+                moveTo(0f, h)
+                lineTo(w * 0.5f, 0f)
+                lineTo(w, h)
+                close()
+            }
+            drawPath(path = tail, color = Blue)
+        }
+        Box(
+            modifier = Modifier
+                .background(Blue, RoundedCornerShape(20.dp))
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+        ) {
+            Text(
+                text = text,
+                style = MaterialTheme.typography.bodyLarge,
+                color = Bg,
+                fontWeight = FontWeight.Bold,
+            )
         }
     }
 }

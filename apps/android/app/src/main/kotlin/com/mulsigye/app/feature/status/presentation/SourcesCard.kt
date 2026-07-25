@@ -87,7 +87,7 @@ fun SourcesCard(
                         style = MaterialTheme.typography.bodyMedium,
                         color = Ink2,
                         modifier = Modifier
-                            .background(Gray100, RoundedCornerShape(10.dp))
+                            .background(Gray100, RoundedCornerShape(13.dp))
                             .padding(horizontal = 12.dp, vertical = 8.dp),
                     )
                 }

@@ -3,6 +3,7 @@ package com.mulsigye.app.feature.status.presentation
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -10,6 +11,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -25,11 +27,13 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.mulsigye.app.core.designsystem.component.MulsigyeCard
-import com.mulsigye.app.core.designsystem.component.StageChip
+import com.mulsigye.app.core.designsystem.theme.Gray100
 import com.mulsigye.app.core.designsystem.theme.Ink
 import com.mulsigye.app.core.designsystem.theme.Ink2
 import com.mulsigye.app.core.designsystem.theme.Ink3
+import com.mulsigye.app.core.designsystem.theme.stageColorFor
 import com.mulsigye.app.core.ui.rememberReducedMotion
 import com.mulsigye.app.feature.status.domain.StatusResult
 import kotlin.math.roundToInt
@@ -111,11 +115,18 @@ fun TodayCard(
     }
 
     MulsigyeCard(modifier = modifier) {
+        // 대표 저수지명 탭 라벨(서버값). 시안 §4의 카드 좌측 상단 탭 모양.
         Text(
-            text = "우리 지역 대표 저수지",
+            text = status.reservoir.name,
             style = MaterialTheme.typography.labelMedium,
-            color = Ink3,
-            modifier = Modifier.semantics { heading() },
+            color = Ink2,
+            modifier = Modifier
+                .semantics { heading() }
+                .background(
+                    Gray100,
+                    RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp, bottomEnd = 10.dp),
+                )
+                .padding(horizontal = 14.dp, vertical = 6.dp),
         )
         Spacer(Modifier.height(12.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -123,8 +134,20 @@ fun TodayCard(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
+                // 시안 §4: 단계는 알약(StageChip) 대신 "평년 대비 {단계}" 인라인 색상 텍스트로 전달한다.
+                // 색만으로 구분하지 않도록 단계명을 텍스트로 함께 쓴다(접근성 규칙). 웹 TodayCard와 동일.
                 Text(
-                    text = "평년 대비",
+                    text = buildAnnotatedString {
+                        append("평년 대비 ")
+                        withStyle(
+                            SpanStyle(
+                                color = stageColorFor(status.region.officialStage.code).fg,
+                                fontWeight = FontWeight.Bold,
+                            ),
+                        ) {
+                            append(status.region.officialStage.label)
+                        }
+                    },
                     style = MaterialTheme.typography.bodyMedium,
                     color = Ink2,
                 )
@@ -132,6 +155,7 @@ fun TodayCard(
                     Text(
                         text = avgText,
                         style = MaterialTheme.typography.displayLarge,
+                        fontSize = 52.sp,
                         color = Ink,
                     )
                     Text(
@@ -141,10 +165,6 @@ fun TodayCard(
                         modifier = Modifier.padding(start = 2.dp, bottom = 6.dp),
                     )
                 }
-                StageChip(
-                    label = status.region.officialStage.label,
-                    code = status.region.officialStage.code,
-                )
                 Text(
                     text = headline,
                     style = MaterialTheme.typography.titleMedium,
@@ -182,21 +202,12 @@ fun TodayCard(
                 }
             }
             Spacer(Modifier.width(16.dp))
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                Text(
-                    text = "평년 대비",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = Ink3,
-                )
-                ReservoirGauge(
-                    avgRatio = avgRatio,
-                    stageCode = status.region.officialStage.code,
-                    stageBands = status.stageBands,
-                )
-            }
+            // 우측 파랑 비이커 게이지 — 단계는 게이지 우측 세로 라벨로 전달한다(시안 §4).
+            ReservoirGauge(
+                avgRatio = avgRatio,
+                stageCode = status.region.officialStage.code,
+                stageBands = status.stageBands,
+            )
         }
     }
 }

@@ -5,51 +5,28 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 16px;
+  gap: 38px;
   inset: 0;
-  background: var(--bg);
+  background: linear-gradient(
+    180deg,
+    var(--grad-top) 0%,
+    var(--grad-mid) 50%,
+    var(--grad-bottom) 100%
+  );
 }
 
-.mark {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 84px;
-  height: 84px;
-  border-radius: 26px;
-  background: var(--blue-tint);
-  animation: splash-pop 0.7s cubic-bezier(0.2, 0.9, 0.3, 1.3) both;
-}
-
-.mark svg {
-  width: 44px;
-  height: 44px;
-  fill: var(--blue);
-}
-
-.word {
-  font-size: 1.7rem;
-  font-weight: 900;
-  letter-spacing: -0.03em;
+.tagline {
+  margin: 0;
+  color: var(--ink2);
+  font-size: 0.9375rem;
+  letter-spacing: -0.01em;
   animation: splash-rise 0.6s 0.15s ease both;
 }
 
-.caption {
-  color: var(--ink3);
-  font-size: 0.95rem;
+.logo {
+  width: 170px;
+  height: auto;
   animation: splash-rise 0.6s 0.3s ease both;
-}
-
-@keyframes splash-pop {
-  from {
-    transform: scale(0.6);
-    opacity: 0;
-  }
-
-  to {
-    transform: scale(1);
-    opacity: 1;
-  }
 }
 
 @keyframes splash-rise {
@@ -65,9 +42,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .mark,
-  .word,
-  .caption {
+  .tagline,
+  .logo {
     animation: none;
   }
 }

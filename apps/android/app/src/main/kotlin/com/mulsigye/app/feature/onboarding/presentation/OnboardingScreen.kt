@@ -1,5 +1,7 @@
 package com.mulsigye.app.feature.onboarding.presentation
 
+import androidx.annotation.DrawableRes
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -11,10 +13,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -26,30 +28,27 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import com.mulsigye.app.R
 import com.mulsigye.app.core.designsystem.component.CtaButton
-import com.mulsigye.app.core.designsystem.theme.Bg
 import com.mulsigye.app.core.designsystem.theme.Blue
-import com.mulsigye.app.core.designsystem.theme.BlueTint
 import com.mulsigye.app.core.designsystem.theme.Gray200
 import com.mulsigye.app.core.designsystem.theme.Ink
 import com.mulsigye.app.core.designsystem.theme.Ink2
 import com.mulsigye.app.core.designsystem.theme.Ink3
-import com.mulsigye.app.core.designsystem.theme.OkBg
-import com.mulsigye.app.core.designsystem.theme.WatchBg
+import com.mulsigye.app.core.designsystem.theme.brandGradientBrush
 
 /**
- * 온보딩 한 장. 카피는 웹 onboarding/page.tsx SLIDES와 동일 문구(공통 SSOT)이며,
+ * 온보딩 한 장. 카피는 웹 onboarding/page.tsx SLIDES와 동일 문구(공통 SSOT, 디자인 시안 §2 확정)이며,
  * 제목의 줄바꿈(\n)은 표시용으로 자연스러운 지점에 넣는다(문구 자체는 바꾸지 않는다).
- * [emoji]는 아직 삽화 에셋이 없어 큰 이모지로 대체한다(고령 사용자 가독성).
+ * [art]는 장별 삽화 PNG(onboarding_1..3).
  */
 private data class OnboardingSlide(
-    val art: Color,
-    val emoji: String,
+    @DrawableRes val art: Int,
     val title: String,
     val body: String,
 )
@@ -59,21 +58,18 @@ private val EdgeFadeWidth = 28.dp
 
 private val SLIDES: List<OnboardingSlide> = listOf(
     OnboardingSlide(
-        art = BlueTint,
-        emoji = "💧",
+        art = R.drawable.onboarding_1,
         title = "우리 동네 물 사정을\n며칠 앞서 알려드려요",
         body = "저수지 데이터로 보는 물관리 코치, 수신호예요.",
     ),
     OnboardingSlide(
-        art = OkBg,
-        emoji = "📅",
-        title = "지금 물 사정에\n며칠 뒤 흐름까지 알려드려요",
+        art = R.drawable.onboarding_2,
+        title = "지금 몇 %가 아니라\n'며칠 뒤'를 알려드려요",
         body = "이 추세가 이어지면 언제 다음 단계인지 미리 계산해요.",
     ),
     OnboardingSlide(
-        art = WatchBg,
-        emoji = "✅",
-        title = "오늘 해야 할 물관리,\n딱 3가지로 정리해드려요",
+        art = R.drawable.onboarding_3,
+        title = "오늘 해야 할 물관리,\n딱 3가지로 정리해 드려요.",
         body = "어려운 그래프 대신, 지금 할 일부터 짚어드려요.",
     ),
 )
@@ -99,6 +95,27 @@ private fun Modifier.edgeFade(fadeWidth: Dp): Modifier = this
         )
     }
 
+/** 스플래시와 동일한 상단 헤더 — 태그라인 + 로고(brand_logo). 각 장 공통으로 위에 고정된다. */
+@Composable
+private fun OnboardingHeader() {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(
+            text = "물의 내일을 먼저 알리다",
+            style = MaterialTheme.typography.bodyMedium,
+            color = Ink2,
+        )
+        Spacer(Modifier.height(12.dp))
+        Image(
+            painter = painterResource(R.drawable.brand_logo),
+            // 장식 로고 — 워드마크 의미는 헤더 텍스트가 아니라 브랜드 표식이라 트리에서 제외한다.
+            contentDescription = null,
+            modifier = Modifier
+                .height(34.dp)
+                .clearAndSetSemantics {},
+        )
+    }
+}
+
 /**
  * 온보딩 — 최초 사용자만 보는 3장 캐러셀(HorizontalPager + 점 표시). 순수 컴포저블.
  *
@@ -115,10 +132,14 @@ fun OnboardingScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(Bg)
+            // 전체 브랜드 그라디언트 배경(디자인 시안: 스플래시·온보딩 전체 배경).
+            .background(brandGradientBrush())
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
+        Spacer(Modifier.height(8.dp))
+        OnboardingHeader()
+
         HorizontalPager(
             state = pagerState,
             modifier = Modifier
@@ -135,20 +156,16 @@ fun OnboardingScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center,
             ) {
-                Box(
+                Image(
+                    painter = painterResource(slide.art),
+                    // 장식 삽화 — 접근성 트리에서 제외(제목·본문이 의미를 전달).
+                    contentDescription = null,
+                    // 세로 비율이 커서(≈186:231) 높이를 제약해 제목·본문이 한 화면에 들어오게 한다.
                     modifier = Modifier
-                        .size(140.dp)
-                        .background(slide.art, RoundedCornerShape(32.dp)),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        text = slide.emoji,
-                        fontSize = 64.sp,
-                        // 장식 삽화 — 접근성 트리에서 제외(제목·본문이 의미를 전달).
-                        modifier = Modifier.clearAndSetSemantics {},
-                    )
-                }
-                Spacer(Modifier.height(32.dp))
+                        .height(180.dp)
+                        .clearAndSetSemantics {},
+                )
+                Spacer(Modifier.height(28.dp))
                 Text(
                     text = slide.title,
                     style = MaterialTheme.typography.headlineLarge,

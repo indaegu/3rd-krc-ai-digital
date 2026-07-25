@@ -1,21 +1,31 @@
-.eyebrow {
-  margin: 0 0 12px;
-  color: var(--ink3);
-  font-size: 0.9375rem;
+.card {
+  display: flex;
+  flex-direction: column;
+}
+
+/* 좌상단 탭 라벨 — 대표 저수지명. 카드(gray50) 위에 흰 탭으로 얹힌다. */
+.tab {
+  align-self: flex-start;
+  margin: -4px 0 16px;
+  padding: 6px 14px;
+  color: var(--ink2);
+  font-size: 0.8125rem;
   font-weight: 700;
+  background: var(--bg);
+  border-radius: 10px;
 }
 
 .hero {
   display: flex;
-  align-items: center;
-  gap: 16px;
+  align-items: flex-start;
+  gap: 12px;
 }
 
 .info {
   display: flex;
   flex: 1;
   flex-direction: column;
-  gap: 6px;
+  min-width: 0;
 }
 
 .valueLabel {
@@ -25,26 +35,62 @@
   font-weight: 600;
 }
 
+/* 단계 텍스트 — 색으로만 단계를 구분하지 않으며(라벨 텍스트가 주 전달), fg 토큰으로 강조만. */
+.stage {
+  font-weight: 700;
+}
+
+.stage[data-stage="ok"] {
+  color: var(--ok-fg);
+}
+
+.stage[data-stage="watch"] {
+  color: var(--watch-fg);
+}
+
+.stage[data-stage="care"] {
+  color: var(--care-fg);
+}
+
+.stage[data-stage="alert"] {
+  color: var(--alert-fg);
+}
+
+.stage[data-stage="crit"] {
+  color: var(--crit-fg);
+}
+
 .rateLine {
   display: flex;
   align-items: baseline;
   gap: 3px;
-  margin: 0;
-  font-size: 3rem;
+  margin: 2px 0 0;
+  font-size: 3.25rem;
   font-weight: 900;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.04em;
-  line-height: 1.05;
+  line-height: 1.02;
 }
 
 .rateUnit {
   color: var(--ink3);
-  font-size: 1.25rem;
+  font-size: 1.375rem;
   font-weight: 800;
 }
 
+.block {
+  margin-top: 14px;
+}
+
+.headline {
+  margin: 0;
+  color: var(--ink);
+  font-size: 0.9375rem;
+  font-weight: 700;
+}
+
 .secondary {
-  margin: 4px 0 0;
+  margin: 3px 0 0;
   color: var(--ink3);
   font-size: 0.875rem;
   font-weight: 500;
@@ -55,35 +101,6 @@
   font-weight: 800;
 }
 
-.chipRow {
-  margin-top: 2px;
-}
-
-.gaugeCol {
-  display: flex;
-  flex: none;
-  flex-direction: column;
-  gap: 6px;
-  align-items: center;
-}
-
-.gaugeLabel {
-  color: var(--ink3);
-  font-size: 0.8125rem;
-  font-weight: 700;
-}
-
-.headline {
-  margin: 4px 0 0;
-  color: var(--ink2);
-  font-size: 0.9375rem;
-  font-weight: 600;
-}
-
-.yearly {
-  margin-top: 6px;
-}
-
 .yearlyHeadline {
   margin: 0;
   color: var(--ink);
@@ -92,8 +109,15 @@
 }
 
 .yearlyDetail {
-  margin: 2px 0 0;
+  margin: 3px 0 0;
   color: var(--ink3);
-  font-size: 0.8125rem;
+  font-size: 0.875rem;
   font-weight: 500;
+}
+
+.gaugeCol {
+  display: flex;
+  flex: none;
+  align-items: flex-start;
+  padding-top: 4px;
 }

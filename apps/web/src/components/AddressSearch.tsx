@@ -11,8 +11,14 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { resolveRegion, searchRegions } from "../lib/client/api-client";
-import { addRegion } from "../lib/client/region-store";
+import {
+  addRegion,
+  currentRegion,
+  loadRegionStore,
+  selectRegion,
+} from "../lib/client/region-store";
 import styles from "./AddressSearch.module.css";
+import { BottomSheet } from "./ui/BottomSheet";
 import { Card } from "./ui/Card";
 import { CtaButton } from "./ui/CtaButton";
 
@@ -42,6 +48,9 @@ export function AddressSearch() {
     kind: "idle",
   });
   const [registering, setRegistering] = useState(false);
+  // "기본 주소지로 설정" — 새 지역을 대표 지역으로 지정할지. 기존 대표 로직
+  // (addRegion/selectRegion, currentIndex)에 연결한다. 새 저장 필드는 만들지 않는다.
+  const [setAsDefault, setSetAsDefault] = useState(true);
 
   // 늦게 도착한 이전 요청 응답이 최신 상태를 덮지 않도록 요청마다 번호를 매긴다.
   const searchIdRef = useRef(0);
@@ -125,7 +134,19 @@ export function AddressSearch() {
     }
     // 등록 버튼 내부 스피너 + 중복 입력 잠금. 저장은 코드 2개만.
     setRegistering(true);
-    addRegion({ sigunCode, facCode: reservoir.facCode });
+    // 기존 대표 지역을 미리 잡아둔다("기본 주소지로 설정"을 끄면 유지하기 위함).
+    const previousRepresentative = currentRegion(loadRegionStore());
+    // addRegion은 추가한 지역을 곧 대표(currentIndex)로 만든다.
+    const nextStore = addRegion({ sigunCode, facCode: reservoir.facCode });
+    if (!setAsDefault && previousRepresentative !== null) {
+      // 기본 주소지로 두지 않기로 했다면 이전 대표 지역을 다시 선택해 유지한다.
+      const keepIndex = nextStore.regions.findIndex(
+        (item) => item.sigunCode === previousRepresentative.sigunCode,
+      );
+      if (keepIndex >= 0) {
+        selectRegion(keepIndex);
+      }
+    }
     router.replace("/regions");
   };
 
@@ -222,9 +243,31 @@ export function AddressSearch() {
         </div>
       ) : null}
 
-      {resolveState.kind === "ready" ? (
-        resolveState.data.prepared && resolveState.data.reservoir !== null ? (
-          <Card className={styles.confirmCard}>
+      {resolveState.kind === "ready" &&
+      !(resolveState.data.prepared && resolveState.data.reservoir !== null) ? (
+        <Card className={styles.confirmCard}>
+          <h2 className={styles.confirmTitle}>이 지역은 아직 준비 중이에요</h2>
+          <p className={styles.confirmHint}>
+            지금은 다른 주소로 등록해 주세요.
+          </p>
+          <CtaButton disabled>등록하기</CtaButton>
+        </Card>
+      ) : null}
+
+      {/* 등록 확인 시트(§10) — 상단 radius 24 + 딤 + blur. */}
+      <BottomSheet
+        open={
+          resolveState.kind === "ready" &&
+          resolveState.data.prepared &&
+          resolveState.data.reservoir !== null
+        }
+        label="주소 등록"
+        onClose={() => setResolveState({ kind: "idle" })}
+        dimClassName={styles.sheetDim}
+      >
+        {resolveState.kind === "ready" &&
+        resolveState.data.reservoir !== null ? (
+          <div className={styles.confirmSheet}>
             <h2 className={styles.confirmTitle}>이 주소로 등록할까요?</h2>
             {selected !== null ? (
               <p className={styles.address}>{selected.label}</p>
@@ -232,22 +275,21 @@ export function AddressSearch() {
             <p className={styles.reservoir}>
               우리 지역 대표 저수지 · {resolveState.data.reservoir.name}
             </p>
+            <label className={styles.defaultRow}>
+              <input
+                type="checkbox"
+                className={styles.checkbox}
+                checked={setAsDefault}
+                onChange={(event) => setSetAsDefault(event.target.checked)}
+              />
+              <span>기본 주소지로 설정</span>
+            </label>
             <CtaButton busy={registering} onClick={handleRegister}>
               등록하기
             </CtaButton>
-          </Card>
-        ) : (
-          <Card className={styles.confirmCard}>
-            <h2 className={styles.confirmTitle}>
-              이 지역은 아직 준비 중이에요
-            </h2>
-            <p className={styles.confirmHint}>
-              지금은 다른 주소로 등록해 주세요.
-            </p>
-            <CtaButton disabled>등록하기</CtaButton>
-          </Card>
-        )
-      ) : null}
+          </div>
+        ) : null}
+      </BottomSheet>
     </div>
   );
 }
