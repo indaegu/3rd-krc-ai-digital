@@ -110,6 +110,50 @@ class RegionStoreTest {
     }
 
     @Test
+    fun removeRegionsDropsAllChosenAndKeepsCurrentPointingAtSameRegion() = testScope.runTest {
+        store.addRegion(nonsan)
+        store.addRegion(naju)
+        store.addRegion(jeju) // [nonsan, naju, jeju], currentIndex = 2 (jeju)
+        store.selectRegion(1) // 현재 = naju
+
+        store.removeRegions(setOf("44230", "50110")) // nonsan(앞), jeju(뒤) 삭제 → naju만 남음
+        val state = store.regionStoreFlow.first()
+        assertEquals(listOf(naju), state.regions)
+        assertEquals(0, state.currentIndex) // naju가 이제 index 0.
+    }
+
+    @Test
+    fun removeRegionsClampsWhenCurrentIsRemoved() = testScope.runTest {
+        store.addRegion(nonsan)
+        store.addRegion(naju)
+        store.addRegion(jeju) // currentIndex = 2 (jeju)
+
+        store.removeRegions(setOf("50110")) // 현재 선택(jeju) 삭제
+        val state = store.regionStoreFlow.first()
+        assertEquals(listOf(nonsan, naju), state.regions)
+        assertEquals(1, state.currentIndex) // 마지막 남은 항목으로 clamp.
+    }
+
+    @Test
+    fun removeRegionsEmptySetIsNoop() = testScope.runTest {
+        store.addRegion(nonsan)
+        store.addRegion(naju)
+        store.removeRegions(emptySet())
+        val state = store.regionStoreFlow.first()
+        assertEquals(listOf(nonsan, naju), state.regions)
+    }
+
+    @Test
+    fun removeRegionsKeepsHasEverRegisteredAfterRemovingAll() = testScope.runTest {
+        store.addRegion(nonsan)
+        store.addRegion(naju)
+        store.removeRegions(setOf("44230", "46170"))
+        val state = store.regionStoreFlow.first()
+        assertTrue(state.regions.isEmpty())
+        assertTrue(state.hasEverRegistered) // 등록 이력은 삭제로 사라지지 않는다.
+    }
+
+    @Test
     fun setConsentPersistsOnlyTheVersion() = testScope.runTest {
         store.setConsent("consent-v1")
         assertEquals("consent-v1", store.regionStoreFlow.first().consentVersion)

@@ -1,15 +1,17 @@
 package com.mulsigye.app.feature.region.presentation
 
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.assertIsEnabled
-import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithContentDescription
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.mulsigye.app.core.designsystem.theme.MulsigyeTheme
 import com.mulsigye.app.core.testing.RobolectricComposeTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
@@ -25,6 +27,9 @@ class RegionListScreenTest : RobolectricComposeTest() {
         onSelectRegion: (Int) -> Unit = {},
         onRemoveRegion: (String) -> Unit = {},
         onMoveRegion: (Int, Int) -> Unit = { _, _ -> },
+        onToggleManageMode: () -> Unit = {},
+        onToggleSelection: (String) -> Unit = {},
+        onDeleteSelected: () -> Unit = {},
         onNavigateAdd: () -> Unit = {},
         onNavigateNotifications: () -> Unit = {},
         onStart: () -> Unit = {},
@@ -36,6 +41,9 @@ class RegionListScreenTest : RobolectricComposeTest() {
                     onSelectRegion = onSelectRegion,
                     onRemoveRegion = onRemoveRegion,
                     onMoveRegion = onMoveRegion,
+                    onToggleManageMode = onToggleManageMode,
+                    onToggleSelection = onToggleSelection,
+                    onDeleteSelected = onDeleteSelected,
                     onNavigateAdd = onNavigateAdd,
                     onNavigateNotifications = onNavigateNotifications,
                     onStart = onStart,
@@ -43,6 +51,15 @@ class RegionListScreenTest : RobolectricComposeTest() {
             }
         }
     }
+
+    private fun twoRegions(manageMode: Boolean = false, selected: Set<String> = emptySet()) =
+        RegionListUiState(
+            loading = false,
+            items = listOf(ready("46170", "나주시", "나주호"), ready("44230", "논산시", "탑정")),
+            currentIndex = 0,
+            manageMode = manageMode,
+            selected = selected,
+        )
 
     @Test
     fun showsEmptyStateCopy() {
@@ -94,50 +111,8 @@ class RegionListScreenTest : RobolectricComposeTest() {
 
     @Test
     fun primaryBadgeShownOnFirstRowOnly() {
-        setContent(
-            RegionListUiState(
-                loading = false,
-                items = listOf(ready("46170", "나주시", "나주호"), ready("44230", "논산시", "탑정")),
-                currentIndex = 0,
-            ),
-        )
+        setContent(twoRegions())
         composeTestRule.onNodeWithText("대표").assertIsDisplayed()
-    }
-
-    @Test
-    fun moveButtonsDisabledAtEnds() {
-        setContent(
-            RegionListUiState(
-                loading = false,
-                items = listOf(ready("46170", "나주시", "나주호"), ready("44230", "논산시", "탑정")),
-                currentIndex = 0,
-            ),
-        )
-        // 첫 행: 위로 비활성, 아래로 활성.
-        composeTestRule.onNodeWithContentDescription("나주시 나주호 저수지 위로 이동").assertIsNotEnabled()
-        composeTestRule.onNodeWithContentDescription("나주시 나주호 저수지 아래로 이동").assertIsEnabled()
-        // 마지막 행: 위로 활성, 아래로 비활성.
-        composeTestRule.onNodeWithContentDescription("논산시 탑정 저수지 위로 이동").assertIsEnabled()
-        composeTestRule.onNodeWithContentDescription("논산시 탑정 저수지 아래로 이동").assertIsNotEnabled()
-    }
-
-    @Test
-    fun moveDownInvokesCallbackWithIndices() {
-        var from = -1
-        var to = -1
-        setContent(
-            RegionListUiState(
-                loading = false,
-                items = listOf(ready("46170", "나주시", "나주호"), ready("44230", "논산시", "탑정")),
-                currentIndex = 0,
-            ),
-            onMoveRegion = { f, t -> from = f; to = t },
-        )
-        composeTestRule.onNodeWithContentDescription("나주시 나주호 저수지 아래로 이동").performClick()
-        composeTestRule.runOnIdle {
-            assertEquals(0, from)
-            assertEquals(1, to)
-        }
     }
 
     @Test
@@ -150,5 +125,61 @@ class RegionListScreenTest : RobolectricComposeTest() {
             ),
         )
         composeTestRule.onNodeWithText("수신호 시작하기").assertIsDisplayed()
+    }
+
+    // ── 관리 모드 ────────────────────────────────────────────────────────────────
+
+    @Test
+    fun manageToggleEntersManageMode() {
+        var toggled = false
+        setContent(twoRegions(), onToggleManageMode = { toggled = true })
+        // 일반 모드에서는 "지역 관리" 시작 버튼이 보인다(길게 누르기의 접근성 대체 수단).
+        composeTestRule.onNodeWithContentDescription("지역 관리 시작").assertIsDisplayed()
+        composeTestRule.onNodeWithContentDescription("지역 관리 시작").performClick()
+        composeTestRule.runOnIdle { assertTrue(toggled) }
+    }
+
+    @Test
+    fun normalModeHasNoArrowMoveButtons() {
+        // 옛 ▲/▼ 이동 버튼은 사라졌다 — 순서 변경은 관리 모드 드래그로만 한다.
+        setContent(twoRegions())
+        composeTestRule.onAllNodesWithContentDescription("나주시 나주호 저수지 위로 이동").assertCountEquals(0)
+        composeTestRule.onAllNodesWithContentDescription("나주시 나주호 저수지 아래로 이동").assertCountEquals(0)
+    }
+
+    @Test
+    fun manageModeShowsDoneAndDragHandlesAndHidesCta() {
+        setContent(twoRegions(manageMode = true))
+        // 헤더가 "지역 관리"로 바뀌고 "완료"로 나갈 수 있다.
+        composeTestRule.onNodeWithText("지역 관리").assertIsDisplayed()
+        composeTestRule.onNodeWithContentDescription("지역 관리 완료").assertIsDisplayed()
+        // 각 줄에 드래그 손잡이가 보인다.
+        composeTestRule.onNodeWithContentDescription("나주시 나주호 저수지 순서 이동 손잡이").assertIsDisplayed()
+        // 관리 모드에서는 시작 CTA를 감춘다(정리에 집중).
+        composeTestRule.onAllNodesWithText("수신호 시작하기").assertCountEquals(0)
+    }
+
+    @Test
+    fun tappingRowInManageModeTogglesSelection() {
+        var toggled: String? = null
+        setContent(twoRegions(manageMode = true), onToggleSelection = { toggled = it })
+        composeTestRule.onNodeWithContentDescription("나주시 나주호 저수지").performClick()
+        composeTestRule.runOnIdle { assertEquals("46170", toggled) }
+    }
+
+    @Test
+    fun deleteSelectedConfirmThenInvokesCallback() {
+        var deleted = false
+        setContent(
+            twoRegions(manageMode = true, selected = setOf("46170")),
+            onDeleteSelected = { deleted = true },
+        )
+        // 선택 개수가 삭제 버튼에 표기된다.
+        composeTestRule.onNodeWithText("선택 삭제 (1)").assertIsDisplayed()
+        composeTestRule.onNodeWithContentDescription("선택한 지역 삭제").performClick()
+        // 확인 다이얼로그 → 삭제.
+        composeTestRule.onNodeWithText("1곳을 지울까요?").assertIsDisplayed()
+        composeTestRule.onNodeWithText("삭제").performClick()
+        composeTestRule.runOnIdle { assertTrue(deleted) }
     }
 }

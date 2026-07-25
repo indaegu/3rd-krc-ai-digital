@@ -33,6 +33,10 @@ data class RegionListUiState(
     val loading: Boolean = true,
     val items: List<RegionListItem> = emptyList(),
     val currentIndex: Int = 0,
+    /** 관리 모드(순서 변경·다중 삭제) 여부. 저장하지 않는 화면 전용 상태다. */
+    val manageMode: Boolean = false,
+    /** 관리 모드에서 삭제하려고 고른 지역들의 시군 코드. 현재 목록에 있는 코드만 담긴다. */
+    val selected: Set<String> = emptySet(),
 )
 
 /**
@@ -54,8 +58,13 @@ class RegionListViewModel(
     // 이미 status를 요청한 코드. 단일 collect 코루틴에서만 건드려 중복 요청을 막는다.
     private val requested = mutableSetOf<String>()
 
+    // 관리 모드·선택 집합은 저장하지 않는 화면 전용 상태다(저장소에는 코드만 남긴다).
+    private val manageMode = MutableStateFlow(false)
+    private val selected = MutableStateFlow<Set<String>>(emptySet())
+
     val uiState: StateFlow<RegionListUiState> =
-        combine(regionStore.regionStoreFlow, nameStates) { store, names ->
+        combine(regionStore.regionStoreFlow, nameStates, manageMode, selected) { store, names, managing, picked ->
+            val codes = store.regions.map { it.sigunCode }
             RegionListUiState(
                 loading = false,
                 items = store.regions.map { region ->
@@ -65,6 +74,9 @@ class RegionListViewModel(
                     )
                 },
                 currentIndex = store.currentIndex,
+                manageMode = managing,
+                // 삭제 등으로 사라진 코드는 선택에서 걸러 표시·개수를 정확히 유지한다.
+                selected = picked.intersect(codes.toSet()),
             )
         }.stateIn(
             scope = viewModelScope,
@@ -104,9 +116,29 @@ class RegionListViewModel(
         viewModelScope.launch(dispatcher) { regionStore.removeRegion(sigunCode) }
     }
 
-    /** 지역 순서 변경(#6). 위/아래 이동 버튼이 인접 두 칸을 맞바꾸는 데 쓴다. */
+    /** 지역 순서 변경(#6). 관리 모드의 드래그 재정렬·접근성 위/아래 이동에 쓴다. */
     fun move(from: Int, to: Int) {
         viewModelScope.launch(dispatcher) { regionStore.moveRegion(from, to) }
+    }
+
+    /** 관리 모드 토글. 나갈 때는 골라 둔 선택을 비운다. */
+    fun toggleManageMode() {
+        val entering = !manageMode.value
+        manageMode.value = entering
+        if (!entering) selected.value = emptySet()
+    }
+
+    /** 관리 모드에서 한 줄의 선택을 켜고 끈다(다중 삭제 대상). */
+    fun toggleSelection(sigunCode: String) {
+        selected.update { if (sigunCode in it) it - sigunCode else it + sigunCode }
+    }
+
+    /** 고른 지역들을 한 번에 삭제하고 선택을 비운다. 관리 모드는 유지해 이어서 정리할 수 있다. */
+    fun deleteSelected() {
+        val codes = selected.value
+        if (codes.isEmpty()) return
+        selected.value = emptySet()
+        viewModelScope.launch(dispatcher) { regionStore.removeRegions(codes) }
     }
 
     class Factory(
