@@ -1,7 +1,8 @@
 "use client";
 
 // 오늘 우리 저수지 모듈 — 두 저수율을 분리해 보여준다(product.md).
-// 게이지·큰 숫자 = 지역 평년 대비 avgRatio(단계 칩·게이지 눈금과 같은 축), 원저수율 rate는 보조 줄.
+// 게이지·큰 숫자 = 지역 평년 대비 avgRatio(단계 스케일과 같은 축), 원저수율 rate는 보조 줄.
+// 카드 좌상단 탭 라벨은 대표 저수지명(서버값), 그 아래 "평년 대비 {단계}"(단계는 fg색 텍스트).
 
 import type { StatusResponse } from "@mulsigye/contracts";
 import { useEffect, useRef } from "react";
@@ -11,7 +12,6 @@ import type { DroughtStageCode } from "../lib/data/drought-stage";
 import { ReservoirGauge } from "./ReservoirGauge";
 import styles from "./TodayCard.module.css";
 import { Card } from "./ui/Card";
-import { StageChip } from "./ui/StageChip";
 
 const COUNT_UP_MS = 600;
 
@@ -60,7 +60,8 @@ interface TodayCardProps {
 export function TodayCard({ status }: TodayCardProps) {
   const rate = status.reservoir.rate;
   const avgRatio = status.region.avgRatio;
-  const stageCode = status.region.officialStage.code;
+  const stage = status.region.officialStage;
+  const stageCode = stage.code;
   const numberRef = useRef<HTMLSpanElement>(null);
 
   // 평년 대비(avgRatio) 카운트업(0.6s). reduced motion·rAF 없는 환경(jsdom)은 즉시 최종 값.
@@ -99,28 +100,34 @@ export function TodayCard({ status }: TodayCardProps) {
   const yearly = status.yearlyPosition;
 
   return (
-    <Card>
-      <h2 className={styles.eyebrow}>우리 지역 대표 저수지</h2>
+    <Card className={styles.card}>
+      <span className={styles.tab}>{status.reservoir.name}</span>
       <div className={styles.hero}>
         <div className={styles.info}>
-          <p className={styles.valueLabel}>평년 대비</p>
+          <p className={styles.valueLabel}>
+            평년 대비{" "}
+            <b className={styles.stage} data-stage={stageCode}>
+              {stage.label}
+            </b>
+          </p>
           <p className={styles.rateLine}>
             <span ref={numberRef}>0</span>
             <span className={styles.rateUnit}>%</span>
           </p>
-          <div className={styles.chipRow}>
-            <StageChip code={stageCode} />
+          <div className={styles.block}>
+            <p className={styles.headline}>{headline}</p>
+            {rate === null ? (
+              <p className={styles.secondary}>
+                저수지 실제 저수율은 아직 없어요
+              </p>
+            ) : (
+              <p className={styles.secondary}>
+                저수지 실제 저수율은 <b>{formatRate(rate)}</b>%예요
+              </p>
+            )}
           </div>
-          <p className={styles.headline}>{headline}</p>
-          {rate === null ? (
-            <p className={styles.secondary}>저수지 실제 저수율은 아직 없어요</p>
-          ) : (
-            <p className={styles.secondary}>
-              저수지 실제 저수율은 <b>{formatRate(rate)}</b>%예요
-            </p>
-          )}
           {yearly != null && (
-            <div className={styles.yearly}>
+            <div className={styles.block}>
               <p className={styles.yearlyHeadline}>
                 {YEARLY_HEADLINE_BY_BUCKET[yearly.bucket]}
               </p>
@@ -131,7 +138,6 @@ export function TodayCard({ status }: TodayCardProps) {
           )}
         </div>
         <div className={styles.gaugeCol}>
-          <span className={styles.gaugeLabel}>평년 대비</span>
           <ReservoirGauge
             avgRatio={avgRatio}
             stageCode={stageCode}

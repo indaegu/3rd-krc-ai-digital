@@ -30,13 +30,15 @@ export function Splash({ onDone }: SplashProps) {
 
   return (
     <div className={styles.overlay} role="status" aria-label="수신호를 여는 중">
-      <span className={styles.mark} aria-hidden="true">
-        <svg viewBox="0 0 24 24">
-          <path d="M12 2C12 2 5 10.2 5 15a7 7 0 0 0 14 0C19 10.2 12 2 12 2Z" />
-        </svg>
-      </span>
-      <span className={styles.word}>수신호</span>
-      <span className={styles.caption}>우리 동네 물 사정, 며칠 앞서</span>
+      <p className={styles.tagline}>물의 내일을 먼저 알리다</p>
+      {/* eslint-disable-next-line @next/next/no-img-element -- public 정적 브랜드 로고, 최적화 불필요 */}
+      <img
+        className={styles.logo}
+        src="/brand/logo.svg"
+        alt="수신호"
+        width={170}
+        height={46}
+      />
     </div>
   );
 }

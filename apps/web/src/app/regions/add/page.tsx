@@ -18,7 +18,12 @@ export default function RegionAddPage() {
         >
           <span aria-hidden="true">←</span>
         </Link>
-        <h1 className={styles.title}>지역 추가</h1>
+        <h1 className={styles.title}>
+          우리 지역을 등록하면{"\n"}수신호를 알려드려요.
+        </h1>
+        <p className={styles.subtitle}>
+          도로명 주소를 검색해서 우리 지역을 등록해 주세요.
+        </p>
       </header>
       <AddressSearch />
     </main>

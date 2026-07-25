@@ -24,21 +24,23 @@ import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.dp
+import com.mulsigye.app.core.designsystem.theme.Blue
 import com.mulsigye.app.core.designsystem.theme.Gray100
 import com.mulsigye.app.core.designsystem.theme.Ink3
-import com.mulsigye.app.core.designsystem.theme.stageColorFor
 import com.mulsigye.app.core.ui.rememberReducedMotion
 import com.mulsigye.app.feature.status.domain.StageBand
 import kotlin.math.sin
 
 /**
- * 메인 게이지 — 지역 평년 대비 저수율(avgRatio)을 물 높이로 보여준다.
+ * 메인 게이지 — 지역 평년 대비 저수율(avgRatio)을 물 높이로 보여준다(디자인 시안 §4).
  *
- * - 물 색 = 현재 공인 가뭄 단계 색(정상 초록 → 심각 빨강, [stageColorFor]). avgRatio·단계·게이지가
- *   같은 축으로 정합한다. 원저수율(rate)은 TodayCard의 작은 보조 줄이 소유한다(두 저수율 분리).
- * - 단계 눈금 = 서버 [stageBands](정상 70 / 관심 60 / 주의 50 / 경계 40). 각 경계에 옅은 선과 단계
- *   라벨을 그려 "어느 정도면 관심/경계"를 읽게 한다. **임계값은 클라이언트에 두지 않고 서버 값만
- *   쓴다**(규칙 10). stageBands가 null(구 페이로드)이면 눈금 없이 채움만 그린다.
+ * - 물 색 = **브랜드 파랑(#2D83FF) 고정**. 단계는 색이 아니라 수위 위치 + 우측 세로 라벨
+ *   (정상/관심/주의/경계/심각)로 전달한다(색만으로 단계를 구분하지 않는다 — 접근성 규칙).
+ *   원저수율(rate)은 TodayCard의 작은 보조 줄이 소유한다(두 저수율 분리).
+ * - 단계 눈금·라벨 = 서버 [stageBands](정상 70 / 관심 60 / 주의 50 / 경계 40). 각 경계에 옅은
+ *   눈금선과, 각 단계 구간 중앙에 단계 라벨을 비이커 오른쪽 여백에 그린다. **임계값은 클라이언트에
+ *   두지 않고 서버 값만 쓴다**(규칙 10). stageBands가 null(구 페이로드)이면 눈금·라벨 없이 채움만 그린다.
+ * - stageCode는 게이지 색에 쓰지 않는다(파랑 고정). 축 정합을 위해 시그니처만 유지한다.
  * - 물 출렁임 = 사인 물결 2겹(7s / 11s reverse), 수위 0→목표 1.6s.
  * - OS "애니메이션 삭제"(reduced-motion)에서는 출렁임을 멈추고 수위를 즉시 목표로 둔다.
  * - 값·단계 텍스트는 TodayCard가 소유하므로 게이지는 장식이다: clearAndSetSemantics로 접근성
@@ -53,7 +55,6 @@ fun ReservoirGauge(
 ) {
     val reducedMotion = rememberReducedMotion()
     val target = gaugeFillPercent(avgRatio)
-    val water = stageColorFor(stageCode)
 
     // 수위 0 → 목표 채움(1.6s). reduced-motion이면 즉시 목표 높이로 스냅한다.
     val level = remember { Animatable(0f) }
@@ -91,22 +92,24 @@ fun ReservoirGauge(
 
     Canvas(
         modifier = modifier
-            .size(width = 74.dp, height = 196.dp)
+            .size(width = 118.dp, height = 196.dp)
             .clearAndSetSemantics { },
     ) {
         val w = size.width
         val h = size.height
-        val radius = w * 0.28f
+        // 비이커는 캔버스 왼쪽에, 단계 라벨은 오른쪽 여백에 둔다(시안 §4).
+        val beakerRight = w * 0.58f
+        val radius = beakerRight * 0.30f
 
         // 비이커 배경(빈 물통).
-        drawRoundedContainer(color = Gray100, radius = radius)
+        drawRoundedContainer(color = Gray100, radius = radius, right = beakerRight)
 
         val container = Path().apply {
             addRoundRect(
                 androidx.compose.ui.geometry.RoundRect(
                     left = 0f,
                     top = 0f,
-                    right = w,
+                    right = beakerRight,
                     bottom = h,
                     radiusX = radius,
                     radiusY = radius,
@@ -119,17 +122,15 @@ fun ReservoirGauge(
             val surfaceY = h * (1f - fillFraction)
             val amplitude = if (reducedMotion) 0f else h * 0.018f
             clipPath(container) {
-                // 뒤 물결(단계 배경색) → 앞 물결(단계 전경색). 물 색 = 현재 단계 색.
-                drawWave(surfaceY = surfaceY, phase = waveB, amplitude = amplitude, color = water.bg, width = w, height = h)
-                drawWave(surfaceY = surfaceY + amplitude, phase = waveA, amplitude = amplitude, color = water.fg, width = w, height = h)
+                // 물 색 = 브랜드 파랑 고정. 뒤 물결은 옅은 파랑, 앞 물결은 파랑으로 살짝 물결진다.
+                drawWave(surfaceY = surfaceY, phase = waveB, amplitude = amplitude, color = Blue.copy(alpha = 0.5f), width = beakerRight, height = h)
+                drawWave(surfaceY = surfaceY + amplitude, phase = waveA, amplitude = amplitude, color = Blue, width = beakerRight, height = h)
             }
         }
 
-        // 단계 눈금 — 서버 stageBands가 있을 때만. 없으면(구 페이로드) 채움만 그린다.
+        // 단계 눈금·라벨 — 서버 stageBands가 있을 때만. 없으면(구 페이로드) 채움만 그린다.
         if (stageBands != null) {
-            clipPath(container) {
-                drawStageBands(stageBands, width = w, height = h)
-            }
+            drawStageScale(stageBands, beakerRight = beakerRight, width = w, height = h)
         }
     }
 }
@@ -148,29 +149,38 @@ internal fun zoneLineFractionsFromTop(bands: List<StageBand>?): List<Float> =
         .filter { it > 0.0 && it < 100.0 }
         .map { (1.0 - it / 100.0).toFloat() }
 
-private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawStageBands(
+/**
+ * 단계 눈금 + 세로 라벨(비이커 오른쪽 여백). 색으로 단계를 나누지 않으므로 라벨 텍스트로 단계를 전달한다.
+ * 눈금선은 각 경계(70/60/50/40)에, 라벨은 각 단계 구간 중앙 높이에 왼쪽 정렬로 놓는다.
+ */
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawStageScale(
     bands: List<StageBand>,
+    beakerRight: Float,
     width: Float,
     height: Float,
 ) {
-    // 경계선 — 옅은 잉크색(색만으로 단계를 나누지 않도록 라벨을 함께 둔다).
+    val gutterLeft = beakerRight + (width - beakerRight) * 0.08f
+    val tickLen = (width - beakerRight) * 0.34f
+    val labelX = beakerRight + (width - beakerRight) * 0.22f
+
+    // 경계 눈금선 — 옅은 회색(색만으로 단계를 나누지 않도록 라벨을 함께 둔다).
     val lineColor = Color(0x29191F28)
     for (fraction in zoneLineFractionsFromTop(bands)) {
         val y = height * fraction
         drawLine(
             color = lineColor,
-            start = androidx.compose.ui.geometry.Offset(0f, y),
-            end = androidx.compose.ui.geometry.Offset(width, y),
+            start = androidx.compose.ui.geometry.Offset(gutterLeft, y),
+            end = androidx.compose.ui.geometry.Offset(gutterLeft + tickLen, y),
             strokeWidth = 1f,
         )
     }
-    // 단계 라벨 — 각 밴드 중앙 높이에 오른쪽 정렬. 정상→심각 순서(상한은 한 단계 위 하한, 정상은 100).
+
+    // 단계 라벨 — 각 밴드 중앙 높이에 왼쪽 정렬. 정상→심각 순서(상한은 한 단계 위 하한, 정상은 100).
     val paint = Paint().apply {
         color = Ink3.toArgb()
-        textSize = height * 0.052f
-        textAlign = Paint.Align.RIGHT
+        textSize = height * 0.062f
+        textAlign = Paint.Align.LEFT
         isAntiAlias = true
-        isFakeBoldText = true
     }
     bands.forEachIndexed { index, band ->
         val upper = if (index == 0) 100.0 else bands[index - 1].minRatio
@@ -178,7 +188,7 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawStageBands(
         val y = height * (1f - (center / 100.0).toFloat())
         drawContext.canvas.nativeCanvas.drawText(
             band.label,
-            width - width * 0.06f,
+            labelX,
             y + paint.textSize * 0.35f,
             paint,
         )
@@ -188,11 +198,13 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawStageBands(
 private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawRoundedContainer(
     color: androidx.compose.ui.graphics.Color,
     radius: Float,
+    right: Float,
 ) {
     drawRoundRect(
         color = color,
         cornerRadius = androidx.compose.ui.geometry.CornerRadius(radius, radius),
-        size = Size(size.width, size.height),
+        topLeft = androidx.compose.ui.geometry.Offset(0f, 0f),
+        size = Size(right, size.height),
     )
 }
 

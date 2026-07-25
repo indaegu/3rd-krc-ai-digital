@@ -11,7 +11,7 @@ import androidx.compose.ui.unit.dp
 import com.mulsigye.app.core.designsystem.theme.Gray50
 
 /**
- * 메인 모듈 카드: `gray50` 단색, radius 24dp, 내부 패딩 20dp(design-system 레이아웃).
+ * 메인 모듈 카드: 흰색, radius 12dp, 내부 패딩 20dp(디자인 시안 기준).
  */
 @Composable
 fun MulsigyeCard(
@@ -20,7 +20,7 @@ fun MulsigyeCard(
 ) {
     Surface(
         modifier = modifier,
-        shape = RoundedCornerShape(24.dp),
+        shape = RoundedCornerShape(12.dp),
         color = Gray50,
     ) {
         Column(

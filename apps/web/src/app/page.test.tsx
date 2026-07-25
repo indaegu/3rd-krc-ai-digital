@@ -212,17 +212,20 @@ describe("메인 로딩 → 데이터 전환", () => {
     render(<HomePage />);
 
     expect(await screen.findByText("불러오는 중…")).toBeInTheDocument();
-    expect(screen.queryByText("우리 지역 대표 저수지")).not.toBeInTheDocument();
+    // 게이지 카드 탭 라벨(대표 저수지명)은 데이터 전에는 없다.
+    expect(screen.queryByText(NORMAL.reservoir.name)).not.toBeInTheDocument();
 
     resolveStatus(jsonResponse(NORMAL));
 
     expect(
       await screen.findByText(String(NORMAL.reservoir.rate)),
     ).toBeInTheDocument();
-    expect(screen.getByText("우리 지역 대표 저수지")).toBeInTheDocument();
+    // 게이지 카드 탭 = 대표 저수지명.
+    expect(screen.getByText(NORMAL.reservoir.name)).toBeInTheDocument();
     // asOf 2026-07-21T00:00:00Z → KST 오전 9:00
     expect(screen.getByText("오늘 오전 9:00 기준")).toBeInTheDocument();
-    expect(screen.getByText("논산시 · 탑정")).toBeInTheDocument();
+    // 헤더 드롭다운 = 대표 시군명.
+    expect(screen.getByText(NORMAL.sigunName)).toBeInTheDocument();
     // normal 픽스처는 만수위 배너를 보여주지 않는다.
     expect(screen.queryByText(/만수위에 가까워요/)).not.toBeInTheDocument();
   });
@@ -276,7 +279,7 @@ describe("메인 예측 모듈", () => {
     expect(
       await screen.findByText(String(NORMAL.reservoir.rate)),
     ).toBeInTheDocument();
-    expect(screen.getByText("우리 지역 대표 저수지")).toBeInTheDocument();
+    expect(screen.getByText(NORMAL.reservoir.name)).toBeInTheDocument();
     // forecast 모듈만 오류 카드.
     expect(
       await screen.findByText("흐름 예측을 불러오지 못했어요"),
@@ -377,8 +380,8 @@ describe("메인 오류·재시도", () => {
   });
 });
 
-describe("메인 로고 새로고침", () => {
-  it("로고를 누르면 status·forecast·coach·주변 비교를 다시 요청한다", async () => {
+describe("메인 새로고침", () => {
+  it("기준 시각(새로고침)을 누르면 status·forecast·coach·주변 비교를 다시 요청한다", async () => {
     seedRegion();
     // Response 본문은 1회만 읽을 수 있어 호출마다 새 Response를 만든다.
     const fetchMock = stubApiFetch({ status: () => jsonResponse(NORMAL) });
@@ -412,7 +415,8 @@ describe("메인 주변 지역 비교 모듈", () => {
     // 시·도 이름을 쓴 제목과 목록(가뭄 심한 순: 당진 → 논산).
     expect(await screen.findByText("충남 안에서 비교")).toBeInTheDocument();
     expect(screen.getByText("당진시")).toBeInTheDocument();
-    expect(screen.getByText("논산시")).toBeInTheDocument();
+    // 논산시는 헤더 드롭다운(대표 시군명)과 주변 비교 목록 양쪽에 나타난다.
+    expect(screen.getAllByText("논산시").length).toBeGreaterThanOrEqual(1);
     // 순위 요약: 논산(112.7)이 가장 넉넉 → 1번째.
     expect(screen.getByText("1번째")).toBeInTheDocument();
     // 우리 지역 강조 마커.

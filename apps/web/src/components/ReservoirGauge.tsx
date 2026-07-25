@@ -1,8 +1,8 @@
 "use client";
 
 // 메인 게이지 — 지역 평년 대비 저수율(avgRatio)을 물 높이로 보여준다.
-// 물 색은 현재 공인 가뭄 단계 색(정상 초록 → 심각 빨강, drought-stage 토큰)으로 칠하고,
-// 단계 경계(70/60/50/40)에 옅은 눈금선과 단계 라벨을 그려 "어느 정도면 관심/경계"를 읽게 한다.
+// 물 색은 파랑(#2D83FF) 고정이다(시안). 단계는 색으로 구분하지 않고, 수위 위치 +
+// 우측 세로 스케일(정상/관심/주의/경계/심각) + 눈금선으로만 전달한다(접근성 규칙).
 // 임계값은 클라이언트에 두지 않는다(규칙 10): 서버 stageBands를 그대로 소비하고,
 // 값이 없으면 눈금 없이 채움만 그린다. 장식 요소라 aria-hidden — 수치·단계는 TodayCard가 제공한다.
 
@@ -22,7 +22,7 @@ interface StageBand {
 interface ReservoirGaugeProps {
   /** 평년 대비 저수율 %(0~100 스케일, 100 초과는 만수로 채움). null이면 물을 채우지 않는다. */
   avgRatio: number | null;
-  /** 현재 공인 단계 code — 물을 이 단계 색으로 칠한다. */
+  /** 현재 공인 단계 code — 물색은 파랑 고정이므로 색을 정하지 않지만 계약상 유지한다. */
   stageCode: DroughtStageCode;
   /** 공인 단계 눈금(정상→심각). 없으면 눈금 없이 채움만 그린다(구 페이로드 폴백). */
   stageBands?: readonly StageBand[] | null;
@@ -68,12 +68,29 @@ export function ReservoirGauge({
       data-stage={stageCode}
       aria-hidden="true"
     >
-      <div ref={waterRef} className={styles.water} data-fill={target}>
-        <span className={styles.wave} />
-        <span className={`${styles.wave} ${styles.w2}`} />
+      <div className={styles.beaker}>
+        <div ref={waterRef} className={styles.water} data-fill={target}>
+          <span className={styles.wave} />
+          <span className={`${styles.wave} ${styles.w2}`} />
+        </div>
+        {/* 단계 경계 눈금선(70/60/50/40) — 비이커 안에 옅게. */}
+        {bands !== null && (
+          <div className={styles.lines}>
+            {bands
+              .filter((band) => band.minRatio > 0 && band.minRatio < 100)
+              .map((band) => (
+                <span
+                  key={`line-${band.code}`}
+                  className={styles.zoneLine}
+                  style={{ bottom: `${band.minRatio}%` }}
+                />
+              ))}
+          </div>
+        )}
       </div>
+      {/* 우측 세로 단계 스케일(정상→심각) — 밴드 중앙 위치에 라벨. */}
       {bands !== null && (
-        <div className={styles.zones}>
+        <div className={styles.scale}>
           {bands.map((band, index) => {
             // 상한 = 한 단계 위(정상 쪽) 밴드의 하한, 정상은 100. 라벨은 밴드 중앙에.
             const prev = bands[index - 1];
@@ -89,15 +106,6 @@ export function ReservoirGauge({
               </span>
             );
           })}
-          {bands
-            .filter((band) => band.minRatio > 0 && band.minRatio < 100)
-            .map((band) => (
-              <span
-                key={`line-${band.code}`}
-                className={styles.zoneLine}
-                style={{ bottom: `${band.minRatio}%` }}
-              />
-            ))}
         </div>
       )}
     </div>

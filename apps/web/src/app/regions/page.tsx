@@ -20,9 +20,11 @@ export default function RegionsPage() {
     <main className={styles.main}>
       <ConsentSheet />
       <header className={styles.header}>
-        <h1 className={styles.title}>지역 설정</h1>
+        <h1 className={styles.title}>
+          우리 지역을 등록하면{"\n"}수신호를 알려드려요.
+        </h1>
         <p className={styles.subtitle}>
-          우리 지역을 등록하면 물 사정을 알려드려요.
+          도로명 주소를 검색해서 우리 지역을 등록해 주세요.
         </p>
       </header>
 
@@ -31,11 +33,14 @@ export default function RegionsPage() {
       />
 
       <Link href="/regions/add" className={styles.addLink}>
-        지역 추가하기
+        <span>지역 추가하기</span>
+        <span className={styles.addIcon} aria-hidden="true">
+          +
+        </span>
       </Link>
 
       {hasRegions ? (
-        <CtaButton onClick={() => router.push("/")}>수신호 시작하기</CtaButton>
+        <CtaButton onClick={() => router.push("/")}>시작하기</CtaButton>
       ) : null}
     </main>
   );

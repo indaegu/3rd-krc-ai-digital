@@ -159,7 +159,7 @@ class RegionAddViewModelTest {
         assertFalse((phase as ResolvePhase.Ready).data.prepared)
 
         var done = false
-        vm.register { done = true }
+        vm.register(setAsPrimary = true) { done = true }
         advanceUntilIdle()
 
         assertFalse(done)
@@ -214,7 +214,7 @@ class RegionAddViewModelTest {
         advanceUntilIdle()
 
         var done = false
-        vm.register { done = true }
+        vm.register(setAsPrimary = true) { done = true }
         advanceUntilIdle()
 
         assertTrue(done)
@@ -222,5 +222,44 @@ class RegionAddViewModelTest {
         assertEquals(1, regions.size)
         assertEquals("46170", regions[0].sigunCode)
         assertEquals("4617010001", regions[0].facCode)
+    }
+
+    @Test
+    fun uncheckedPrimaryKeepsPreviousDefaultRegion() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val repo = FakeRegionRepository().apply {
+            enqueueResolve(
+                resolveSuccess(
+                    prepared = true,
+                    reservoir = RepresentativeReservoir(facCode = "4617010001", name = "나주호"),
+                    sigunCode = "46170",
+                    sigunName = "나주시",
+                ),
+                resolveSuccess(
+                    prepared = true,
+                    reservoir = RepresentativeReservoir(facCode = "1111010001", name = "다른저수지"),
+                    sigunCode = "11110",
+                    sigunName = "종로구",
+                ),
+            )
+        }
+        val storeInstance = store()
+        val vm = RegionAddViewModel(repo, storeInstance, dispatcher, debounceMillis = 0)
+
+        // 첫 등록 — 기본 주소지로 설정(대표가 된다).
+        vm.onCandidateSelect(candidate)
+        advanceUntilIdle()
+        vm.register(setAsPrimary = true) {}
+        advanceUntilIdle()
+
+        // 둘째 등록에서 "기본 주소지로 설정"을 끄면 대표는 첫 지역(46170)에 남는다.
+        vm.onCandidateSelect(candidate)
+        advanceUntilIdle()
+        vm.register(setAsPrimary = false) {}
+        advanceUntilIdle()
+
+        val state = storeInstance.regionStoreFlow.first()
+        assertEquals(2, state.regions.size)
+        assertEquals("46170", state.regions[state.currentIndex].sigunCode)
     }
 }

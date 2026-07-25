@@ -1,10 +1,43 @@
 .main {
   display: flex;
   flex-direction: column;
-  width: min(100% - 32px, 560px);
+  width: 100%;
   min-height: 100dvh;
   margin: 0 auto;
   padding: 24px 0 32px;
+  background: linear-gradient(
+    180deg,
+    var(--grad-top) 0%,
+    var(--grad-mid) 45%,
+    var(--grad-bottom) 100%
+  );
+}
+
+.brandHeader,
+.dots,
+.ctaWrap {
+  width: min(100% - 32px, 560px);
+  margin-inline: auto;
+}
+
+.brandHeader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 0 8px;
+}
+
+.tagline {
+  margin: 0;
+  color: var(--ink2);
+  font-size: 0.9375rem;
+  letter-spacing: -0.01em;
+}
+
+.logo {
+  width: 150px;
+  height: auto;
 }
 
 .srOnly {
@@ -28,6 +61,21 @@
   overflow-x: auto;
   list-style: none;
   scroll-snap-type: x mandatory;
+  /* 좌우 끝 페이드 마스크 — 캐러셀 가장자리를 부드럽게 흐린다(edgeFade). */
+  -webkit-mask-image: linear-gradient(
+    90deg,
+    transparent 0,
+    #000 32px,
+    #000 calc(100% - 32px),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    90deg,
+    transparent 0,
+    #000 32px,
+    #000 calc(100% - 32px),
+    transparent 100%
+  );
 }
 
 .slide {
@@ -70,29 +118,24 @@
 }
 
 .art {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 132px;
-  height: 132px;
-  border-radius: 40px;
-}
-
-.art svg {
-  width: 64px;
-  height: 64px;
+  width: 185px;
+  height: auto;
+  margin-bottom: 12px;
+  object-fit: contain;
 }
 
 .slideTitle {
   margin: 0;
   font-size: 1.6rem;
+  font-weight: 800;
   line-height: 1.35;
   letter-spacing: -0.02em;
+  white-space: pre-line;
 }
 
 .slideBody {
   margin: 0;
-  color: var(--ink2);
+  color: var(--ink3);
   font-size: 1.02rem;
 }
 

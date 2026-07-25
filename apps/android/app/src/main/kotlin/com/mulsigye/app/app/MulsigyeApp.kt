@@ -228,7 +228,7 @@ private fun RegionAddRoute(container: AppContainer, backStack: BackStack) {
         onRetryResolve = vm::retryResolve,
         onDismissResolve = vm::dismissResolve,
         // 등록 후 지역 목록으로 복귀한다.
-        onRegister = { vm.register { backStack.pop() } },
+        onRegister = { setAsPrimary -> vm.register(setAsPrimary) { backStack.pop() } },
         onBack = { backStack.pop() },
     )
 }

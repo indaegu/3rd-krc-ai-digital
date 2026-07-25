@@ -1,5 +1,7 @@
 package com.mulsigye.app.feature.onboarding.presentation
 
+import androidx.annotation.DrawableRes
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -11,72 +13,108 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import com.mulsigye.app.R
 import com.mulsigye.app.core.designsystem.component.CtaButton
-import com.mulsigye.app.core.ui.rememberReducedMotion
-import kotlin.math.absoluteValue
-import com.mulsigye.app.core.designsystem.theme.Bg
 import com.mulsigye.app.core.designsystem.theme.Blue
-import com.mulsigye.app.core.designsystem.theme.BlueTint
 import com.mulsigye.app.core.designsystem.theme.Gray200
 import com.mulsigye.app.core.designsystem.theme.Ink
 import com.mulsigye.app.core.designsystem.theme.Ink2
 import com.mulsigye.app.core.designsystem.theme.Ink3
-import com.mulsigye.app.core.designsystem.theme.OkBg
-import com.mulsigye.app.core.designsystem.theme.WatchBg
+import com.mulsigye.app.core.designsystem.theme.brandGradientBrush
 
 /**
- * 온보딩 한 장. 카피는 웹 onboarding/page.tsx SLIDES와 동일 문구(공통 SSOT)이며,
+ * 온보딩 한 장. 카피는 웹 onboarding/page.tsx SLIDES와 동일 문구(공통 SSOT, 디자인 시안 §2 확정)이며,
  * 제목의 줄바꿈(\n)은 표시용으로 자연스러운 지점에 넣는다(문구 자체는 바꾸지 않는다).
- * [emoji]는 아직 삽화 에셋이 없어 큰 이모지로 대체한다(고령 사용자 가독성).
+ * [art]는 장별 삽화 PNG(onboarding_1..3).
  */
 private data class OnboardingSlide(
-    val art: Color,
-    val emoji: String,
+    @DrawableRes val art: Int,
     val title: String,
     val body: String,
 )
 
-// 정착 위치에서 완전히 벗어났을 때(|offset|=1)의 최대 블러·라운드. 오프셋에 비례해 커진다.
-private val MaxSlideBlur = 18.dp
-private val MaxSlideCorner = 28.dp
+/** 페이저 좌우 끝 페이드 폭. 이 폭만큼 양 끝이 투명으로 사라져 슬라이드 경계가 부드럽게 이어진다. */
+private val EdgeFadeWidth = 28.dp
 
 private val SLIDES: List<OnboardingSlide> = listOf(
     OnboardingSlide(
-        art = BlueTint,
-        emoji = "💧",
+        art = R.drawable.onboarding_1,
         title = "우리 동네 물 사정을\n며칠 앞서 알려드려요",
         body = "저수지 데이터로 보는 물관리 코치, 수신호예요.",
     ),
     OnboardingSlide(
-        art = OkBg,
-        emoji = "📅",
-        title = "지금 물 사정에\n며칠 뒤 흐름까지 알려드려요",
+        art = R.drawable.onboarding_2,
+        title = "지금 몇 %가 아니라\n'며칠 뒤'를 알려드려요",
         body = "이 추세가 이어지면 언제 다음 단계인지 미리 계산해요.",
     ),
     OnboardingSlide(
-        art = WatchBg,
-        emoji = "✅",
-        title = "오늘 해야 할 물관리,\n딱 3가지로 정리해드려요",
+        art = R.drawable.onboarding_3,
+        title = "오늘 해야 할 물관리,\n딱 3가지로 정리해 드려요.",
         body = "어려운 그래프 대신, 지금 할 일부터 짚어드려요.",
     ),
 )
+
+/**
+ * 페이저 좌우 끝 가장자리만 부드럽게 페이드(feather)한다 — 슬라이드 전체를 흐리게 하지 않고
+ * 양 끝 [fadeWidth]폭만 투명으로 가는 가로 그라디언트를 DstIn으로 곱해, 스와이프할 때
+ * 인접 슬라이드가 딱딱 끊기지 않고 자연스럽게 녹아들어 보이게 한다(중앙은 또렷).
+ */
+private fun Modifier.edgeFade(fadeWidth: Dp): Modifier = this
+    .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
+    .drawWithContent {
+        drawContent()
+        val frac = (fadeWidth.toPx() / size.width).coerceIn(0f, 0.5f)
+        drawRect(
+            brush = Brush.horizontalGradient(
+                0f to Color.Transparent,
+                frac to Color.Black,
+                1f - frac to Color.Black,
+                1f to Color.Transparent,
+            ),
+            blendMode = BlendMode.DstIn,
+        )
+    }
+
+/** 스플래시와 동일한 상단 헤더 — 태그라인 + 로고(brand_logo). 각 장 공통으로 위에 고정된다. */
+@Composable
+private fun OnboardingHeader() {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(
+            text = "물의 내일을 먼저 알리다",
+            style = MaterialTheme.typography.bodyMedium,
+            color = Ink2,
+        )
+        Spacer(Modifier.height(12.dp))
+        Image(
+            painter = painterResource(R.drawable.brand_logo),
+            // 장식 로고 — 워드마크 의미는 헤더 텍스트가 아니라 브랜드 표식이라 트리에서 제외한다.
+            contentDescription = null,
+            modifier = Modifier
+                .height(34.dp)
+                .clearAndSetSemantics {},
+        )
+    }
+}
 
 /**
  * 온보딩 — 최초 사용자만 보는 3장 캐러셀(HorizontalPager + 점 표시). 순수 컴포저블.
@@ -90,67 +128,44 @@ fun OnboardingScreen(
     modifier: Modifier = Modifier,
 ) {
     val pagerState = rememberPagerState(pageCount = { SLIDES.size })
-    // OS "애니메이션 삭제"면 슬라이드 페이드/스케일 없이 정적으로 둔다(reduced-motion).
-    val reducedMotion = rememberReducedMotion()
 
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(Bg)
+            // 전체 브랜드 그라디언트 배경(디자인 시안: 스플래시·온보딩 전체 배경).
+            .background(brandGradientBrush())
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
+        Spacer(Modifier.height(8.dp))
+        OnboardingHeader()
+
         HorizontalPager(
             state = pagerState,
             modifier = Modifier
                 .fillMaxWidth()
-                .weight(1f),
+                .weight(1f)
+                // 좌우 끝만 부드럽게 페이드해 슬라이드 경계가 딱 끊기지 않게 한다(전체 블러 아님).
+                .edgeFade(EdgeFadeWidth),
         ) { page ->
             val slide = SLIDES[page]
-            // 이 장이 정착 위치에서 얼마나 벗어났는지(0=정착, 1=한 장 밖). 스크롤 중 매 프레임 갱신된다.
-            val pageOffset = (
-                (pagerState.currentPage - page) +
-                    pagerState.currentPageOffsetFraction
-                ).absoluteValue.coerceIn(0f, 1f)
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    // 스와이프하는 동안 정착 위치에서 멀어질수록 페이드·축소에 더해 라운드 클립과 블러를 키워
-                    // 인접 슬라이드가 스냅 대신 부드럽게 섞이게 한다(하드 컷 제거). 정착하면 offset=0이라
-                    // 블러 0dp·라운드 0dp로 또렷해진다. reduced-motion이면 이 효과를 모두 건너뛰고 정적으로 둔다.
-                    .then(
-                        if (reducedMotion) {
-                            Modifier
-                        } else {
-                            Modifier
-                                .graphicsLayer {
-                                    alpha = 1f - 0.7f * pageOffset
-                                    val scale = 1f - 0.06f * pageOffset
-                                    scaleX = scale
-                                    scaleY = scale
-                                }
-                                .blur(radius = MaxSlideBlur * pageOffset)
-                                .clip(RoundedCornerShape(MaxSlideCorner * pageOffset))
-                        },
-                    )
                     .padding(horizontal = 8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center,
             ) {
-                Box(
+                Image(
+                    painter = painterResource(slide.art),
+                    // 장식 삽화 — 접근성 트리에서 제외(제목·본문이 의미를 전달).
+                    contentDescription = null,
+                    // 세로 비율이 커서(≈186:231) 높이를 제약해 제목·본문이 한 화면에 들어오게 한다.
                     modifier = Modifier
-                        .size(140.dp)
-                        .background(slide.art, RoundedCornerShape(32.dp)),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        text = slide.emoji,
-                        fontSize = 64.sp,
-                        // 장식 삽화 — 접근성 트리에서 제외(제목·본문이 의미를 전달).
-                        modifier = Modifier.clearAndSetSemantics {},
-                    )
-                }
-                Spacer(Modifier.height(32.dp))
+                        .height(180.dp)
+                        .clearAndSetSemantics {},
+                )
+                Spacer(Modifier.height(28.dp))
                 Text(
                     text = slide.title,
                     style = MaterialTheme.typography.headlineLarge,

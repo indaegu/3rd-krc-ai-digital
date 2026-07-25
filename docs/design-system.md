@@ -14,32 +14,41 @@
 ```css
 --ink:#191F28; --ink2:#4E5968; --ink3:#8B95A1; --ink4:#B0B8C1;
 --bg:#FFFFFF; --gray50:#F9FAFB; --gray100:#F2F4F6; --gray200:#E5E8EB;
---blue:#3182F6; --blue-deep:#1B64DA; --blue-tint:#E8F3FF; --blue-soft:#D6E8FF;
+--blue:#2D83FF; --blue-deep:#1F6FE6; --blue-tint:#E8F3FF; --blue-soft:#D6E8FF;
+/* 브랜드 그라디언트(스플래시·온보딩·메인 헤더 배경): 시안→연블루→오프화이트 */
+--grad-top:#A6EEF9; --grad-mid:#C1E8FF; --grad-bottom:#F6F6F6;
 /* 공식 가뭄 단계 fg/bg */
---ok-fg:#159570;    --ok-bg:#E6F6F0;
+--ok-fg:#00986F;    --ok-bg:#E6F6F0;
 --watch-fg:#9A6700; --watch-bg:#FFF3D6;
 --care-fg:#D9510C;  --care-bg:#FFEBDE;
 --alert-fg:#E5372F; --alert-bg:#FDEBEA;
 --crit-fg:#A11C1C;  --crit-bg:#F8E2E2;
---r-lg:24px; --r-md:18px; --r-sm:12px;
+--r-lg:24px; --r-md:18px; --r-sm:12px; --r-card:12px; /* 카드=12, 바텀시트=24 */
 ```
 
+- 색·radius·폰트의 근거는 Figma 디자인 시안(fileKey iBWqexj5tpQX5aNilBnRoY)이다. 값은 시안에서만 온다.
 - 웹은 전역 CSS 변수, Android는 의미가 같은 Compose `ColorScheme`·shape 토큰으로 옮긴다.
 - 이름을 번역 구현하더라도 `ok/watch/care/alert/crit` 의미와 값은 바꾸지 않는다.
-- Pretendard Variable을 self-host하며 시스템 고딕으로 폴백한다. 명조·원격 CDN 폰트는 쓰지 않는다.
+- **Pretendard를 self-host한다**(웹: next/font local `PretendardVariable.woff2`; Android: `res/font`
+  정적 4굵기 + `MulsigyeTypography` `fontFamily`). 명조·원격 CDN 폰트는 쓰지 않는다.
+- 메인 모듈 카드 radius는 12dp(`--r-card`), 필수 바텀시트는 24dp(`--r-lg`)로 구분한다.
 - 공식 단계 임계값은 색 문서가 아니라 `apps/web/src/lib/data/drought-stage.ts`에만 둔다.
 
 ## 레이아웃·컴포넌트
 
 - 메인 모듈 간격 24px. 카드 `--gray50`, radius 24px, 내부 패딩 20px.
 - 주 CTA 높이 56px, radius 16px, `--blue`, 글자 굵기 700. 비활성은 `--gray200`.
-- 비이커는 지역 평년 대비 저수율(`avgRatio`)을 물 높이로 보여주고, 물 색은 현재 공인 단계
-  색(정상 초록 → 심각 빨강, `--ok-fg`…`--crit-fg`)으로 칠한다. 단계 경계(70/60/50/40)에 옅은
-  눈금선과 단계 라벨을 그려 단계 칩·게이지가 같은 축으로 정합한다. **임계값은 서버 `stageBands`
-  에서만 오며 클라이언트에 복제하지 않는다**(규칙 10). 값이 없으면 눈금 없이 채움만 그린다.
-- 단계 칩은 단색 tint와 **“지역 평년 대비 기준”** 보조 라벨을 함께 쓴다.
-- 메인 게이지 제목은 **“우리 지역 대표 저수지”**, 큰 값은 **“평년 대비”**(`avgRatio`)로 쓰고,
-  대표 저수지 원저수율은 **“저수지 실제 저수율은 …%예요”** 작은 보조 줄로 분리한다.
+- 비이커는 지역 평년 대비 저수율(`avgRatio`)을 물 높이로 보여주고, **물 색은 파랑(`--blue`)
+  으로 고정한다**(시안). 단계는 색으로 구분하지 않고 수위 위치 + 비이커 우측 세로 스케일
+  (위→아래 정상/관심/주의/경계/심각) + 경계 눈금선(70/60/50/40)으로만 전달한다(접근성 규칙).
+  **임계값·라벨 위치는 서버 `stageBands`에서만 오며 클라이언트에 복제하지 않는다**(규칙 10).
+  값이 없으면 눈금·스케일 없이 채움만 그린다.
+- 메인 게이지 카드는 좌상단 탭 라벨에 **대표 저수지명**(서버값)을 얹고, 그 아래
+  **“평년 대비 {단계}”**(단계는 fg 색 텍스트, 알약 대신 인라인 — 시안 §4) + 큰 값
+  (`avgRatio`, 52px)으로 쓰며, 대표 저수지 원저수율은 **“저수지 실제 저수율은 …%예요”**
+  작은 보조 줄로 분리한다. 색만으로 단계를 구분하지 않도록 단계명을 텍스트로 함께 쓴다.
+- 단계 칩(StageChip)은 상세(`/trend`)의 **단계 기준 안내** 등에서 단색 tint로 쓴다
+  (메인 게이지 카드는 위 인라인 텍스트를 쓰므로 칩을 얹지 않는다).
 - 그래프 제목·축·대체 텍스트에는 **“지역 평년 대비 저수율”**을 명시한다.
 - 단계 뱃지와 만수위 참고 배너를 같은 위험 체계처럼 보이게 합치지 않는다.
 - 바텀시트는 상단 radius 24px, 그랩바, `rgba(25,31,40,.45)` 딤을 쓴다. 필수 동의 시트는

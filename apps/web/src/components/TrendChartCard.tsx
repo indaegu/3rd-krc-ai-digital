@@ -16,10 +16,13 @@ export function TrendChartCard({ forecast }: TrendChartCardProps) {
   return (
     <Card>
       <div className={styles.head}>
-        <h2 className={styles.eyebrow}>
-          지역 평년 대비 저수율 · 지난 {forecast.history.length}일과 앞으로{" "}
-          {forecast.forecast.length}일
-        </h2>
+        <div className={styles.titles}>
+          <h2 className={styles.title}>지역 평년 대비 저수율</h2>
+          <p className={styles.sub}>
+            지난 {forecast.history.length}일과 앞으로 {forecast.forecast.length}
+            일
+          </p>
+        </div>
         <Link href="/trend" className={styles.moreLink}>
           자세히
           <svg

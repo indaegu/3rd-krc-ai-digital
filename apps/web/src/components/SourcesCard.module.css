@@ -37,10 +37,10 @@
 }
 
 .chip {
-  padding: 6px 12px;
+  padding: 7px 14px;
   color: var(--ink2);
   font-size: 0.8125rem;
   font-weight: 600;
   background: var(--gray100);
-  border-radius: 99px;
+  border-radius: 13px;
 }

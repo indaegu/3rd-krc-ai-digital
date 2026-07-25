@@ -2,7 +2,7 @@
   display: grid;
   gap: 4px;
   padding: 32px 20px;
-  border-radius: var(--r-lg);
+  border-radius: var(--r-card);
   background: var(--gray50);
   text-align: center;
 }
@@ -26,45 +26,73 @@
   list-style: none;
 }
 
+/* 등록 지역 행 — 이름·배지·삭제 X를 하나의 카드(radius 12)로 묶는다(시안 §9). */
 .item {
   display: flex;
-  gap: 8px;
-  align-items: stretch;
+  align-items: center;
+  min-height: 60px;
+  padding-right: 8px;
+  border-radius: var(--r-card);
+  background: var(--gray50);
+}
+
+.itemCurrent {
+  background: var(--blue-tint);
 }
 
 .selectButton {
-  display: grid;
+  display: flex;
   flex: 1;
-  gap: 4px;
-  padding: 16px 20px;
-  border: 2px solid transparent;
-  border-radius: var(--r-md);
-  background: var(--gray50);
+  align-items: center;
+  min-height: 60px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: var(--r-card);
+  background: none;
   color: var(--ink);
   font: inherit;
   text-align: left;
   cursor: pointer;
 }
 
-.selectButton[aria-pressed="true"] {
-  border-color: var(--blue);
-  background: var(--blue-tint);
+.rowMain {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
 }
 
 .name {
-  font-size: 1.125rem;
+  font-size: 1.0625rem;
+  font-weight: 700;
 }
 
-.caption {
+.reservoir {
+  color: var(--ink2);
+  font-size: 1.0625rem;
+}
+
+/* "기본 주소지" 배지 — blue-soft 배경 + 파란 글자(시안 §9, 공통 배지 규칙). */
+.badge {
+  padding: 3px 10px;
+  border-radius: 14px;
+  background: var(--blue-soft);
+  color: var(--blue-deep);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.errorCaption {
   color: var(--ink2);
   font-size: 0.9375rem;
 }
 
 .deleteButton {
   min-width: 48px;
+  min-height: 48px;
   border: 0;
   border-radius: var(--r-sm);
-  background: var(--gray100);
+  background: none;
   color: var(--ink3);
   font-size: 1.25rem;
   cursor: pointer;

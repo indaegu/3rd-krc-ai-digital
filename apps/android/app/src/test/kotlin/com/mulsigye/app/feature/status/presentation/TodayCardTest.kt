@@ -42,7 +42,8 @@ class TodayCardTest : RobolectricComposeTest() {
     @Test
     fun showsSeparatedLabels() {
         setCard("status.normal.json")
-        composeTestRule.onNodeWithText("우리 지역 대표 저수지").assertIsDisplayed()
+        // 탭 라벨 = 대표 저수지명(서버값). status.normal.json의 reservoir.name = "탑정".
+        composeTestRule.onNodeWithText("탑정").assertIsDisplayed()
         // 큰 숫자 = 지역 평년 대비 avgRatio(103).
         composeTestRule.onNodeWithText("103", substring = true).assertIsDisplayed()
     }

@@ -1,54 +1,66 @@
 "use client";
 
-// 메인 헤더 — 로고 탭 = 새로고침(rainfall 0.62s, 로고 회전 금지),
-// 현재 지역 라벨 + [>] = 지역 설정 이동. 라벨은 응답 값으로만 표시한다.
+// 메인 헤더 — 좌측 지역 드롭다운(대표 시군명 + chevron, 탭하면 지역 설정으로 이동해
+// 대표 지역을 전환한다) + 그 아래 기준 시각(보조 텍스트). 우상단 pill에 [새로고침]·구분선·[설정].
+// 웹은 알림 기능이 없으므로 벨(알림을 암시하는 UI)을 두지 않는다(apps/web/AGENTS.md 규칙).
+// 라벨·기준시각은 응답 값으로만 표시한다(하드코딩 금지).
 
 import Link from "next/link";
 
 import styles from "./MainHeader.module.css";
 
 interface MainHeaderProps {
-  /** "{시군명} · {대표 저수지명}". 아직 없으면 null. */
+  /** 대표 지역명(시군명). 아직 없으면 null. */
   regionLabel: string | null;
-  /** true면 물방울 rainfall 애니메이션(로딩 중). */
-  refreshing: boolean;
+  /** 기준 시각 문구(page에서 포맷 완료). 없으면 표시하지 않는다. */
+  asOf: string | null;
+  /** 다시 불러오기(로딩 중이면 page가 no-op 처리). */
   onRefresh: () => void;
 }
 
-export function MainHeader({
-  regionLabel,
-  refreshing,
-  onRefresh,
-}: MainHeaderProps) {
+export function MainHeader({ regionLabel, asOf, onRefresh }: MainHeaderProps) {
   return (
     <header className={styles.header}>
-      <button
-        type="button"
-        aria-label="새로고침"
-        className={
-          refreshing
-            ? `${styles.logoButton} ${styles.raining}`
-            : styles.logoButton
-        }
-        onClick={onRefresh}
-      >
-        <span className={styles.drop} aria-hidden="true">
-          <svg viewBox="0 0 24 24">
-            <path d="M12 2C12 2 5 10.2 5 15a7 7 0 0 0 14 0C19 10.2 12 2 12 2Z" />
+      <div className={styles.lead}>
+        <Link href="/regions" className={styles.region} aria-label="지역 설정">
+          <span className={styles.regionName}>
+            {regionLabel ?? "우리 지역"}
+          </span>
+          <svg
+            className={styles.chevron}
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+          >
+            <path d="M6 9l6 6 6-6" />
           </svg>
-        </span>
-        <span className={styles.logoText}>수신호</span>
-      </button>
-      <Link
-        href="/regions"
-        className={styles.regionLink}
-        aria-label="지역 설정"
-      >
-        <span className={styles.regionLabel}>{regionLabel ?? "우리 지역"}</span>
-        <svg className={styles.chevron} viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M9 5l7 7-7 7" />
-        </svg>
-      </Link>
+        </Link>
+        {asOf === null ? null : <span className={styles.asOf}>{asOf}</span>}
+      </div>
+      <div className={styles.pill}>
+        {/* 새로고침 — 벨 자리에 두는 중립 컨트롤(웹은 알림 기능이 없다). */}
+        <button
+          type="button"
+          className={styles.iconBtn}
+          aria-label="새로고침"
+          onClick={onRefresh}
+        >
+          <svg
+            className={styles.refreshIcon}
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+          >
+            <path d="M21 12a9 9 0 1 1-3-6.7L21 8" />
+            <path d="M21 3v5h-5" />
+          </svg>
+        </button>
+        <span className={styles.divider} aria-hidden="true" />
+        <Link href="/regions" className={styles.iconLink} aria-label="설정">
+          <svg viewBox="0 0 17.8002 17.799" aria-hidden="true">
+            <path d="M15.5726 9.34876L16.7199 10.3704C16.9317 10.5472 17.0733 10.794 17.1189 11.0661C17.1646 11.3383 17.1112 11.6178 16.9686 11.854L15.5853 14.2171C15.478 14.398 15.3247 14.5473 15.1411 14.6498C14.9553 14.7526 14.7468 14.8072 14.5345 14.8085C14.4028 14.8093 14.2718 14.7896 14.1461 14.7501L12.6778 14.2653C12.4206 14.4303 12.1532 14.5779 11.8757 14.7082L11.5673 16.1969C11.5102 16.4707 11.3577 16.7154 11.1371 16.8873C10.9136 17.0622 10.6365 17.1546 10.3527 17.1487H7.48836C7.2046 17.1546 6.92753 17.0622 6.70405 16.8873C6.48383 16.7152 6.33182 16.4706 6.27509 16.1969L5.96542 14.7082C5.69155 14.5762 5.42583 14.4279 5.16969 14.264L3.69625 14.7501C3.57061 14.7896 3.4396 14.8093 3.3079 14.8085C3.09603 14.807 2.88792 14.7524 2.70253 14.6498C2.51907 14.5476 2.36584 14.3988 2.25834 14.2183L0.825516 11.854C0.676559 11.6156 0.619642 11.3311 0.665434 11.0538C0.711226 10.7765 0.856584 10.5254 1.07426 10.3476L2.22027 8.8995V8.45023L1.07299 7.42859C0.861132 7.2518 0.719572 7.00499 0.673944 6.73285C0.628316 6.46071 0.681635 6.18123 0.824247 5.945L2.25708 3.58191C2.3644 3.40102 2.51764 3.25172 2.70126 3.14915C2.88665 3.04656 3.09476 2.99203 3.30663 2.99051C3.43714 2.98227 3.56813 2.99426 3.69498 3.02604L5.13923 3.53369C5.39728 3.3687 5.66464 3.22106 5.94131 3.09077L6.25097 1.6021C6.30771 1.32844 6.45972 1.08379 6.67993 0.911701C6.90342 0.736748 7.18049 0.644392 7.46424 0.650264H10.3045C10.5883 0.644392 10.8653 0.736748 11.0888 0.911701C11.3109 1.08557 11.4632 1.33051 11.5178 1.6021L11.8275 3.09077C12.1024 3.22191 12.3677 3.36997 12.6232 3.53496L14.0979 3.05016C14.2616 2.99691 14.4345 2.97822 14.6058 2.99526C14.777 3.0123 14.9429 3.0647 15.0929 3.14915C15.2769 3.25321 15.4292 3.40297 15.5371 3.58065L16.9686 5.945C17.1196 6.18134 17.1794 6.46453 17.1369 6.74173C17.0944 7.01893 16.9525 7.27119 16.7377 7.45144L15.5726 8.44388V9.34876Z" />
+            <path d="M12.0723 8.89954C12.0723 9.74102 11.7381 10.548 11.143 11.143C10.548 11.738 9.74102 12.0723 8.89954 12.0723C8.05807 12.0723 7.25106 11.738 6.65605 11.143C6.06104 10.548 5.72676 9.74102 5.72676 8.89954C5.72676 8.05807 6.06104 7.25106 6.65605 6.65605C7.25106 6.06103 8.05807 5.72676 8.89954 5.72676C9.74102 5.72676 10.548 6.06103 11.143 6.65605C11.7381 7.25106 12.0723 8.05807 12.0723 8.89954Z" />
+          </svg>
+        </Link>
+      </div>
     </header>
   );
 }

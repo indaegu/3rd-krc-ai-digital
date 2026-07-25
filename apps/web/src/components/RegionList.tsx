@@ -87,30 +87,39 @@ export function RegionList({ onStoreChange }: RegionListProps) {
         const nameState = names[region.sigunCode] ?? LOADING_NAME;
         const displayName =
           nameState.kind === "ready" ? nameState.sigunName : region.sigunCode;
+        const isCurrent = index === store.currentIndex;
         return (
-          <li key={region.sigunCode} className={styles.item}>
+          <li
+            key={region.sigunCode}
+            className={
+              isCurrent ? `${styles.item} ${styles.itemCurrent}` : styles.item
+            }
+          >
             <button
               type="button"
               className={styles.selectButton}
-              aria-pressed={index === store.currentIndex}
+              aria-pressed={isCurrent}
               onClick={() => applyStore(selectRegion(index))}
             >
               {nameState.kind === "loading" ? (
                 <Skeleton width="140px" height="24px" />
               ) : nameState.kind === "ready" ? (
-                <>
+                <span className={styles.rowMain}>
                   <strong className={styles.name}>{nameState.sigunName}</strong>
-                  <span className={styles.caption}>
-                    우리 지역 대표 저수지 · {nameState.reservoirName}
+                  <span className={styles.reservoir}>
+                    {nameState.reservoirName}
                   </span>
-                </>
+                  {isCurrent ? (
+                    <span className={styles.badge}>기본 주소지</span>
+                  ) : null}
+                </span>
               ) : (
-                <>
+                <span className={styles.rowMain}>
                   <strong className={styles.name}>{region.sigunCode}</strong>
-                  <span className={styles.caption}>
+                  <span className={styles.errorCaption}>
                     지역 정보를 불러오지 못했어요.
                   </span>
-                </>
+                </span>
               )}
             </button>
             <button

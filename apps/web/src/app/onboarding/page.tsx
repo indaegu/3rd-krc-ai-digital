@@ -10,59 +10,27 @@ import { CtaButton } from "../../components/ui/CtaButton";
 import styles from "./page.module.css";
 
 interface Slide {
-  bg: string;
+  image: string;
   title: string;
   body: string;
-  icon: React.ReactNode;
 }
 
+// Figma 확정 문구(SSOT). 제목의 줄바꿈(\n)은 slideTitle의 white-space: pre-line으로 표현한다.
 const SLIDES: Slide[] = [
   {
-    bg: "var(--blue-tint)",
-    title: "우리 동네 물 사정을 며칠 앞서 알려드려요",
+    image: "/brand/onboarding_1.png",
+    title: "우리 동네 물 사정을\n며칠 앞서 알려드려요",
     body: "저수지 데이터로 보는 물관리 코치, 수신호예요.",
-    icon: (
-      <svg viewBox="0 0 24 24" fill="var(--blue)">
-        <path d="M12 2C12 2 5 10.2 5 15a7 7 0 0 0 14 0C19 10.2 12 2 12 2Z" />
-      </svg>
-    ),
   },
   {
-    bg: "var(--ok-bg)",
-    title: "지금 물 사정에 며칠 뒤 흐름까지 알려드려요",
+    image: "/brand/onboarding_2.png",
+    title: "지금 몇 %가 아니라\n'며칠 뒤'를 알려드려요",
     body: "이 추세가 이어지면 언제 다음 단계인지 미리 계산해요.",
-    icon: (
-      <svg
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="var(--ok-fg)"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <rect x="3" y="4" width="18" height="17" rx="3" />
-        <path d="M8 2v4M16 2v4M3 9h18" />
-        <path d="M9 15.5l2 2 4-4" />
-      </svg>
-    ),
   },
   {
-    bg: "var(--watch-bg)",
-    title: "오늘 해야 할 물관리, 딱 3가지로 정리해드려요",
+    image: "/brand/onboarding_3.png",
+    title: "오늘 해야 할 물관리,\n딱 3가지로 정리해 드려요.",
     body: "어려운 그래프 대신, 지금 할 일부터 짚어드려요.",
-    icon: (
-      <svg
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="var(--watch-fg)"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <path d="M4 6h10M4 12h10M4 18h10" />
-        <path d="M17 5.5l1.5 1.5L21 4.5M17 11.5l1.5 1.5L21 10.5M17 17.5l1.5 1.5L21 16.5" />
-      </svg>
-    ),
   },
 ];
 
@@ -73,16 +41,30 @@ export default function OnboardingPage() {
     <main className={styles.main}>
       <h1 className={styles.srOnly}>수신호 소개</h1>
 
+      <header className={styles.brandHeader}>
+        <p className={styles.tagline}>물의 내일을 먼저 알리다</p>
+        {/* eslint-disable-next-line @next/next/no-img-element -- public 정적 브랜드 로고, 최적화 불필요 */}
+        <img
+          className={styles.logo}
+          src="/brand/logo.svg"
+          alt="수신호"
+          width={150}
+          height={41}
+        />
+      </header>
+
       <ul className={styles.carousel} aria-label="수신호 소개">
         {SLIDES.map((slide, index) => (
           <li key={index} className={styles.slide}>
-            <span
+            {/* eslint-disable-next-line @next/next/no-img-element -- public 정적 온보딩 일러스트 */}
+            <img
               className={styles.art}
-              style={{ background: slide.bg }}
+              src={slide.image}
+              alt=""
               aria-hidden="true"
-            >
-              {slide.icon}
-            </span>
+              width={185}
+              height={185}
+            />
             <h2 className={styles.slideTitle}>{slide.title}</h2>
             <p className={styles.slideBody}>{slide.body}</p>
           </li>

@@ -16,14 +16,19 @@ val Gray50 = Color(0xFFF9FAFB)
 val Gray100 = Color(0xFFF2F4F6)
 val Gray200 = Color(0xFFE5E8EB)
 
-// 블루(주 색)
-val Blue = Color(0xFF3182F6)
-val BlueDeep = Color(0xFF1B64DA)
+// 블루(주 색) — 디자인 시안 기준 #2D83FF.
+val Blue = Color(0xFF2D83FF)
+val BlueDeep = Color(0xFF1F6FE6)
 val BlueTint = Color(0xFFE8F3FF)
 val BlueSoft = Color(0xFFD6E8FF)
 
-// 공식 가뭄 단계 fg/bg (ok/watch/care/alert/crit — 의미·값 고정)
-val OkFg = Color(0xFF159570)
+// 브랜드 그라디언트 스톱(스플래시·온보딩·메인 헤더 배경). 시안: 시안→연블루→오프화이트.
+val BrandGradientTop = Color(0xFFA6EEF9)
+val BrandGradientMid = Color(0xFFC1E8FF)
+val BrandGradientBottom = Color(0xFFF6F6F6)
+
+// 공식 가뭄 단계 fg/bg (ok/watch/care/alert/crit — 의미·값 고정). ok 초록은 시안 기준 #00986F.
+val OkFg = Color(0xFF00986F)
 val OkBg = Color(0xFFE6F6F0)
 val WatchFg = Color(0xFF9A6700)
 val WatchBg = Color(0xFFFFF3D6)

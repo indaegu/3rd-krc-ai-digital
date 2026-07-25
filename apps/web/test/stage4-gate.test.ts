@@ -238,13 +238,13 @@ describe("단계 4 게이트 ① — 4개 상태 메인 전체 트리", () => {
       expect(rate).not.toBeNull();
       expect(screen.getByText(String(rate))).toBeInTheDocument();
 
-      // 단계 칩의 라벨은 <strong>이다. 차트 임계선 라벨(SVG text)과 겹치지 않게 스코프.
+      // 단계 라벨은 "평년 대비 {단계}"의 <b>로 렌더된다(시안: 알약 대신 인라인 색상 텍스트).
+      // 게이지 우측 세로 스케일 라벨(<span>)·차트 임계선(SVG text)과 겹치지 않게 <b>로 스코프.
       expect(
         screen.getByText(scenario.status.region.officialStage.label, {
-          selector: "strong",
+          selector: "b",
         }),
       ).toBeInTheDocument();
-      expect(screen.getByText("지역 평년 대비 기준")).toBeInTheDocument();
 
       // 도달일(이 추세라면).
       const reach = scenario.forecast.reach;
@@ -295,7 +295,8 @@ describe("단계 4 게이트 ② — 지연 폴백(stale)", () => {
     // 근거 고지의 지연 안내.
     expect(screen.getByText(/일부 공공데이터가 지연되어/)).toBeInTheDocument();
     // HTTP 200 경로 유지: 상태 모듈은 그대로 뜨고 오류 카드로 대체되지 않는다.
-    expect(screen.getByText("우리 지역 대표 저수지")).toBeInTheDocument();
+    // (TodayCard 항상 렌더되는 보조 줄을 앵커로 사용 — 정적 라벨은 시안대로 저수지명 탭으로 대체됨)
+    expect(screen.getByText(/저수지 실제 저수율은/)).toBeInTheDocument();
     expect(
       screen.queryByText("지금은 물 사정을 불러오지 못했어요"),
     ).not.toBeInTheDocument();
@@ -370,7 +371,7 @@ describe("단계 4 게이트 ④ — 접근성 자동화분", () => {
 
     // 모션 허용에서는 카운트업이 애니메이션하므로 rate 텍스트에 의존하지 않고,
     // 상태 모듈이 뜬 뒤 게이지의 data-motion만 확인한다.
-    await screen.findByText("우리 지역 대표 저수지");
+    await screen.findByText(/저수지 실제 저수율은/);
     await waitFor(() => {
       const gauge = container.querySelector("[data-motion]");
       expect(gauge?.getAttribute("data-motion")).toBe("flowing");

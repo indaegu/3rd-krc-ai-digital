@@ -1,41 +1,21 @@
 .gauge {
+  display: flex;
+  flex: none;
+  gap: 8px;
+  align-items: stretch;
+  height: 200px;
+}
+
+/* 비이커 — 배경은 옅은 회색, 물은 파랑(#2D83FF) 고정. 단계는 색으로 구분하지 않는다. */
+.beaker {
   position: relative;
   flex: none;
-  width: 74px;
-  height: 196px;
+  width: 78px;
+  height: 100%;
   overflow: hidden;
   border: 1.6px solid var(--gray200);
   border-radius: 16px;
-  background: var(--bg);
-  /* 물 색 단계 토큰 폴백(정상). data-stage가 덮어쓴다. 임계값은 여기 두지 않는다. */
-  --water-fg: var(--ok-fg);
-  --water-bg: var(--ok-bg);
-}
-
-/* 물 색 = 현재 공인 단계 색(drought-stage fg/bg 토큰). 초록 정상 → 빨강 심각. */
-.gauge[data-stage="ok"] {
-  --water-fg: var(--ok-fg);
-  --water-bg: var(--ok-bg);
-}
-
-.gauge[data-stage="watch"] {
-  --water-fg: var(--watch-fg);
-  --water-bg: var(--watch-bg);
-}
-
-.gauge[data-stage="care"] {
-  --water-fg: var(--care-fg);
-  --water-bg: var(--care-bg);
-}
-
-.gauge[data-stage="alert"] {
-  --water-fg: var(--alert-fg);
-  --water-bg: var(--alert-bg);
-}
-
-.gauge[data-stage="crit"] {
-  --water-fg: var(--crit-fg);
-  --water-bg: var(--crit-bg);
+  background: var(--gray100);
 }
 
 .water {
@@ -44,10 +24,10 @@
   bottom: 0;
   left: 0;
   height: 0%;
-  background: var(--water-fg);
+  background: var(--blue);
 }
 
-/* 물 출렁임 — 회전 타원 2겹(7s / 11s reverse), design-system.md 애니메이션 규격.
+/* 물 표면 출렁임 — 회전 타원 2겹(7s / 11s reverse). 파랑 고정.
    모션 허용(data-motion="flowing")일 때만 채움 transition·출렁임을 켠다. */
 .wave {
   position: absolute;
@@ -56,15 +36,15 @@
   width: 220px;
   height: 220px;
   border-radius: 41%;
-  background: var(--water-fg);
+  background: var(--blue);
   transform: translateX(-50%);
 }
 
 .w2 {
   top: -104px;
   border-radius: 37% 43% 40% 44%;
-  background: var(--water-bg);
-  opacity: 0.75;
+  background: var(--blue-deep);
+  opacity: 0.5;
 }
 
 .gauge[data-motion="flowing"] .water {
@@ -89,9 +69,8 @@
   }
 }
 
-/* 단계 눈금 — 정상/관심/주의/경계/심각 경계선(70/60/50/40)과 단계 라벨.
-   장식이라 aria-hidden 게이지 내부에 둔다(값·단계 텍스트는 TodayCard가 소유). */
-.zones {
+/* 단계 경계 눈금선(70/60/50/40) — 비이커 안에 옅게. 서버 stageBands 위치로만 그린다. */
+.lines {
   position: absolute;
   inset: 0;
   pointer-events: none;
@@ -100,18 +79,27 @@
 .zoneLine {
   position: absolute;
   right: 0;
-  left: 0;
+  width: 31px;
   height: 1px;
-  background: rgba(25, 31, 40, 0.16);
+  background: rgba(25, 31, 40, 0.14);
+}
+
+/* 우측 세로 단계 스케일 — 정상/관심/주의/경계/심각. 위→아래 정상→심각. */
+.scale {
+  position: relative;
+  flex: none;
+  width: 28px;
+  height: 100%;
 }
 
 .zoneLabel {
   position: absolute;
-  right: 4px;
+  left: 0;
   transform: translateY(50%);
   color: var(--ink3);
-  font-size: 8.5px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 600;
   line-height: 1;
   letter-spacing: -0.02em;
+  white-space: nowrap;
 }
