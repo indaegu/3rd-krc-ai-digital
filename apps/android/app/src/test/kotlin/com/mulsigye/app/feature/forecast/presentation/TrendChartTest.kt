@@ -14,6 +14,7 @@ import com.mulsigye.app.core.testing.RobolectricComposeTest
 import com.mulsigye.app.feature.forecast.domain.ForecastBandPoint
 import com.mulsigye.app.feature.forecast.domain.ForecastPoint
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -37,6 +38,21 @@ class TrendChartTest : RobolectricComposeTest() {
     /** geometry가 노출한 스케일로 값 → y를 재계산한다(밴드 검증의 기대치). */
     private fun yFor(geo: TrendGeometry, value: Double): Float =
         (geo.plotTop + (geo.plotBottom - geo.plotTop) * (1.0 - (value - geo.yLo) / (geo.yHi - geo.yLo))).toFloat()
+
+    @Test
+    fun `isForecastFlat는 평평하면 true, 기울면 false`() {
+        val flat = listOf(
+            ForecastBandPoint("2026-07-21", 68.0, 66.0, 69.0),
+            ForecastBandPoint("2026-07-22", 68.0, 66.0, 69.0),
+        )
+        val rising = listOf(
+            ForecastBandPoint("2026-07-21", 68.0, 66.0, 69.0),
+            ForecastBandPoint("2026-07-22", 72.0, 70.0, 74.0),
+        )
+        assertTrue(isForecastFlat(flat))
+        assertFalse(isForecastFlat(rising))
+        assertFalse(isForecastFlat(emptyList()))
+    }
 
     @Test
     fun bandEdgesAreDerivedFromApiLowHighOnly() {

@@ -40,6 +40,7 @@ import com.mulsigye.app.core.designsystem.theme.Ink
 import com.mulsigye.app.core.designsystem.theme.Ink2
 import com.mulsigye.app.core.designsystem.theme.Ink3
 import com.mulsigye.app.core.designsystem.theme.stageColorFor
+import com.mulsigye.app.feature.forecast.domain.ForecastBandPoint
 import com.mulsigye.app.feature.forecast.domain.ForecastResult
 import com.mulsigye.app.feature.forecast.domain.OfficialOutlook
 import com.mulsigye.app.feature.forecast.domain.StageGuideEntry
@@ -62,6 +63,13 @@ private val STAGE_GUIDE: List<StageGuideRow> = listOf(
 )
 
 private fun formatMae(value: Double): String = String.format(Locale.US, "%.1f", value)
+
+/** 예측값이 사실상 평평한지(naive 등) — 기우는 예측(linear 등)에는 캡션을 숨긴다. */
+internal fun isForecastFlat(points: List<ForecastBandPoint>): Boolean {
+    if (points.isEmpty()) return false
+    val ratios = points.map { it.avgRatio }
+    return (ratios.max() - ratios.min()) < 0.1
+}
 
 /**
  * 흐름 상세 화면 — 순수 컴포저블(상태 + 뒤로 콜백만).
@@ -102,18 +110,21 @@ fun TrendScreen(
                 )
             }
 
-            // 큰 차트 + 범례 + 평평선 설명 캡션.
+            // 큰 차트 + 범례 + (예측이 평평할 때만) 평평선 설명 캡션.
             MulsigyeCard {
                 TrendChart(forecast = data, height = 300.dp, showDates = true)
                 Spacer(Modifier.height(12.dp))
                 TrendLegend()
-                Spacer(Modifier.height(12.dp))
-                Text(
-                    text = "예측선이 평평한 건 지금 수준이 이어질 가능성이 가장 높다는 뜻이에요. " +
-                        "실제 오르내림은 흐린 띠 범위로 봐요.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Ink3,
-                )
+                // linear/ma7/ses 등 기우는 예측에는 부적합하므로 실제로 평평할 때만 표시.
+                if (isForecastFlat(data.forecast)) {
+                    Spacer(Modifier.height(12.dp))
+                    Text(
+                        text = "예측선이 평평한 건 지금 수준이 이어질 가능성이 가장 높다는 뜻이에요. " +
+                            "실제 오르내림은 흐린 띠 범위로 봐요.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Ink3,
+                    )
+                }
             }
 
             // 단계별 행동 가이드 — 서버 stageGuide. 없으면 기존 단계 기준 표로 폴백.

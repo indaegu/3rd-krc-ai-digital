@@ -114,4 +114,34 @@ describe("흐름 상세 — 평평한 예측선 캡션과 날짜 축", () => {
       screen.getByRole("heading", { level: 1, name: /지역 평년 대비 저수율/ }),
     ).toBeInTheDocument();
   });
+
+  it("예측이 기울면(평평하지 않으면) 평평선 캡션을 숨긴다", async () => {
+    seedRegion();
+    // 예측 avgRatio를 하루 1%p씩 올려 기우는 예측을 만든다(naive가 아닌 모델 가정).
+    const rising: ForecastResponse = {
+      ...WATCH,
+      forecast: WATCH.forecast.map((point, index) => ({
+        ...point,
+        avgRatio: point.avgRatio + index,
+      })),
+    };
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() => Promise.resolve(jsonResponse(rising))),
+    );
+
+    const { container } = render(<TrendPage />);
+    // 상세가 로드될 때까지 기다린 뒤(제목 등장) 캡션 부재를 확인한다.
+    await waitFor(() =>
+      expect(
+        screen.getByRole("heading", {
+          level: 1,
+          name: /지역 평년 대비 저수율/,
+        }),
+      ).toBeInTheDocument(),
+    );
+    expect(
+      container.querySelector('[data-testid="trend-flat-note"]'),
+    ).toBeNull();
+  });
 });
