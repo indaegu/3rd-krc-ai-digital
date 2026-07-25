@@ -45,6 +45,17 @@ data class YearlyPositionDto(
     val max: Double,
 )
 
+/**
+ * openapi.yaml `StatusResponse.stageBands[]`와 1:1. 공인 가뭄단계 구간(정상→심각).
+ * 임계값의 단일 출처는 서버 drought-stage이며 Android는 표시 전용으로만 쓴다.
+ */
+@Serializable
+data class StageBandDto(
+    val code: String,
+    val label: String,
+    val minRatio: Double,
+)
+
 /** openapi.yaml `StatusResponse`와 1:1. yearlyPosition은 v1 additive 옵션 필드다. */
 @Serializable
 data class StatusResponseDto(
@@ -58,4 +69,5 @@ data class StatusResponseDto(
     val sources: List<String>,
     val stale: Boolean,
     val yearlyPosition: YearlyPositionDto? = null,
+    val stageBands: List<StageBandDto>? = null,
 )

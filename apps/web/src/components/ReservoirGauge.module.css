@@ -7,6 +7,35 @@
   border: 1.6px solid var(--gray200);
   border-radius: 16px;
   background: var(--bg);
+  /* 물 색 단계 토큰 폴백(정상). data-stage가 덮어쓴다. 임계값은 여기 두지 않는다. */
+  --water-fg: var(--ok-fg);
+  --water-bg: var(--ok-bg);
+}
+
+/* 물 색 = 현재 공인 단계 색(drought-stage fg/bg 토큰). 초록 정상 → 빨강 심각. */
+.gauge[data-stage="ok"] {
+  --water-fg: var(--ok-fg);
+  --water-bg: var(--ok-bg);
+}
+
+.gauge[data-stage="watch"] {
+  --water-fg: var(--watch-fg);
+  --water-bg: var(--watch-bg);
+}
+
+.gauge[data-stage="care"] {
+  --water-fg: var(--care-fg);
+  --water-bg: var(--care-bg);
+}
+
+.gauge[data-stage="alert"] {
+  --water-fg: var(--alert-fg);
+  --water-bg: var(--alert-bg);
+}
+
+.gauge[data-stage="crit"] {
+  --water-fg: var(--crit-fg);
+  --water-bg: var(--crit-bg);
 }
 
 .water {
@@ -15,7 +44,7 @@
   bottom: 0;
   left: 0;
   height: 0%;
-  background: linear-gradient(180deg, #98cbff, #7eb6fa);
+  background: var(--water-fg);
 }
 
 /* 물 출렁임 — 회전 타원 2겹(7s / 11s reverse), design-system.md 애니메이션 규격.
@@ -27,14 +56,14 @@
   width: 220px;
   height: 220px;
   border-radius: 41%;
-  background: #98cbff;
+  background: var(--water-fg);
   transform: translateX(-50%);
 }
 
 .w2 {
   top: -104px;
   border-radius: 37% 43% 40% 44%;
-  background: #bfe0ff;
+  background: var(--water-bg);
   opacity: 0.75;
 }
 
@@ -58,4 +87,31 @@
   to {
     transform: translateX(-50%) rotate(360deg);
   }
+}
+
+/* 단계 눈금 — 정상/관심/주의/경계/심각 경계선(70/60/50/40)과 단계 라벨.
+   장식이라 aria-hidden 게이지 내부에 둔다(값·단계 텍스트는 TodayCard가 소유). */
+.zones {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.zoneLine {
+  position: absolute;
+  right: 0;
+  left: 0;
+  height: 1px;
+  background: rgba(25, 31, 40, 0.16);
+}
+
+.zoneLabel {
+  position: absolute;
+  right: 4px;
+  transform: translateY(50%);
+  color: var(--ink3);
+  font-size: 8.5px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.02em;
 }

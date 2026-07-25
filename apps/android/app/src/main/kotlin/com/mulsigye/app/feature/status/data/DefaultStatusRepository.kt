@@ -7,6 +7,7 @@ import com.mulsigye.app.feature.status.data.remote.StatusApi
 import com.mulsigye.app.feature.status.domain.DroughtStage
 import com.mulsigye.app.feature.status.domain.RegionStatus
 import com.mulsigye.app.feature.status.domain.ReservoirStatus
+import com.mulsigye.app.feature.status.domain.StageBand
 import com.mulsigye.app.feature.status.domain.StatusRepository
 import com.mulsigye.app.feature.status.domain.StatusResult
 import com.mulsigye.app.feature.status.domain.YearlyPosition
@@ -59,6 +60,9 @@ class DefaultStatusRepository(
                                 min = it.min,
                                 max = it.max,
                             )
+                        },
+                        stageBands = body.stageBands?.map {
+                            StageBand(code = it.code, label = it.label, minRatio = it.minRatio)
                         },
                         asOf = Instant.parse(body.asOf),
                         sources = body.sources,

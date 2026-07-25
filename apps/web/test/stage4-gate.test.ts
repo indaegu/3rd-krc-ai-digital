@@ -229,15 +229,15 @@ describe("단계 4 게이트 ① — 4개 상태 메인 전체 트리", () => {
 
       const { container } = render(createElement(HomePage));
 
-      // rate(대표 저수지 원저수율) — 카운트업은 reduced motion에서 최종 값 즉시 표시.
+      // 평년 대비(avgRatio) — 큰 숫자, 카운트업은 reduced motion에서 최종 값 즉시 표시.
+      const avgRatio = scenario.status.region.avgRatio;
+      expect(await screen.findByText(String(avgRatio))).toBeInTheDocument();
+
+      // 원저수율(rate)은 작은 보조 줄로 내려간다.
       const rate = scenario.status.reservoir.rate;
       expect(rate).not.toBeNull();
-      expect(await screen.findByText(String(rate))).toBeInTheDocument();
+      expect(screen.getByText(String(rate))).toBeInTheDocument();
 
-      // avgRatio(지역 평년 대비) + 단계 칩 라벨.
-      expect(
-        screen.getByText(`${scenario.status.region.avgRatio}%`),
-      ).toBeInTheDocument();
       // 단계 칩의 라벨은 <strong>이다. 차트 임계선 라벨(SVG text)과 겹치지 않게 스코프.
       expect(
         screen.getByText(scenario.status.region.officialStage.label, {
@@ -351,9 +351,9 @@ describe("단계 4 게이트 ④ — 접근성 자동화분", () => {
 
     const { container } = render(createElement(HomePage));
 
-    // 카운트업은 즉시 최종 값(0에서 애니메이션하지 않음).
+    // 카운트업(평년 대비 avgRatio)은 즉시 최종 값(0에서 애니메이션하지 않음).
     expect(
-      await screen.findByText(String(NORMAL.status.reservoir.rate)),
+      await screen.findByText(String(NORMAL.status.region.avgRatio)),
     ).toBeInTheDocument();
     // 게이지 물 출렁임 애니메이션은 정지 상태.
     const gauge = container.querySelector("[data-motion]");

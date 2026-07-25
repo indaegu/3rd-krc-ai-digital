@@ -257,11 +257,13 @@ class Stage5GateTest : RobolectricComposeTest() {
     private fun assertMainMatches(scenario: Scenario) {
         renderMainViaNetwork(scenario)
 
-        // rate(대표 저수지 원저수율) — reduced-motion에서 카운트업은 즉시 최종 값.
-        assertPresent(scenario.rate)
+        // 평년 대비(avgRatio) — 큰 숫자, reduced-motion에서 카운트업은 즉시 최종 값.
+        assertPresent(scenario.avgRatio, substring = true)
 
-        // avgRatio(지역 평년 대비) + 단계 칩 라벨 + 보조 라벨.
-        assertPresent("지역 평년 대비 ${scenario.avgRatio}%", substring = true)
+        // 원저수율(rate)은 작은 보조 줄로 내려간다.
+        assertPresent("저수지 실제 저수율은 ${scenario.rate}%예요", substring = true)
+
+        // 단계 칩 라벨 + 보조 라벨.
         assertPresent(scenario.stageLabel, substring = true)
         assertPresent("지역 평년 대비 기준")
 
@@ -348,8 +350,8 @@ class Stage5GateTest : RobolectricComposeTest() {
         // 화면 구조 유지: 상태 모듈은 그대로 뜨고 오류 카드로 대체되지 않는다.
         assertPresent("우리 지역 대표 저수지")
         assertAbsent("지금은 물 사정을 불러오지 못했어요")
-        // rate가 null이라 관측 폴백 문구를 보여준다(구조 불변).
-        assertPresent("관측값을 불러오지 못했어요")
+        // rate가 null이라 원저수율 보조 줄에 폴백 문구를 보여준다(구조 불변).
+        assertPresent("저수지 실제 저수율은 아직 없어요")
     }
 
     // ─────────────────────────────────────────────────────────────────────────────
@@ -410,9 +412,9 @@ class Stage5GateTest : RobolectricComposeTest() {
         setReducedMotion(0f)
         composeTestRule.mainClock.autoAdvance = false
         setContentReadyMain(normal)
-        // 클럭을 자동 진행하지 않는데도 reduced-motion에서는 snapTo로 즉시 목표값(84).
+        // 클럭을 자동 진행하지 않는데도 reduced-motion에서는 snapTo로 즉시 목표값(평년 대비 103).
         composeTestRule.mainClock.advanceTimeByFrame()
-        composeTestRule.onNodeWithText("84").assertIsDisplayed()
+        composeTestRule.onNodeWithText("103").assertIsDisplayed()
     }
 
     @Test
@@ -420,10 +422,10 @@ class Stage5GateTest : RobolectricComposeTest() {
         setReducedMotion(1f)
         composeTestRule.mainClock.autoAdvance = false
         setContentReadyMain(normal)
-        // 모션 허용이면 카운트업이 0에서 시작하므로 첫 프레임에는 최종 값(84)이 아직 아니다.
+        // 모션 허용이면 카운트업이 0에서 시작하므로 첫 프레임에는 최종 값(평년 대비 103)이 아직 아니다.
         composeTestRule.mainClock.advanceTimeByFrame()
         composeTestRule.onNodeWithText("우리 지역 대표 저수지").assertIsDisplayed()
-        composeTestRule.onAllNodesWithText("84").assertCountEquals(0)
+        composeTestRule.onAllNodesWithText("103").assertCountEquals(0)
     }
 
     // ─────────────────────────────────────────────────────────────────────────────

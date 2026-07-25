@@ -38,6 +38,17 @@ data class YearlyPosition(
     val max: Double,
 )
 
+/**
+ * 공인 가뭄단계 구간(정상→심각). minRatio는 각 단계의 평년 대비 하한(ok=70 … alert=40, crit=0).
+ * 임계값의 단일 출처는 서버 drought-stage다 — Android는 이 값을 게이지 눈금에 표시만 하고
+ * 숫자를 복제하지 않는다(규칙 10). 서버가 주지 않으면(구 페이로드) null이며 게이지는 눈금을 그리지 않는다.
+ */
+data class StageBand(
+    val code: String,
+    val label: String,
+    val minRatio: Double,
+)
+
 sealed interface StatusResult {
     data class Success(
         val sigunCode: String,
@@ -48,6 +59,8 @@ sealed interface StatusResult {
         val highWaterNotice: Boolean,
         /** 올해 흐름 속 현재 위치. 서버 확정값이며, 스냅샷에 없는 지역은 null이다. */
         val yearlyPosition: YearlyPosition? = null,
+        /** 게이지 단계 눈금(정상→심각). 서버 확정값이며, 구 페이로드에는 없어 null일 수 있다. */
+        val stageBands: List<StageBand>? = null,
         val asOf: Instant,
         val sources: List<String>,
         val stale: Boolean,

@@ -43,25 +43,34 @@
   font-weight: 800;
 }
 
-.noData {
-  margin: 0;
-  color: var(--ink2);
-  font-size: 1.125rem;
-  font-weight: 700;
+.secondary {
+  margin: 4px 0 0;
+  color: var(--ink3);
+  font-size: 0.875rem;
+  font-weight: 500;
 }
 
-.avg {
-  margin: 0;
+.secondary b {
   color: var(--ink2);
-  font-size: 0.9375rem;
-}
-
-.avg b {
   font-weight: 800;
 }
 
 .chipRow {
   margin-top: 2px;
+}
+
+.gaugeCol {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 6px;
+  align-items: center;
+}
+
+.gaugeLabel {
+  color: var(--ink3);
+  font-size: 0.8125rem;
+  font-weight: 700;
 }
 
 .headline {
