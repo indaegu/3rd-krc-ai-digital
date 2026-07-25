@@ -248,6 +248,15 @@ export interface components {
         /** @description 올해 분포 최댓값(avgRatio %) */
         max: number;
       } | null;
+      /** @description 공인 가뭄단계 구간(평년 대비 %). 정상→심각 순서로 각 단계의 하한 minRatio를 담는다(ok=70, watch=60, care=50, alert=40, crit=0). 임계값의 단일 출처는 서버 drought-stage이며 클라이언트는 이 숫자를 복제하지 않는다 — 게이지의 단계 눈금에 그대로 쓴다. 값이 없으면 게이지는 눈금 없이 채움만 그린다. v1 호환 additive 옵션 필드다 */
+      stageBands?: {
+        /** @enum {string} */
+        code: "ok" | "watch" | "care" | "alert" | "crit";
+        /** @description 단계 한국어 라벨 */
+        label: string;
+        /** @description 이 단계의 평년 대비 하한(%). ok=70 … alert=40, crit=0 */
+        minRatio: number;
+      }[];
     };
     /** @description 요청 지역과 같은 시·도에 속한 지역들의 최신 공식 단계·평년 대비 저수율 비교. 좌표가 없어 '주변'은 같은 시·도로 정의한다. 커밋 스냅샷 기반이라 stale=true다 */
     NearbyResponse: {

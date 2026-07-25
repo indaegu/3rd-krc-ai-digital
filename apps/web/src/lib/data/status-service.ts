@@ -10,6 +10,7 @@ import { z } from "zod";
 import { isHighWaterNotice } from "../prediction/high-water.ts";
 import {
   STAGE_LABEL_BY_CODE,
+  droughtStageBands,
   stageCodeFromAvgRatio,
   stageCodeFromLabel,
   type DroughtStageCode,
@@ -476,6 +477,8 @@ export async function buildStatus(
       resolution.sigunCode ?? sigunCode,
       region.avgRatio,
     ),
+    // 게이지 단계 눈금 — 공인 임계값의 단일 출처(drought-stage)에서만 파생한다.
+    stageBands: droughtStageBands(),
   };
   return { kind: "ok", body };
 }

@@ -54,7 +54,8 @@ let socket;
 
 try {
   const portFile = join(profileDir, 'DevToolsActivePort');
-  await waitUntil(() => existsSync(portFile), '브라우저 디버깅 포트가 열리지 않았어요.');
+  // 브라우저 콜드스타트는 CI 러너 부하에 따라 8초를 넘길 수 있어 넉넉히 기다린다(플레이크 방지).
+  await waitUntil(() => existsSync(portFile), '브라우저 디버깅 포트가 열리지 않았어요.', 45_000);
   const [port] = readFileSync(portFile, 'utf8').trim().split(/\r?\n/);
 
   const targets = await fetch(`http://127.0.0.1:${port}/json/list`).then((response) => response.json());

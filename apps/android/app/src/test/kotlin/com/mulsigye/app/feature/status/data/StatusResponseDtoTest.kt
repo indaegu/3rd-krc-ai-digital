@@ -73,4 +73,20 @@ class StatusResponseDtoTest {
         val d = json.decodeFromString<StatusResponseDto>(Fixtures.read("status.ok.json"))
         assertNull(d.yearlyPosition)
     }
+
+    @Test
+    fun decodesStageBandsWhenPresent() {
+        val d = json.decodeFromString<StatusResponseDto>(Fixtures.read("status.bands.json"))
+        val bands = d.stageBands!!
+        assertEquals(5, bands.size)
+        assertEquals(listOf("ok", "watch", "care", "alert", "crit"), bands.map { it.code })
+        assertEquals(listOf(70.0, 60.0, 50.0, 40.0, 0.0), bands.map { it.minRatio })
+        assertEquals("정상", bands.first().label)
+    }
+
+    @Test
+    fun stageBandsIsNullWhenAbsent() {
+        val d = json.decodeFromString<StatusResponseDto>(Fixtures.read("status.ok.json"))
+        assertNull(d.stageBands)
+    }
 }

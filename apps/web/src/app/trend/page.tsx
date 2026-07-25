@@ -128,8 +128,17 @@ export default function TrendPage() {
   );
 }
 
+/** 예측값이 사실상 평평한지(naive 등) — linear/ma7/ses는 기울 수 있어 캡션 조건이 된다. */
+function isForecastFlat(forecast: ForecastResponse["forecast"]): boolean {
+  if (forecast.length === 0) return false;
+  const ratios = forecast.map((point) => point.avgRatio);
+  return Math.max(...ratios) - Math.min(...ratios) < 0.1;
+}
+
 function TrendDetail({ data }: { data: ForecastResponse }) {
   const outlook = data.officialOutlook;
+  // 예측선이 실제로 평평할 때만 "평평한 건 …" 설명을 보여준다(기우는 예측엔 부적합).
+  const forecastFlat = isForecastFlat(data.forecast);
   return (
     <>
       <div className={styles.pagehead}>
@@ -141,7 +150,7 @@ function TrendDetail({ data }: { data: ForecastResponse }) {
       </div>
 
       <Card>
-        <TrendChart forecast={data} height={300} />
+        <TrendChart forecast={data} height={300} showDates />
         <ul className={styles.legend} aria-label="차트 범례">
           <li>
             <i className={styles.legendSolid} aria-hidden="true" />
@@ -156,6 +165,12 @@ function TrendDetail({ data }: { data: ForecastResponse }) {
             불확실 구간
           </li>
         </ul>
+        {forecastFlat ? (
+          <p className={styles.flatNote} data-testid="trend-flat-note">
+            예측선이 평평한 건 지금 수준이 이어질 가능성이 가장 높다는 뜻이에요.
+            실제 오르내림은 흐린 띠 범위로 봐요.
+          </p>
+        ) : null}
       </Card>
 
       <StageGuideCard stageGuide={data.stageGuide} />

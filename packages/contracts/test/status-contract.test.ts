@@ -143,6 +143,66 @@ describe("status contract fixtures", () => {
     const buckets = ["low", "mid", "high"] as const;
     expectTypeOf<(typeof buckets)[number]>().toEqualTypeOf<Bucket>();
   });
+
+  it("keeps stageBands optional with the ok→crit shape/enum (v1 additive)", () => {
+    const base: StatusResponse = {
+      schemaVersion: "1",
+      sigunCode: "44230",
+      sigunName: "논산시",
+      reservoir: {
+        facCode: "4423010045",
+        name: "탑정",
+        rate: 87.5,
+        waterLevel: 32.1,
+        observedOn: "2026-07-20",
+      },
+      region: {
+        observedOn: "2026-07-20",
+        regionalRate: 82.4,
+        normalRate: 88.1,
+        avgRatio: 93.5,
+        officialStage: { code: "ok", label: "정상" },
+      },
+      highWaterNotice: false,
+      asOf: "2026-07-21T00:00:00.000Z",
+      sources: ["논가뭄지도"],
+      stale: false,
+    };
+
+    // 필드가 없어도 계약에 정합해야 한다(옵션 필드).
+    const withoutBands = { ...base } satisfies StatusResponse;
+    expectTypeOf(withoutBands).toMatchTypeOf<StatusResponse>();
+
+    // 값을 붙인 픽스처: 정상→심각 순서와 하한(70/60/50/40/0).
+    const withBands = {
+      ...base,
+      stageBands: [
+        { code: "ok" as const, label: "정상", minRatio: 70 },
+        { code: "watch" as const, label: "관심", minRatio: 60 },
+        { code: "care" as const, label: "주의", minRatio: 50 },
+        { code: "alert" as const, label: "경계", minRatio: 40 },
+        { code: "crit" as const, label: "심각", minRatio: 0 },
+      ],
+    } satisfies StatusResponse;
+    expect(withBands.stageBands.map((band) => band.minRatio)).toEqual([
+      70, 60, 50, 40, 0,
+    ]);
+
+    // 데모 픽스처에도 stageBands가 실려 있다(present-path).
+    expect(statusNormalDemo.stageBands?.[0]).toEqual({
+      code: "ok",
+      label: "정상",
+      minRatio: 70,
+    });
+    // ok/stale 픽스처에는 없다(absent-path 폴백).
+    expect((statusOk as StatusResponse).stageBands).toBeUndefined();
+  });
+
+  it("limits stageBands.code to the five UI tokens", () => {
+    type BandCode = NonNullable<StatusResponse["stageBands"]>[number]["code"];
+    const codes = ["ok", "watch", "care", "alert", "crit"] as const;
+    expectTypeOf<(typeof codes)[number]>().toEqualTypeOf<BandCode>();
+  });
 });
 
 // 4개 상태 데모 픽스처 — product.md 상태 표(정상·가뭄 진행·심각 임박·장마 만수위)의
@@ -183,6 +243,13 @@ describe("status demo fixtures — product.md 상태 표 4종", () => {
       asOf: "2026-07-21T00:00:00.000Z",
       sources: ["농촌용수 저수지 수위정보 조회", "논가뭄지도"],
       stale: false,
+      stageBands: [
+        { code: "ok", label: "정상", minRatio: 70 },
+        { code: "watch", label: "관심", minRatio: 60 },
+        { code: "care", label: "주의", minRatio: 50 },
+        { code: "alert", label: "경계", minRatio: 40 },
+        { code: "crit", label: "심각", minRatio: 0 },
+      ],
     } satisfies StatusResponse;
   }
 

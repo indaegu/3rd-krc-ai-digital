@@ -48,6 +48,41 @@ export function stageCodeFromLabel(label: string): DroughtStageCode | null {
     : null;
 }
 
+/** 단계 순서(정상→심각). 게이지 눈금·stageBands 조립에 쓴다. */
+export const STAGE_ORDER: readonly DroughtStageCode[] = [
+  "ok",
+  "watch",
+  "care",
+  "alert",
+  "crit",
+];
+
+export interface DroughtStageBand {
+  code: DroughtStageCode;
+  label: DroughtStageLabel;
+  /** 이 단계의 평년 대비 하한(%). ok=70 … alert=40, crit=0. */
+  minRatio: number;
+}
+
+/**
+ * 게이지 단계 눈금용 구간(정상→심각). 각 단계의 평년 대비 하한(minRatio)을
+ * DROUGHT_STAGE_THRESHOLDS 단일 출처에서만 파생한다(심각은 하한 0). 숫자를 다시
+ * 나열하지 않는다 — 임계값은 오직 이 파일에 있다(규칙 10). 서버가 이 값을 그대로
+ * StatusResponse.stageBands로 내보내고, 웹·Android 게이지는 그것을 소비한다.
+ */
+export function droughtStageBands(): DroughtStageBand[] {
+  return STAGE_ORDER.map((code) => ({
+    code,
+    label: STAGE_LABEL_BY_CODE[code],
+    minRatio:
+      code === "crit"
+        ? 0
+        : DROUGHT_STAGE_THRESHOLDS[
+            code as keyof typeof DROUGHT_STAGE_THRESHOLDS
+          ],
+  }));
+}
+
 const OUTLOOK_LABELS: readonly DroughtStageLabel[] = [
   "정상",
   "관심",

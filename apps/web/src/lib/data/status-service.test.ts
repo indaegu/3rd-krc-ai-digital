@@ -596,6 +596,24 @@ describe("buildStatus — 올해 흐름 속 현재 위치(yearlyPosition)", () =
   });
 });
 
+describe("buildStatus — 게이지 단계 눈금(stageBands)", () => {
+  it("정상→심각 순서로 공인 임계값(70/60/50/40/0)을 단일 출처에서 파생해 담는다", async () => {
+    const { client } = makeStatusClient({
+      regional: { data: [REGIONAL_ROW], error: null },
+    });
+    const result = await buildStatus(NONSAN, makeDeps(okFetch, client));
+
+    if (result.kind !== "ok") throw new Error("ok여야 한다");
+    expect(result.body.stageBands).toEqual([
+      { code: "ok", label: "정상", minRatio: 70 },
+      { code: "watch", label: "관심", minRatio: 60 },
+      { code: "care", label: "주의", minRatio: 50 },
+      { code: "alert", label: "경계", minRatio: 40 },
+      { code: "crit", label: "심각", minRatio: 0 },
+    ]);
+  });
+});
+
 describe("buildStatus — 준비되지 않은 지역", () => {
   it("논가뭄지도에 없는 광역시 구 코드(27140)는 not_prepared", async () => {
     const { client } = makeStatusClient({});

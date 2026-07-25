@@ -1,9 +1,15 @@
 package com.mulsigye.app.feature.forecast.presentation
 
+import android.graphics.Paint
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -12,6 +18,9 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipRect
+import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
@@ -21,6 +30,8 @@ import com.mulsigye.app.core.designsystem.theme.BlueDeep
 import com.mulsigye.app.core.designsystem.theme.BlueSoft
 import com.mulsigye.app.core.designsystem.theme.Bg
 import com.mulsigye.app.core.designsystem.theme.Gray100
+import com.mulsigye.app.core.designsystem.theme.Ink3
+import com.mulsigye.app.core.ui.rememberReducedMotion
 import com.mulsigye.app.feature.forecast.domain.ForecastBandPoint
 import com.mulsigye.app.feature.forecast.domain.ForecastPoint
 import com.mulsigye.app.feature.forecast.domain.ForecastResult
@@ -140,6 +151,9 @@ fun computeTrendGeometry(
  * - 실측=파랑 실선, 예측=진파랑 점선, 불확실 밴드=옅은 파랑 폴리곤(forecast.low/high만).
  * - '오늘' 수직선 + 기준점 마커(basis.avgRatio). y축 라벨·임계선은 표시 규격상 생략한다
  *   (가뭄 임계 상수를 Android에 두지 않기 위함).
+ * - [showDates]=true(상세)면 x축에 날짜 라벨을 그린다(observedOn에서만, 미니는 생략).
+ * - 그려-들어오기: 마운트 시 progress 0→1로 선·밴드를 왼→오른 클립으로 드러낸다(밴드는
+ *   함께 페이드). OS "애니메이션 삭제"([rememberReducedMotion])면 즉시 최종 상태로 스냅한다.
  * - `contentDescription`에 "지역 평년 대비 저수율 흐름" + 시각 요약을 담아 스크린리더를 돕는다.
  */
 @Composable
@@ -147,8 +161,22 @@ fun TrendChart(
     forecast: ForecastResult.Success,
     modifier: Modifier = Modifier,
     height: Dp = 220.dp,
+    showDates: Boolean = false,
 ) {
-    val description = buildContentDescription(forecast)
+    val description = buildContentDescription(forecast, includeDates = showDates)
+    val reducedMotion = rememberReducedMotion()
+
+    // 그려-들어오기 진행도 0→1. reduced-motion이면 즉시 1로 스냅(애니메이션 없음).
+    val progress = remember { Animatable(0f) }
+    LaunchedEffect(reducedMotion) {
+        if (reducedMotion) {
+            progress.snapTo(1f)
+        } else {
+            progress.snapTo(0f)
+            progress.animateTo(1f, tween(durationMillis = 820, easing = FastOutSlowInEasing))
+        }
+    }
+
     Canvas(
         modifier = modifier
             .fillMaxWidth()
@@ -162,22 +190,9 @@ fun TrendChart(
             width = size.width,
             height = size.height,
         )
+        val reveal = progress.value.coerceIn(0f, 1f)
 
-        // 불확실 밴드(위 high 정방향 + 아래 low 역방향 폴리곤).
-        if (geo.bandTop.isNotEmpty()) {
-            val band = Path()
-            geo.bandTop.forEachIndexed { i, o ->
-                if (i == 0) band.moveTo(o.x, o.y) else band.lineTo(o.x, o.y)
-            }
-            for (i in geo.bandBottom.indices.reversed()) {
-                val o = geo.bandBottom[i]
-                band.lineTo(o.x, o.y)
-            }
-            band.close()
-            drawPath(path = band, color = BlueSoft, alpha = 0.7f)
-        }
-
-        // 오늘 수직 안내선(밴드·선 아래).
+        // 오늘 수직 안내선(정적 — 드러내기 클립 밖).
         geo.todayX?.let { tx ->
             drawLine(
                 color = Gray100,
@@ -187,23 +202,94 @@ fun TrendChart(
             )
         }
 
-        // 실측 실선.
-        drawPolyline(geo.history, Blue, 2.8.dp.toPx())
+        // 선·밴드는 왼→오른으로 드러낸다(reveal 폭까지만 클립).
+        clipRect(left = 0f, top = 0f, right = size.width * reveal, bottom = size.height) {
+            // 불확실 밴드(위 high 정방향 + 아래 low 역방향 폴리곤). 밴드는 함께 페이드.
+            if (geo.bandTop.isNotEmpty()) {
+                val band = Path()
+                geo.bandTop.forEachIndexed { i, o ->
+                    if (i == 0) band.moveTo(o.x, o.y) else band.lineTo(o.x, o.y)
+                }
+                for (i in geo.bandBottom.indices.reversed()) {
+                    val o = geo.bandBottom[i]
+                    band.lineTo(o.x, o.y)
+                }
+                band.close()
+                drawPath(path = band, color = BlueSoft, alpha = 0.7f * reveal)
+            }
 
-        // 예측 점선.
-        drawPolyline(
-            geo.forecast,
-            BlueDeep,
-            2.3.dp.toPx(),
-            pathEffect = PathEffect.dashPathEffect(floatArrayOf(5.dp.toPx(), 6.dp.toPx())),
-        )
+            // 실측 실선.
+            drawPolyline(geo.history, Blue, 2.8.dp.toPx())
 
-        // 오늘 기준점 마커(basis.avgRatio) — 흰 테두리.
-        geo.marker?.let { m ->
-            drawCircle(color = Bg, radius = 6.4.dp.toPx(), center = m)
-            drawCircle(color = BlueDeep, radius = 4.6.dp.toPx(), center = m)
+            // 예측 점선.
+            drawPolyline(
+                geo.forecast,
+                BlueDeep,
+                2.3.dp.toPx(),
+                pathEffect = PathEffect.dashPathEffect(floatArrayOf(5.dp.toPx(), 6.dp.toPx())),
+            )
+
+            // 오늘 기준점 마커(basis.avgRatio) — 흰 테두리.
+            geo.marker?.let { m ->
+                drawCircle(color = Bg, radius = 6.4.dp.toPx(), center = m)
+                drawCircle(color = BlueDeep, radius = 4.6.dp.toPx(), center = m)
+            }
+        }
+
+        // x축 날짜 라벨(상세 전용, 정적) — observedOn에서만 유도한다.
+        if (showDates) {
+            drawDateLabels(geo, forecast.history, forecast.forecast)
         }
     }
+}
+
+/**
+ * x축 날짜 라벨 — 첫 실측 날짜(왼쪽), '오늘'(경계=마지막 실측/첫 예측), 마지막 예측 날짜(오른쪽).
+ * 모든 문자열은 observedOn에서만 온다. 44개 점을 다 찍지 않고 3개만 둬 붐비지 않게 한다.
+ */
+private fun DrawScope.drawDateLabels(
+    geo: TrendGeometry,
+    history: List<ForecastPoint>,
+    forecast: List<ForecastBandPoint>,
+) {
+    val paint = Paint().apply {
+        color = Ink3.toArgb()
+        textSize = 12.dp.toPx()
+        isAntiAlias = true
+    }
+    val baselineY = size.height - 6.dp.toPx()
+
+    history.firstOrNull()?.let { first ->
+        paint.textAlign = Paint.Align.LEFT
+        drawContext.canvas.nativeCanvas.drawText(
+            formatMonthDay(first.observedOn),
+            geo.plotLeft,
+            baselineY,
+            paint,
+        )
+    }
+    geo.todayX?.let { tx ->
+        paint.textAlign = Paint.Align.CENTER
+        drawContext.canvas.nativeCanvas.drawText("오늘", tx, baselineY, paint)
+    }
+    forecast.lastOrNull()?.let { last ->
+        paint.textAlign = Paint.Align.RIGHT
+        drawContext.canvas.nativeCanvas.drawText(
+            formatMonthDay(last.observedOn),
+            geo.plotRight,
+            baselineY,
+            paint,
+        )
+    }
+}
+
+/** "YYYY-MM-DD" → "M/D"(앞자리 0 제거). 파싱 실패 시 원문 반환. */
+internal fun formatMonthDay(observedOn: String): String {
+    val parts = observedOn.split("-")
+    if (parts.size < 3) return observedOn
+    val month = parts[1].toIntOrNull() ?: return observedOn
+    val day = parts[2].toIntOrNull() ?: return observedOn
+    return "$month/$day"
 }
 
 private fun DrawScope.drawPolyline(
@@ -227,7 +313,10 @@ private fun DrawScope.drawPolyline(
 }
 
 /** 예측 단정 표현을 피하고 "보여요"만 쓰는 시각 요약(규칙 3). */
-private fun buildContentDescription(forecast: ForecastResult.Success): String {
+private fun buildContentDescription(
+    forecast: ForecastResult.Success,
+    includeDates: Boolean = false,
+): String {
     val history = forecast.history
     val future = forecast.forecast
     val parts = ArrayList<String>()
@@ -240,6 +329,10 @@ private fun buildContentDescription(forecast: ForecastResult.Success): String {
     val lastFuture = future.lastOrNull()
     if (lastFuture != null) {
         parts += "앞으로 ${future.size}일은 ${formatRatio(lastFuture.low)}%에서 ${formatRatio(lastFuture.high)}% 사이로 보여요."
+    }
+    // 상세 차트는 날짜 축(observedOn)을 함께 읽어준다.
+    if (includeDates && first != null && lastFuture != null) {
+        parts += "기간은 ${formatMonthDay(first.observedOn)}부터 ${formatMonthDay(lastFuture.observedOn)}까지예요."
     }
     return parts.joinToString(" ")
 }

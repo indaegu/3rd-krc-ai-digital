@@ -1,7 +1,7 @@
 "use client";
 
 // 오늘 우리 저수지 모듈 — 두 저수율을 분리해 보여준다(product.md).
-// 게이지·큰 숫자 = 대표 저수지 원저수율 rate, 단계 칩 = 지역 avgRatio.
+// 게이지·큰 숫자 = 지역 평년 대비 avgRatio(단계 칩·게이지 눈금과 같은 축), 원저수율 rate는 보조 줄.
 
 import type { StatusResponse } from "@mulsigye/contracts";
 import { useEffect, useRef } from "react";
@@ -59,19 +59,21 @@ interface TodayCardProps {
 
 export function TodayCard({ status }: TodayCardProps) {
   const rate = status.reservoir.rate;
+  const avgRatio = status.region.avgRatio;
+  const stageCode = status.region.officialStage.code;
   const numberRef = useRef<HTMLSpanElement>(null);
 
-  // rate 카운트업(0.6s). reduced motion·rAF 없는 환경(jsdom)은 즉시 최종 값.
+  // 평년 대비(avgRatio) 카운트업(0.6s). reduced motion·rAF 없는 환경(jsdom)은 즉시 최종 값.
   useEffect(() => {
     const el = numberRef.current;
-    if (el === null || rate === null) {
+    if (el === null) {
       return;
     }
     if (
       prefersReducedMotion() ||
       typeof window.requestAnimationFrame !== "function"
     ) {
-      el.textContent = formatRate(rate);
+      el.textContent = formatRate(avgRatio);
       return;
     }
     let raf = 0;
@@ -79,18 +81,20 @@ export function TodayCard({ status }: TodayCardProps) {
     const tick = (now: number) => {
       const progress = Math.min((now - startedAt) / COUNT_UP_MS, 1);
       el.textContent =
-        progress < 1 ? String(Math.round(rate * progress)) : formatRate(rate);
+        progress < 1
+          ? String(Math.round(avgRatio * progress))
+          : formatRate(avgRatio);
       if (progress < 1) {
         raf = window.requestAnimationFrame(tick);
       }
     };
     raf = window.requestAnimationFrame(tick);
     return () => window.cancelAnimationFrame(raf);
-  }, [rate]);
+  }, [avgRatio]);
 
   const headline = status.highWaterNotice
     ? HIGH_WATER_HEADLINE
-    : HEADLINE_BY_STAGE[status.region.officialStage.code];
+    : HEADLINE_BY_STAGE[stageCode];
 
   const yearly = status.yearlyPosition;
 
@@ -99,22 +103,22 @@ export function TodayCard({ status }: TodayCardProps) {
       <h2 className={styles.eyebrow}>우리 지역 대표 저수지</h2>
       <div className={styles.hero}>
         <div className={styles.info}>
-          <p className={styles.valueLabel}>현재 저수율</p>
-          {rate === null ? (
-            <p className={styles.noData}>관측값을 불러오지 못했어요</p>
-          ) : (
-            <p className={styles.rateLine}>
-              <span ref={numberRef}>0</span>
-              <span className={styles.rateUnit}>%</span>
-            </p>
-          )}
-          <p className={styles.avg}>
-            지역 평년 대비 <b>{status.region.avgRatio}%</b>
+          <p className={styles.valueLabel}>평년 대비</p>
+          <p className={styles.rateLine}>
+            <span ref={numberRef}>0</span>
+            <span className={styles.rateUnit}>%</span>
           </p>
           <div className={styles.chipRow}>
-            <StageChip code={status.region.officialStage.code} />
+            <StageChip code={stageCode} />
           </div>
           <p className={styles.headline}>{headline}</p>
+          {rate === null ? (
+            <p className={styles.secondary}>저수지 실제 저수율은 아직 없어요</p>
+          ) : (
+            <p className={styles.secondary}>
+              저수지 실제 저수율은 <b>{formatRate(rate)}</b>%예요
+            </p>
+          )}
           {yearly != null && (
             <div className={styles.yearly}>
               <p className={styles.yearlyHeadline}>
@@ -126,7 +130,14 @@ export function TodayCard({ status }: TodayCardProps) {
             </div>
           )}
         </div>
-        <ReservoirGauge rate={rate} />
+        <div className={styles.gaugeCol}>
+          <span className={styles.gaugeLabel}>평년 대비</span>
+          <ReservoirGauge
+            avgRatio={avgRatio}
+            stageCode={stageCode}
+            stageBands={status.stageBands ?? null}
+          />
+        </div>
       </div>
     </Card>
   );

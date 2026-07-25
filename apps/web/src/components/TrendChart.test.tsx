@@ -155,6 +155,59 @@ describe("TrendChart 빈 예측 안전 가드", () => {
   });
 });
 
+/** 컴포넌트와 동일한 "YYYY-MM-DD" → "M/D" 포맷(기대치 계산용). */
+function monthDay(observedOn: string): string {
+  const [, m, d] = observedOn.split("-");
+  return `${Number(m)}/${Number(d)}`;
+}
+
+describe("TrendChart x축 날짜 라벨 — 상세 전용(observedOn에서만)", () => {
+  it("showDates면 첫 실측·마지막 예측 날짜(M/D)와 '오늘'을 표시한다", () => {
+    const { container } = render(<TrendChart forecast={WATCH} showDates />);
+
+    const firstDate = monthDay(WATCH.history[0]!.observedOn);
+    const lastDate = monthDay(
+      WATCH.forecast[WATCH.forecast.length - 1]!.observedOn,
+    );
+
+    expect(container.textContent).toContain(firstDate);
+    expect(container.textContent).toContain(lastDate);
+    expect(container.textContent).toContain("오늘");
+
+    // 축 라벨 자리에 실제 날짜가 들어간다(상대 표기 아님).
+    expect(
+      container.querySelector('[data-testid="trend-axis-start"]')?.textContent,
+    ).toBe(firstDate);
+    expect(
+      container.querySelector('[data-testid="trend-axis-end"]')?.textContent,
+    ).toBe(lastDate);
+  });
+
+  it("미니(showDates 미지정)는 날짜 대신 상대 표기를 쓰고 M/D 날짜가 없다", () => {
+    const { container } = render(<TrendChart forecast={WATCH} />);
+
+    const firstDate = monthDay(WATCH.history[0]!.observedOn);
+    expect(container.textContent).not.toContain(firstDate);
+    // 미니는 상대 표기.
+    expect(container.textContent).toContain(`${WATCH.history.length}일 전`);
+    expect(container.textContent).toContain(`+${WATCH.forecast.length}일`);
+  });
+});
+
+describe("TrendChart 그려-들어오기 — reduced-motion 정적 경로", () => {
+  it("matchMedia가 없는 환경(reduced motion)에서는 즉시 최종 상태로 드러난다", () => {
+    // jsdom에는 matchMedia가 없어 prefersReducedMotion()이 true다 → 애니메이션 없이 shown.
+    const { container } = render(<TrendChart forecast={WATCH} showDates />);
+
+    const reveal = container.querySelector('[data-testid="trend-reveal"]');
+    expect(reveal).not.toBeNull();
+    expect(reveal?.getAttribute("data-reveal")).toBe("shown");
+    // 데이터 경로가 여전히 렌더된다(정적 경로 도달 가능).
+    expect(queryPath(container, "trend-actual")).not.toBeNull();
+    expect(queryPath(container, "trend-band")).not.toBeNull();
+  });
+});
+
 describe("TrendChart 결정성", () => {
   it("같은 입력이면 항상 같은 마크업을 만든다", () => {
     const first = render(<TrendChart forecast={WATCH} />);

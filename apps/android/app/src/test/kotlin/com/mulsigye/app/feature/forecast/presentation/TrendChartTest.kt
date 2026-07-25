@@ -1,14 +1,20 @@
 package com.mulsigye.app.feature.forecast.presentation
 
+import android.content.Context
+import android.provider.Settings
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.test.core.app.ApplicationProvider
 import com.mulsigye.app.core.designsystem.theme.MulsigyeTheme
 import com.mulsigye.app.core.testing.ForecastFixtures
 import com.mulsigye.app.core.testing.RobolectricComposeTest
 import com.mulsigye.app.feature.forecast.domain.ForecastBandPoint
 import com.mulsigye.app.feature.forecast.domain.ForecastPoint
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -32,6 +38,21 @@ class TrendChartTest : RobolectricComposeTest() {
     /** geometry가 노출한 스케일로 값 → y를 재계산한다(밴드 검증의 기대치). */
     private fun yFor(geo: TrendGeometry, value: Double): Float =
         (geo.plotTop + (geo.plotBottom - geo.plotTop) * (1.0 - (value - geo.yLo) / (geo.yHi - geo.yLo))).toFloat()
+
+    @Test
+    fun `isForecastFlat는 평평하면 true, 기울면 false`() {
+        val flat = listOf(
+            ForecastBandPoint("2026-07-21", 68.0, 66.0, 69.0),
+            ForecastBandPoint("2026-07-22", 68.0, 66.0, 69.0),
+        )
+        val rising = listOf(
+            ForecastBandPoint("2026-07-21", 68.0, 66.0, 69.0),
+            ForecastBandPoint("2026-07-22", 72.0, 70.0, 74.0),
+        )
+        assertTrue(isForecastFlat(flat))
+        assertFalse(isForecastFlat(rising))
+        assertFalse(isForecastFlat(emptyList()))
+    }
 
     @Test
     fun bandEdgesAreDerivedFromApiLowHighOnly() {
@@ -115,5 +136,52 @@ class TrendChartTest : RobolectricComposeTest() {
         composeTestRule
             .onNodeWithContentDescription("지역 평년 대비 저수율 흐름", substring = true)
             .assertIsDisplayed()
+    }
+
+    @Test
+    fun formatMonthDayStripsLeadingZeros() {
+        assertEquals("6/21", formatMonthDay("2026-06-21"))
+        assertEquals("8/3", formatMonthDay("2026-08-03"))
+        assertEquals("11/2", formatMonthDay("2025-11-02"))
+    }
+
+    /** OS "애니메이션 삭제"를 켜 그려-들어오기 애니메이션을 즉시 완료(reduced-motion 경로)로 만든다. */
+    private fun forceReducedMotion() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        Settings.Global.putFloat(
+            context.contentResolver,
+            Settings.Global.ANIMATOR_DURATION_SCALE,
+            0f,
+        )
+    }
+
+    @Test
+    fun detailChartAddsDateRangeAndRendersUnderReducedMotion() {
+        // reduced-motion에서 progress가 즉시 1로 스냅돼 정적 렌더된다.
+        forceReducedMotion()
+        val data = ForecastFixtures.success("forecast.watch.json")
+        composeTestRule.setContent {
+            MulsigyeTheme {
+                TrendChart(forecast = data, showDates = true)
+            }
+        }
+        // 상세는 날짜 축을 접근성 설명에도 담는다(observedOn에서만).
+        composeTestRule
+            .onNodeWithContentDescription("기간은", substring = true)
+            .assertIsDisplayed()
+    }
+
+    @Test
+    fun miniChartOmitsDateRange() {
+        val data = ForecastFixtures.success("forecast.watch.json")
+        composeTestRule.setContent {
+            MulsigyeTheme {
+                TrendChart(forecast = data)
+            }
+        }
+        // 미니는 날짜 축이 없다(설명에 기간 문구 없음).
+        composeTestRule
+            .onAllNodesWithContentDescription("기간은", substring = true)
+            .assertCountEquals(0)
     }
 }

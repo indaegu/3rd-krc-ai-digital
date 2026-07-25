@@ -136,6 +136,22 @@ class DefaultStatusRepositoryTest {
     }
 
     @Test
+    fun mapsStageBandsIntoDomain() = runTest {
+        enqueue(200, Fixtures.read("status.bands.json"))
+        val r = repository.load("44230") as StatusResult.Success
+        val bands = r.stageBands!!
+        assertEquals(listOf("ok", "watch", "care", "alert", "crit"), bands.map { it.code })
+        assertEquals(listOf(70.0, 60.0, 50.0, 40.0, 0.0), bands.map { it.minRatio })
+    }
+
+    @Test
+    fun stageBandsIsNullWhenServerOmitsIt() = runTest {
+        enqueue(200, Fixtures.read("status.ok.json"))
+        val r = repository.load("44230") as StatusResult.Success
+        assertNull(r.stageBands)
+    }
+
+    @Test
     fun mapsNonRetryable400() = runTest {
         enqueue(400, """{"code":"BAD_REQUEST","message":"시군 코드를 확인해요.","retryable":false}""")
         val r = repository.load("x") as StatusResult.Failure

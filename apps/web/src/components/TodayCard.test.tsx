@@ -69,39 +69,63 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
+const ZONE_LABELS = ["정상", "관심", "주의", "경계", "심각"] as const;
+
 describe("TodayCard 상태 4종", () => {
   for (const demo of STAGE_CASES) {
-    it(`${demo.name}: rate·avgRatio·단계 칩·헤드라인·라벨을 보여준다`, () => {
+    it(`${demo.name}: 평년 대비 큰 숫자·단계 칩·헤드라인·원저수율 보조 줄을 보여준다`, () => {
       const { container } = render(<TodayCard status={demo.status} />);
 
       expect(screen.getByText("우리 지역 대표 저수지")).toBeInTheDocument();
-      expect(screen.getByText("현재 저수율")).toBeInTheDocument();
+      // 큰 숫자 = 지역 평년 대비 avgRatio(게이지·단계와 같은 축). reduced motion → 즉시 최종.
       expect(
-        screen.getByText(String(demo.status.reservoir.rate)),
+        screen.getByText(String(demo.status.region.avgRatio)),
       ).toBeInTheDocument();
+      // 단계 칩 라벨은 <strong> — 게이지 단계 눈금 라벨(span)과 구분해 스코프.
       expect(
-        screen.getByText(`${demo.status.region.avgRatio}%`),
-      ).toBeInTheDocument();
-      expect(
-        screen.getByText(demo.status.region.officialStage.label),
+        screen.getByText(demo.status.region.officialStage.label, {
+          selector: "strong",
+        }),
       ).toBeInTheDocument();
       expect(screen.getByText("지역 평년 대비 기준")).toBeInTheDocument();
       expect(screen.getByText(demo.headline)).toBeInTheDocument();
+      // 원저수율(rate)은 작은 보조 줄로 내려간다.
+      expect(
+        screen.getByText(String(demo.status.reservoir.rate)),
+      ).toBeInTheDocument();
+      expect(container.textContent).toContain("저수지 실제 저수율은");
+      // 게이지 단계 눈금 라벨 5종이 렌더된다(stageBands 존재 경로).
+      for (const label of ZONE_LABELS) {
+        expect(screen.getAllByText(label).length).toBeGreaterThanOrEqual(1);
+      }
       expect(container.textContent).not.toMatch(FORBIDDEN_COPY);
     });
   }
 });
 
 describe("TodayCard 관측 실패", () => {
-  it("rate가 null이면 '관측값을 불러오지 못했어요'를 보여준다", () => {
+  it("rate가 null이면 원저수율 보조 줄에 '아직 없어요'를 보여준다", () => {
     const { container } = render(<TodayCard status={STALE_NULL_RATE} />);
 
-    expect(screen.getByText("관측값을 불러오지 못했어요")).toBeInTheDocument();
-    expect(screen.queryByText("null")).not.toBeInTheDocument();
     expect(
-      screen.getByText(`${STALE_NULL_RATE.region.avgRatio}%`),
+      screen.getByText("저수지 실제 저수율은 아직 없어요"),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("null")).not.toBeInTheDocument();
+    // 큰 숫자는 여전히 평년 대비 avgRatio다.
+    expect(
+      screen.getByText(String(STALE_NULL_RATE.region.avgRatio)),
     ).toBeInTheDocument();
     expect(container.textContent).not.toMatch(FORBIDDEN_COPY);
+  });
+});
+
+describe("TodayCard 게이지 단계 눈금 폴백", () => {
+  it("stageBands가 없으면 게이지 단계 눈금 라벨을 그리지 않는다", () => {
+    // stale 데모 픽스처에는 stageBands가 없다(구 페이로드).
+    render(<TodayCard status={STALE_NULL_RATE} />);
+    // 정상은 단계 칩 라벨로 존재할 수 있으나, 눈금 전용 라벨(경계·심각)은 없어야 한다.
+    expect(screen.queryByText("경계")).not.toBeInTheDocument();
+    expect(screen.queryByText("심각")).not.toBeInTheDocument();
   });
 });
 
@@ -170,6 +194,9 @@ describe("TodayCard reduced motion 안전 가드", () => {
 
     render(<TodayCard status={NORMAL} />);
 
-    expect(screen.getByText(String(NORMAL.reservoir.rate))).toBeInTheDocument();
+    // 카운트업이 구동하는 큰 숫자(평년 대비 avgRatio)가 즉시 최종 값이어야 한다.
+    expect(
+      screen.getByText(String(NORMAL.region.avgRatio)),
+    ).toBeInTheDocument();
   });
 });

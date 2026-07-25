@@ -82,7 +82,7 @@ fun ReachCard(
         }
         Spacer(Modifier.height(12.dp))
         Text(
-            text = "예측 오차(백테스트): 7일 ±${formatMae(model.mae7)}%p · 14일 ±${formatMae(model.mae14)}%p 수준이에요",
+            text = "그동안 예측은 실제와 7일 ±${formatMae(model.mae7)}%p · 14일 ±${formatMae(model.mae14)}%p 정도 차이 났어요",
             style = MaterialTheme.typography.bodyMedium,
             color = Ink3,
         )

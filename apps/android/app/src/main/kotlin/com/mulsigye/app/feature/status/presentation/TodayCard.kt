@@ -19,6 +19,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -74,10 +75,11 @@ private fun formatRate(value: Double): String =
 /**
  * 오늘 우리 저수지 모듈 — 두 저수율을 분리해 보여준다(product.md).
  *
- * - 게이지·큰 숫자 = 대표 저수지 원저수율 reservoir.rate("우리 지역 대표 저수지"/"현재 저수율").
- * - 단계 칩·보조 = 지역 avgRatio("지역 평년 대비 …%").
- * - rate 카운트업 0.6s, reduced-motion이면 즉시 목표값. rate가 null이면 관측 폴백 문구.
- * - 단계는 서버 code/label 표시만 하고 임계값을 계산하지 않는다(규칙 10).
+ * - 게이지·큰 숫자 = 지역 평년 대비 avgRatio("평년 대비 …%"). 단계 칩·게이지 눈금과 같은 축이라
+ *   함께 정합한다. 게이지 물 색은 현재 단계 색, 눈금은 서버 stageBands.
+ * - 원저수율 reservoir.rate는 작은 보조 줄("저수지 실제 저수율은 …%예요")로 내려간다.
+ * - avgRatio 카운트업 0.6s, reduced-motion이면 즉시 목표값. rate가 null이면 보조 줄에 폴백 문구.
+ * - 단계·임계값은 서버 값(code/label/stageBands)을 표시만 하고 계산하지 않는다(규칙 10).
  */
 @Composable
 fun TodayCard(
@@ -86,14 +88,12 @@ fun TodayCard(
 ) {
     val reducedMotion = rememberReducedMotion()
     val rate = status.reservoir.rate
+    val avgRatio = status.region.avgRatio
 
-    // rate 카운트업(0.6s). reduced-motion이면 즉시 목표값으로 스냅한다.
+    // 평년 대비(avgRatio) 카운트업(0.6s). reduced-motion이면 즉시 목표값으로 스냅한다.
     val counter = remember { Animatable(0f) }
-    LaunchedEffect(rate, reducedMotion) {
-        if (rate == null) {
-            return@LaunchedEffect
-        }
-        val target = rate.toFloat()
+    LaunchedEffect(avgRatio, reducedMotion) {
+        val target = avgRatio.toFloat()
         if (reducedMotion) {
             counter.snapTo(target)
         } else {
@@ -101,9 +101,8 @@ fun TodayCard(
             counter.animateTo(target, tween(durationMillis = COUNT_UP_MS, easing = LinearEasing))
         }
     }
-    val rateText = rate?.let { value ->
-        if (counter.value >= value.toFloat()) formatRate(value) else counter.value.roundToInt().toString()
-    }
+    val avgText =
+        if (counter.value >= avgRatio.toFloat()) formatRate(avgRatio) else counter.value.roundToInt().toString()
 
     val headline = if (status.highWaterNotice) {
         HIGH_WATER_HEADLINE
@@ -125,41 +124,23 @@ fun TodayCard(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Text(
-                    text = "현재 저수율",
+                    text = "평년 대비",
                     style = MaterialTheme.typography.bodyMedium,
                     color = Ink2,
                 )
-                if (rate == null) {
+                Row(verticalAlignment = Alignment.Bottom) {
                     Text(
-                        text = "관측값을 불러오지 못했어요",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = Ink2,
+                        text = avgText,
+                        style = MaterialTheme.typography.displayLarge,
+                        color = Ink,
                     )
-                } else {
-                    Row(verticalAlignment = Alignment.Bottom) {
-                        Text(
-                            text = rateText ?: "0",
-                            style = MaterialTheme.typography.displayLarge,
-                            color = Ink,
-                        )
-                        Text(
-                            text = "%",
-                            style = MaterialTheme.typography.titleLarge,
-                            color = Ink2,
-                            modifier = Modifier.padding(start = 2.dp, bottom = 6.dp),
-                        )
-                    }
+                    Text(
+                        text = "%",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = Ink2,
+                        modifier = Modifier.padding(start = 2.dp, bottom = 6.dp),
+                    )
                 }
-                Text(
-                    text = buildAnnotatedString {
-                        append("지역 평년 대비 ")
-                        withStyle(SpanStyle(fontWeight = FontWeight.Bold, color = Ink)) {
-                            append("${formatRate(status.region.avgRatio)}%")
-                        }
-                    },
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = Ink2,
-                )
                 StageChip(
                     label = status.region.officialStage.label,
                     code = status.region.officialStage.code,
@@ -168,6 +149,23 @@ fun TodayCard(
                     text = headline,
                     style = MaterialTheme.typography.titleMedium,
                     color = Ink,
+                )
+                // 원저수율(rate) — 작은 보조 줄. null이면 폴백 문구.
+                val secondary = if (rate == null) {
+                    AnnotatedString("저수지 실제 저수율은 아직 없어요")
+                } else {
+                    buildAnnotatedString {
+                        append("저수지 실제 저수율은 ")
+                        withStyle(SpanStyle(fontWeight = FontWeight.Bold, color = Ink2)) {
+                            append(formatRate(rate))
+                        }
+                        append("%예요")
+                    }
+                }
+                Text(
+                    text = secondary,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Ink3,
                 )
                 val yearly = status.yearlyPosition
                 if (yearly != null) {
@@ -184,7 +182,21 @@ fun TodayCard(
                 }
             }
             Spacer(Modifier.width(16.dp))
-            ReservoirGauge(rate = rate)
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Text(
+                    text = "평년 대비",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = Ink3,
+                )
+                ReservoirGauge(
+                    avgRatio = avgRatio,
+                    stageCode = status.region.officialStage.code,
+                    stageBands = status.stageBands,
+                )
+            }
         }
     }
 }
