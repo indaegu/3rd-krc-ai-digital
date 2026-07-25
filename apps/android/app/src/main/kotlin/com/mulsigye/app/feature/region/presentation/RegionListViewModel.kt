@@ -104,6 +104,11 @@ class RegionListViewModel(
         viewModelScope.launch(dispatcher) { regionStore.removeRegion(sigunCode) }
     }
 
+    /** 지역 순서 변경(#6). 위/아래 이동 버튼이 인접 두 칸을 맞바꾸는 데 쓴다. */
+    fun move(from: Int, to: Int) {
+        viewModelScope.launch(dispatcher) { regionStore.moveRegion(from, to) }
+    }
+
     class Factory(
         private val regionStore: RegionStore,
         private val statusRepository: StatusRepository,

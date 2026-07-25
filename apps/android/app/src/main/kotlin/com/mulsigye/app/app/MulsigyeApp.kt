@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
@@ -78,6 +79,33 @@ fun AppRouter(container: AppContainer, store: RegionStoreState) {
     // 스플래시는 메인을 처음 보여줄 때 1회만 오버레이한다(웹: 메인 최초 진입).
     var splashShown by rememberSaveable { mutableStateOf(false) }
 
+    // #7 대표 지역: 콜드 스타트 시 처음 보여줄 지역을 목록 맨 위(index 0=대표)로 되돌린다.
+    // rememberSaveable 가드라 프로세스 재생성(구성 변경·메모리 회수)에는 복원되어 다시 돌지 않고
+    // (세션 중 헤더로 바꾼 currentIndex 유지), 오직 진짜 콜드 스타트에서만 1회 실행된다.
+    var coldStartPrimaryReset by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        if (!coldStartPrimaryReset) {
+            coldStartPrimaryReset = true
+            if (shouldResetToPrimaryOnColdStart(store)) {
+                container.regionStore.selectRegion(PRIMARY_REGION_INDEX)
+            }
+        }
+    }
+
+    // #1 최초 사용자: 동의를 마쳤고 등록 이력이 없으며 지역이 비어 있으면 빈 상태 대신
+    // 곧바로 지역 검색(RegionAdd)으로 보낸다. 지역을 모두 지운 재방문 사용자
+    // (hasEverRegistered=true)는 대상이 아니라 기존 빈 상태를 유지한다. 한 세션에 1회만.
+    var firstTimeSearchOpened by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(store.consentVersion, store.regions.isEmpty(), store.hasEverRegistered) {
+        if (!firstTimeSearchOpened &&
+            shouldOpenFirstTimeSearch(store) &&
+            backStack.current == Screen.Regions
+        ) {
+            firstTimeSearchOpened = true
+            backStack.push(Screen.RegionAdd)
+        }
+    }
+
     BackHandler(enabled = true) {
         if (!backStack.pop()) {
             (context as? Activity)?.finish()
@@ -133,6 +161,7 @@ private fun RegionsRoute(
         state = state,
         onSelectRegion = vm::select,
         onRemoveRegion = vm::remove,
+        onMoveRegion = vm::move,
         onNavigateAdd = { backStack.push(Screen.RegionAdd) },
         onStart = { backStack.replaceAll(Screen.Main) },
     )

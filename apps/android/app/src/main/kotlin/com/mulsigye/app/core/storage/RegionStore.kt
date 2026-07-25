@@ -28,6 +28,12 @@ data class RegionStoreState(
     val consentVersion: String? = null,
     val regions: List<StoredRegion> = emptyList(),
     val currentIndex: Int = 0,
+    /**
+     * 한 번이라도 지역을 등록한 적이 있는지. 기본값 false라 기존 저장값(구 페이로드)도
+     * 마이그레이션 없이 false로 안전 복원된다. [addRegion]에서 true로 올린다.
+     * 최초 사용자(false)와 지역을 모두 지운 재방문 사용자(true)를 구분하는 데 쓴다.
+     */
+    val hasEverRegistered: Boolean = false,
 )
 
 /**
@@ -55,11 +61,33 @@ class RegionStore(
         val existing = store.regions.indexOfFirst { it.sigunCode == region.sigunCode }
         if (existing >= 0) {
             val regions = store.regions.toMutableList().apply { this[existing] = region }
-            store.copy(regions = regions, currentIndex = existing)
+            store.copy(regions = regions, currentIndex = existing, hasEverRegistered = true)
         } else {
             val regions = store.regions + region
-            store.copy(regions = regions, currentIndex = regions.lastIndex)
+            store.copy(regions = regions, currentIndex = regions.lastIndex, hasEverRegistered = true)
         }
+    }
+
+    /**
+     * 지역 순서 변경(#6 재정렬). [fromIndex]의 지역을 [toIndex]로 옮기고,
+     * currentIndex는 "옮기기 전에 가리키던 그 지역"을 계속 가리키도록 재계산한다.
+     * 인덱스가 범위를 벗어나거나 같으면 아무것도 하지 않는다.
+     */
+    suspend fun moveRegion(fromIndex: Int, toIndex: Int) = update { store ->
+        val size = store.regions.size
+        if (fromIndex == toIndex) return@update store
+        if (fromIndex !in 0 until size || toIndex !in 0 until size) return@update store
+        val regions = store.regions.toMutableList()
+        val moved = regions.removeAt(fromIndex)
+        regions.add(toIndex, moved)
+        // currentIndex가 가리키던 지역이 이동 후에도 같은 지역을 가리키도록 보정한다.
+        val newIndex = when (store.currentIndex) {
+            fromIndex -> toIndex
+            in (minOf(fromIndex, toIndex))..(maxOf(fromIndex, toIndex)) ->
+                if (fromIndex < toIndex) store.currentIndex - 1 else store.currentIndex + 1
+            else -> store.currentIndex
+        }
+        store.copy(regions = regions, currentIndex = clampIndex(newIndex, regions.size))
     }
 
     /** 지역 삭제. 현재 선택이 삭제되거나 앞당겨지면 currentIndex를 보정한다. */

@@ -159,6 +159,73 @@ class RegionStoreTest {
     }
 
     @Test
+    fun moveRegionReordersAndKeepsCurrentPointingAtSameRegion() = testScope.runTest {
+        store.addRegion(nonsan)
+        store.addRegion(naju)
+        store.addRegion(jeju) // regions = [nonsan, naju, jeju], currentIndex = 2 (jeju)
+
+        // 맨 위(0)를 맨 아래(2)로 이동 → currentIndex는 여전히 jeju를 가리켜야 한다.
+        store.moveRegion(0, 2)
+        var state = store.regionStoreFlow.first()
+        assertEquals(listOf(naju, jeju, nonsan), state.regions)
+        assertEquals(1, state.currentIndex) // jeju는 이제 index 1
+
+        // 현재 선택(jeju, index 1)을 맨 위로 이동 → currentIndex가 0으로 따라간다.
+        store.moveRegion(1, 0)
+        state = store.regionStoreFlow.first()
+        assertEquals(listOf(jeju, naju, nonsan), state.regions)
+        assertEquals(0, state.currentIndex)
+    }
+
+    @Test
+    fun moveRegionIgnoresOutOfRangeOrNoop() = testScope.runTest {
+        store.addRegion(nonsan)
+        store.addRegion(naju)
+        store.moveRegion(0, 0) // no-op
+        store.moveRegion(0, 5) // out of range
+        store.moveRegion(-1, 1) // out of range
+        val state = store.regionStoreFlow.first()
+        assertEquals(listOf(nonsan, naju), state.regions)
+    }
+
+    @Test
+    fun hasEverRegisteredStartsFalseAndFlipsTrueOnAdd() = testScope.runTest {
+        assertFalse(store.regionStoreFlow.first().hasEverRegistered)
+        store.addRegion(nonsan)
+        assertTrue(store.regionStoreFlow.first().hasEverRegistered)
+    }
+
+    @Test
+    fun hasEverRegisteredStaysTrueAfterRemovingAllRegions() = testScope.runTest {
+        store.addRegion(nonsan)
+        store.removeRegion("44230")
+        val state = store.regionStoreFlow.first()
+        assertTrue(state.regions.isEmpty())
+        assertTrue(state.hasEverRegistered) // 재방문(지역 삭제) 사용자 구분용으로 유지된다.
+    }
+
+    @Test
+    fun hasEverRegisteredPersistsInStoredPayload() = testScope.runTest {
+        store.addRegion(nonsan)
+        val raw = dataStore.data.first()[RegionStore.KEY]!!
+        assertTrue(raw.contains("hasEverRegistered"))
+        assertTrue(raw.contains("true"))
+    }
+
+    @Test
+    fun decodeDefaultsHasEverRegisteredToFalseForOldPayload() = testScope.runTest {
+        // 구 페이로드(필드 없음)도 마이그레이션 없이 false로 안전 복원된다.
+        dataStore.edit {
+            it[RegionStore.KEY] =
+                """{"schemaVersion":1,"consentVersion":"consent-v1","regions":[{"sigunCode":"44230","facCode":"4423010045"}],"currentIndex":0}"""
+        }
+        val state = store.regionStoreFlow.first()
+        assertFalse(state.hasEverRegistered)
+        assertEquals(1, state.regions.size) // 나머지 필드는 정상 복원.
+        assertEquals("consent-v1", state.consentVersion)
+    }
+
+    @Test
     fun addRegionWritesOnlyTwoCodes() = testScope.runTest {
         store.addRegion(nonsan)
         val raw = dataStore.data.first()[RegionStore.KEY]!!
