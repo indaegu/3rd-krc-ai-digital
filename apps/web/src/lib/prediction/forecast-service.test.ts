@@ -232,9 +232,11 @@ describe("buildForecast — 정상 경로 (90일 하강 -0.45/day, 최신 68)", 
 
   it("참고 표현 가드: 예측 본문은 문장을 만들지 않는다(stageGuide는 승인 카탈로그 카피라 제외)", async () => {
     const body = await okBody(deps);
-    // stageGuide 행동 제목은 서버 카탈로그의 승인된 ~해요체 카피다(규칙 6).
-    // 예측 본문이 문장을 지어내지 않는지 검사할 때는 stageGuide를 분리한다.
-    const { stageGuide, ...rest } = body;
+    // stageGuide 행동 제목·earlyWarning message는 서버가 확정한 승인된 ~해요체 카피다(규칙 6).
+    // 예측 본문이 문장을 지어내지 않는지 검사할 때는 이 승인 카피 필드를 분리한다.
+    const { stageGuide, earlyWarning, ...rest } = body;
+    // 이 경로(-0.45)는 조기경보 임계값(-0.7)에 못 미쳐 earlyWarning은 null이다.
+    expect(earlyWarning).toBeNull();
     expect(JSON.stringify(rest)).not.toMatch(FORBIDDEN_SENTENCE_PATTERN);
     // 행동 카피에도 금지 단정 표현(규칙 3)은 없어야 한다.
     expect(JSON.stringify(stageGuide)).not.toMatch(
@@ -270,6 +272,61 @@ describe("buildForecast — 상승 시계열", () => {
       bucket: "none",
       targetStage: null,
     });
+  });
+});
+
+describe("buildForecast — 감소 주의 조기경보(earlyWarning)", () => {
+  const EXPECTED_MESSAGE =
+    "저수율이 빠르게 줄고 있어요. 지금은 괜찮아도 미리 대비하면 좋아요. 공식 단계와 별개인 참고 신호예요.";
+
+  it("관심 단계 + 빠른 하락(-0.8): earlyWarning을 켠다(level watch·dailyDelta·message)", async () => {
+    // avgRatio 68 → 관심(watch), 관측 기울기 -0.8 ≤ -0.7(앱 임계값).
+    const body = await okBody(
+      makeDeps(makeClient({ regional: regionalRows(90, 68, -0.8) })),
+    );
+    expect(body.basis.officialStage.code).toBe("watch");
+    expect(body.trend.dailyDelta).toBeCloseTo(-0.8, 8);
+    expect(body.earlyWarning).toEqual({
+      level: "watch",
+      dailyDelta: body.trend.dailyDelta,
+      message: EXPECTED_MESSAGE,
+    });
+  });
+
+  it("정상 단계 + 빠른 하락(-0.85): 정상이어도 켠다(dailyDelta는 관측 기울기와 일치)", async () => {
+    // avgRatio 93.5 → 정상(ok), 관측 기울기 -0.85 ≤ -0.7.
+    const body = await okBody(
+      makeDeps(makeClient({ regional: regionalRows(90, 93.5, -0.85) })),
+    );
+    expect(body.basis.officialStage.code).toBe("ok");
+    expect(body.earlyWarning?.level).toBe("watch");
+    expect(body.earlyWarning?.dailyDelta).toBe(body.trend.dailyDelta);
+  });
+
+  it("관심 단계 + 완만한 하락(-0.45): 임계값 미달이면 null", async () => {
+    const body = await okBody(
+      makeDeps(makeClient({ regional: regionalRows(90, 68, -0.45) })),
+    );
+    expect(body.basis.officialStage.code).toBe("watch");
+    expect(body.earlyWarning).toBeNull();
+  });
+
+  it("정상 단계 + 상승(+0.32): null", async () => {
+    const body = await okBody(
+      makeDeps(makeClient({ regional: regionalRows(90, 93.5, 0.32) })),
+    );
+    expect(body.basis.officialStage.code).toBe("ok");
+    expect(body.earlyWarning).toBeNull();
+  });
+
+  it("이미 경계 단계 + 빠른 하락(-0.8): 더 나쁜 단계면 조기경보를 내지 않는다(null)", async () => {
+    // avgRatio 46 → 경계(alert). 빠르게 떨어져도 ok/watch가 아니므로 null.
+    const body = await okBody(
+      makeDeps(makeClient({ regional: regionalRows(90, 46, -0.8) })),
+    );
+    expect(body.basis.officialStage.code).toBe("alert");
+    expect(body.trend.dailyDelta).toBeCloseTo(-0.8, 8);
+    expect(body.earlyWarning).toBeNull();
   });
 });
 

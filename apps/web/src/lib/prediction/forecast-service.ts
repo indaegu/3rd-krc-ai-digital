@@ -26,6 +26,7 @@ import {
   type BacktestReport,
 } from "./backtest-report.ts";
 import {
+  EARLY_WARNING_DAILY_DROP,
   MODEL_MIN_INPUT_DAYS,
   OBSERVED_TREND_WINDOW_DAYS,
   observedDailyDelta,
@@ -134,6 +135,37 @@ const NEXT_STAGE_CODE: Partial<Record<DroughtStageCode, DroughtStageCode>> = {
 
 function toStageDto(code: DroughtStageCode): DroughtStage {
   return { code, label: STAGE_LABEL_BY_CODE[code] };
+}
+
+type EarlyWarning = NonNullable<ForecastResponse["earlyWarning"]>;
+
+/** 조기경보는 아직 여유가 있는 공식 단계(정상·관심)에서만 켠다(더 나쁜 단계는 이미 알림 대상). */
+const EARLY_WARNING_STAGES: ReadonlySet<DroughtStageCode> = new Set([
+  "ok",
+  "watch",
+]);
+
+/** 조기경보 문구 — ~해요체. 공식 단계와 별개인 참고 신호임을 문장에 명시한다(규칙 3). */
+const EARLY_WARNING_MESSAGE =
+  "저수율이 빠르게 줄고 있어요. 지금은 괜찮아도 미리 대비하면 좋아요. 공식 단계와 별개인 참고 신호예요.";
+
+/**
+ * '감소 주의' 조기경보 — 공식 단계와 별개인 **앱 자체 참고 신호**다.
+ * 현재 공식 단계가 정상·관심(ok/watch)이면서 관측 일일 변화량(trendDelta)이
+ * 앱 임계값(EARLY_WARNING_DAILY_DROP) 이하로 빠르게 떨어질 때만 켠다.
+ * 조건 미충족이면 null. level은 지금은 watch만이며 향후 urgent 확장 여지로 객체다.
+ */
+function buildEarlyWarning(
+  officialStageCode: DroughtStageCode,
+  trendDelta: number,
+): EarlyWarning | null {
+  if (!EARLY_WARNING_STAGES.has(officialStageCode)) return null;
+  if (trendDelta > EARLY_WARNING_DAILY_DROP) return null;
+  return {
+    level: "watch",
+    dailyDelta: trendDelta,
+    message: EARLY_WARNING_MESSAGE,
+  };
 }
 
 /** 단계별 행동 가이드 표시 순서(공인 5단계 ok→crit). */
@@ -403,6 +435,10 @@ export async function buildForecast(
       ? toStageDto(nextStageCode)
       : null;
 
+  // 조기경보('감소 주의') — trend와 동일한 관측 기울기에서 파생하되 공식 단계로 게이팅한다.
+  // 공식 가뭄 기준이 아니라 앱 자체 참고 신호다(models.ts EARLY_WARNING_DAILY_DROP).
+  const earlyWarning = buildEarlyWarning(officialStageCode, trendDelta);
+
   // 공식 전망 병기 — 실패해도 응답을 막지 않는다(그마저 없으면 null).
   let officialOutlook = await outlookFromSupabase(getClient(), resolvedCode);
   officialOutlook ??= outlookFromSnapshot(
@@ -438,6 +474,7 @@ export async function buildForecast(
     },
     officialOutlook,
     stageGuide: buildStageGuide(officialStageCode),
+    earlyWarning,
     asOf: (deps.now ?? (() => new Date()))().toISOString(),
     sources,
     stale,

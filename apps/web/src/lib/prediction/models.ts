@@ -71,6 +71,15 @@ export function predict(
 export const OBSERVED_TREND_WINDOW_DAYS = 14;
 
 /**
+ * 조기경보('감소 주의') 일일 하락 임계값(%p/day) — **이 앱만의 참고 신호 기준**이다.
+ * 공식 가뭄 단계 기준(평년 대비 70/60/50/40 — drought-stage.ts)이 **아니다**.
+ * 관측 일일 변화량 observedDailyDelta(=trend.dailyDelta)가 이 값 이하로 빠르게
+ * 떨어질 때만 조기경보를 켠다. -0.7%p/day ≈ -5%p/주로, 자문 "2안"의 -5%p/7일
+ * 기준과 정합한다. 이 상수를 바꿔도 공식 단계 판정에는 영향을 주지 않는다.
+ */
+export const EARLY_WARNING_DAILY_DROP = -0.7;
+
+/**
  * 추세·도달일용 일일 변화량 d(%p/day) — 최근 14일 "관측값"의 OLS 선형 회귀 기울기.
  * 2026-07-22 확정: 채택 모델(naive 등 수평 예측)은 추세를 표현할 수 없으므로
  * 추세·도달일은 이 관측 기울기에서, 예측선·밴드는 채택 모델 + 잔차 분위수에서

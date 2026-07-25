@@ -14,6 +14,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { CoachCard, type CoachCardState } from "../components/CoachCard";
+import { EarlyWarningBanner } from "../components/EarlyWarningBanner";
 import { HighWaterBanner } from "../components/HighWaterBanner";
 import { MainHeader } from "../components/MainHeader";
 import { NearbyCompareCard } from "../components/NearbyCompareCard";
@@ -308,6 +309,8 @@ export default function HomePage() {
 
         {forecast.kind === "ready" ? (
           <>
+            {/* 참고 조기경보('감소 주의') — 공식 단계와 별개. 서버가 켰을 때만 표시. */}
+            <EarlyWarningBanner earlyWarning={forecast.data.earlyWarning} />
             <ReachCard forecast={forecast.data} />
             <TrendChartCard forecast={forecast.data} />
           </>

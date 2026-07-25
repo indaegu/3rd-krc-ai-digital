@@ -36,6 +36,7 @@ import com.mulsigye.app.core.ui.AsOfStamp
 import com.mulsigye.app.core.ui.Disclaimer
 import com.mulsigye.app.feature.coach.presentation.CoachCard
 import com.mulsigye.app.feature.coach.presentation.CoachUiState
+import com.mulsigye.app.feature.forecast.presentation.EarlyWarningBanner
 import com.mulsigye.app.feature.forecast.presentation.ForecastUiState
 import com.mulsigye.app.feature.forecast.presentation.ReachCard
 import com.mulsigye.app.feature.forecast.presentation.TrendChartCard
@@ -133,6 +134,8 @@ fun MainScreen(
             when (forecastState) {
                 is ForecastUiState.Loading -> ForecastSkeleton()
                 is ForecastUiState.Ready -> {
+                    // 참고 조기경보('감소 주의') — 공식 단계와 별개. 서버가 켰을 때만 표시.
+                    EarlyWarningBanner(earlyWarning = forecastState.data.earlyWarning)
                     ReachCard(forecast = forecastState.data)
                     TrendChartCard(forecast = forecastState.data, onDetail = onNavigateTrend)
                 }
