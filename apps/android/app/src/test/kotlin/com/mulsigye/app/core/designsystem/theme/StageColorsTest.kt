@@ -14,7 +14,7 @@ import org.junit.Test
 class StageColorsTest {
     @Test
     fun mapsEachStageCodeToDesignSystemColors() {
-        assertEquals(StageColorSet(Color(0xFF159570), Color(0xFFE6F6F0)), stageColorFor("ok"))
+        assertEquals(StageColorSet(Color(0xFF00986F), Color(0xFFE6F6F0)), stageColorFor("ok"))
         assertEquals(StageColorSet(Color(0xFF9A6700), Color(0xFFFFF3D6)), stageColorFor("watch"))
         assertEquals(StageColorSet(Color(0xFFD9510C), Color(0xFFFFEBDE)), stageColorFor("care"))
         assertEquals(StageColorSet(Color(0xFFE5372F), Color(0xFFFDEBEA)), stageColorFor("alert"))

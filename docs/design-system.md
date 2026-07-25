@@ -14,19 +14,24 @@
 ```css
 --ink:#191F28; --ink2:#4E5968; --ink3:#8B95A1; --ink4:#B0B8C1;
 --bg:#FFFFFF; --gray50:#F9FAFB; --gray100:#F2F4F6; --gray200:#E5E8EB;
---blue:#3182F6; --blue-deep:#1B64DA; --blue-tint:#E8F3FF; --blue-soft:#D6E8FF;
+--blue:#2D83FF; --blue-deep:#1F6FE6; --blue-tint:#E8F3FF; --blue-soft:#D6E8FF;
+/* 브랜드 그라디언트(스플래시·온보딩·메인 헤더 배경): 시안→연블루→오프화이트 */
+--grad-top:#A6EEF9; --grad-mid:#C1E8FF; --grad-bottom:#F6F6F6;
 /* 공식 가뭄 단계 fg/bg */
---ok-fg:#159570;    --ok-bg:#E6F6F0;
+--ok-fg:#00986F;    --ok-bg:#E6F6F0;
 --watch-fg:#9A6700; --watch-bg:#FFF3D6;
 --care-fg:#D9510C;  --care-bg:#FFEBDE;
 --alert-fg:#E5372F; --alert-bg:#FDEBEA;
 --crit-fg:#A11C1C;  --crit-bg:#F8E2E2;
---r-lg:24px; --r-md:18px; --r-sm:12px;
+--r-lg:24px; --r-md:18px; --r-sm:12px; --r-card:12px; /* 카드=12, 바텀시트=24 */
 ```
 
+- 색·radius·폰트의 근거는 Figma 디자인 시안(fileKey iBWqexj5tpQX5aNilBnRoY)이다. 값은 시안에서만 온다.
 - 웹은 전역 CSS 변수, Android는 의미가 같은 Compose `ColorScheme`·shape 토큰으로 옮긴다.
 - 이름을 번역 구현하더라도 `ok/watch/care/alert/crit` 의미와 값은 바꾸지 않는다.
-- Pretendard Variable을 self-host하며 시스템 고딕으로 폴백한다. 명조·원격 CDN 폰트는 쓰지 않는다.
+- **Pretendard를 self-host한다**(웹: next/font local `PretendardVariable.woff2`; Android: `res/font`
+  정적 4굵기 + `MulsigyeTypography` `fontFamily`). 명조·원격 CDN 폰트는 쓰지 않는다.
+- 메인 모듈 카드 radius는 12dp(`--r-card`), 필수 바텀시트는 24dp(`--r-lg`)로 구분한다.
 - 공식 단계 임계값은 색 문서가 아니라 `apps/web/src/lib/data/drought-stage.ts`에만 둔다.
 
 ## 레이아웃·컴포넌트

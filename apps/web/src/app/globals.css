@@ -8,12 +8,16 @@
   --gray50: #f9fafb;
   --gray100: #f2f4f6;
   --gray200: #e5e8eb;
-  --blue: #3182f6;
-  --blue-deep: #1b64da;
+  --blue: #2d83ff;
+  --blue-deep: #1f6fe6;
   --blue-tint: #e8f3ff;
   --blue-soft: #d6e8ff;
+  /* 브랜드 그라디언트 스톱(스플래시·온보딩·메인 헤더 배경): 시안→연블루→오프화이트 */
+  --grad-top: #a6eef9;
+  --grad-mid: #c1e8ff;
+  --grad-bottom: #f6f6f6;
   /* 공식 가뭄 단계 fg/bg — 임계값은 src/lib/data/drought-stage.ts에만 둔다 */
-  --ok-fg: #159570;
+  --ok-fg: #00986f;
   --ok-bg: #e6f6f0;
   --watch-fg: #9a6700;
   --watch-bg: #fff3d6;
@@ -26,6 +30,7 @@
   --r-lg: 24px;
   --r-md: 18px;
   --r-sm: 12px;
+  --r-card: 12px; /* 모듈 카드(시안 기준). 바텀시트는 --r-lg(24) 유지 */
   color: var(--ink);
   background: var(--bg);
   font-family:
