@@ -38,7 +38,7 @@ fun RegionAddScreen(
     onRetrySearch: () -> Unit,
     onRetryResolve: () -> Unit,
     onDismissResolve: () -> Unit,
-    onRegister: () -> Unit,
+    onRegister: (setAsPrimary: Boolean) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {

@@ -1,9 +1,9 @@
 "use client";
 
 // 메인 헤더 — 좌측 지역 드롭다운(대표 시군명 + chevron, 탭하면 지역 설정으로 이동해
-// 대표 지역을 전환한다) + 그 아래 기준 시각. 기준 시각을 누르면 새로고침한다(별도 로고 버튼 대신).
-// 우상단 pill에 벨·구분선·톱니. 라벨·기준시각은 응답 값으로만 표시한다(하드코딩 금지).
-// 웹은 알림 기능이 없어 벨은 중립 장식 아이콘이다(알림 유도 배지/도트 금지 — 다크패턴 규칙).
+// 대표 지역을 전환한다) + 그 아래 기준 시각(보조 텍스트). 우상단 pill에 [새로고침]·구분선·[설정].
+// 웹은 알림 기능이 없으므로 벨(알림을 암시하는 UI)을 두지 않는다(apps/web/AGENTS.md 규칙).
+// 라벨·기준시각은 응답 값으로만 표시한다(하드코딩 금지).
 
 import Link from "next/link";
 
@@ -14,7 +14,7 @@ interface MainHeaderProps {
   regionLabel: string | null;
   /** 기준 시각 문구(page에서 포맷 완료). 없으면 표시하지 않는다. */
   asOf: string | null;
-  /** 기준 시각을 눌러 다시 불러오기(로딩 중이면 page가 no-op 처리). */
+  /** 다시 불러오기(로딩 중이면 page가 no-op 처리). */
   onRefresh: () => void;
 }
 
@@ -34,25 +34,25 @@ export function MainHeader({ regionLabel, asOf, onRefresh }: MainHeaderProps) {
             <path d="M6 9l6 6 6-6" />
           </svg>
         </Link>
-        {asOf === null ? null : (
-          <button
-            type="button"
-            className={styles.asOf}
-            aria-label="새로고침"
-            onClick={onRefresh}
-          >
-            {asOf}
-          </button>
-        )}
+        {asOf === null ? null : <span className={styles.asOf}>{asOf}</span>}
       </div>
       <div className={styles.pill}>
-        {/* 벨 — 웹은 알림 기능 없음. 중립 장식 아이콘(배지/도트 금지). */}
-        <span className={styles.icon} aria-hidden="true">
-          <svg viewBox="0 0 16.3 17.7059">
-            <path d="M3.09022 5.18025C3.22827 3.93474 3.82083 2.7839 4.75446 1.94804C5.68809 1.11217 6.8972 0.65 8.15034 0.65C9.40347 0.65 10.6126 1.11217 11.5462 1.94804C12.4798 2.7839 13.0724 3.93474 13.2105 5.18025L13.4401 7.24549L13.4456 7.29744C13.5633 8.32188 13.8969 9.3097 14.4244 10.1957L14.4518 10.2413L14.9777 11.119C15.4562 11.9155 15.6949 12.3138 15.643 12.641C15.6087 12.8582 15.497 13.0556 15.3286 13.197C15.0743 13.4102 14.6095 13.4102 13.6807 13.4102H2.61993C1.6903 13.4102 1.22549 13.4102 0.972115 13.1979C0.803144 13.0565 0.691118 12.8586 0.656769 12.641C0.605731 12.3138 0.844519 11.9155 1.32209 11.119L1.8498 10.2404L1.87714 10.1948C2.40426 9.30899 2.73756 8.32149 2.85508 7.29744L2.86055 7.24549L3.09022 5.18025Z" />
-            <path d="M4.50473 13.4103C4.50473 14.3771 4.88882 15.3044 5.57251 15.9881C6.25619 16.6718 7.18347 17.0559 8.15035 17.0559C9.11723 17.0559 10.0445 16.6718 10.7282 15.9881C11.4119 15.3044 11.796 14.3771 11.796 13.4103" />
+        {/* 새로고침 — 벨 자리에 두는 중립 컨트롤(웹은 알림 기능이 없다). */}
+        <button
+          type="button"
+          className={styles.iconBtn}
+          aria-label="새로고침"
+          onClick={onRefresh}
+        >
+          <svg
+            className={styles.refreshIcon}
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+          >
+            <path d="M21 12a9 9 0 1 1-3-6.7L21 8" />
+            <path d="M21 3v5h-5" />
           </svg>
-        </span>
+        </button>
         <span className={styles.divider} aria-hidden="true" />
         <Link href="/regions" className={styles.iconLink} aria-label="설정">
           <svg viewBox="0 0 17.8002 17.799" aria-hidden="true">

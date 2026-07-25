@@ -153,12 +153,12 @@ fun AddressSearch(
 @Composable
 fun ResolveConfirmOverlay(
     state: RegionAddUiState,
-    onRegister: () -> Unit,
+    onRegister: (setAsPrimary: Boolean) -> Unit,
     onRetryResolve: () -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // "기본 주소지로 설정" 체크 상태. 시안 §10의 표시 요소로, 기본값은 켜짐(첫 등록은 대표가 됨).
+    // "기본 주소지로 설정" 체크 상태(시안 §10). 기본 켜짐 — 끄면 이 지역을 대표로 승격하지 않는다.
     var primaryChecked by rememberSaveable { mutableStateOf(true) }
 
     Box(modifier = modifier.fillMaxSize()) {
@@ -222,12 +222,12 @@ fun ResolveConfirmOverlay(
                                 style = MaterialTheme.typography.titleMedium,
                                 color = Blue,
                             )
-                            // 기본 주소지(대표 지역) 설정 체크 — 시안 §10. 첫 등록은 자연히 대표(목록 0번)가 되며,
-                            // 별도 "대표로 지정" 저장 계약이 없어 현재는 표시용이다(risks 참고).
+                            // 기본 주소지(대표 지역) 설정 체크 — 시안 §10. 체크 상태를 등록에 전달한다:
+                            // 켜짐이면 이 지역을 대표로, 끄면 이전 대표 지역을 유지한다(ViewModel.register).
                             PrimaryAddressCheck(checked = primaryChecked, onToggle = { primaryChecked = !primaryChecked })
                             CtaButton(
                                 text = "등록하기",
-                                onClick = onRegister,
+                                onClick = { onRegister(primaryChecked) },
                                 busy = state.registering,
                                 modifier = Modifier.padding(top = 4.dp),
                             )
