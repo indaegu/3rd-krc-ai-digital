@@ -78,6 +78,10 @@ export function TrendChart({
       prefersReducedMotion() ||
       typeof window.requestAnimationFrame !== "function"
     ) {
+      // reduced-motion(또는 RAF 미지원)이면 애니메이션 없이 즉시 최종 상태로 둔다.
+      // 마운트 시 1회만 OS 설정을 상태에 동기화하는 정당한 effect 용도이며([] deps라
+      // 연쇄 렌더가 없다), 초기값은 서버·클라이언트 모두 false라 하이드레이션도 안전하다.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setShown(true);
       return;
     }
