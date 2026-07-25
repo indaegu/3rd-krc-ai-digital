@@ -1,10 +1,15 @@
+"use client";
+
 // 평년 대비 저수율 흐름 SVG 차트 — 순수 프리젠테이션 컴포넌트.
 // 모든 좌표는 API 응답 값에서만 유도한다. 불확실성 밴드는 forecast[].low/high에
 // 스케일만 적용한다(임의 확장 산식 금지 — plan 프로토타입 충돌점 표).
 // 단계 임계값·라벨의 단일 출처는 lib/data/drought-stage.ts다(규칙 5).
+// x축 날짜 라벨은 observedOn에서만 온다(showDates=상세 전용). 새 예측 수학은 없다.
 
 import type { ForecastResponse } from "@mulsigye/contracts";
+import { useEffect, useState } from "react";
 
+import { prefersReducedMotion } from "../lib/client/reduced-motion";
 import {
   DROUGHT_STAGE_THRESHOLDS,
   STAGE_LABEL_BY_CODE,
@@ -38,15 +43,47 @@ const THRESHOLD_LINES: ReadonlyArray<{
   { code: "crit", value: DROUGHT_STAGE_THRESHOLDS.alert },
 ];
 
+/** "YYYY-MM-DD" → "M/D"(앞자리 0 제거). 파싱 실패 시 원문 반환. */
+function formatMonthDay(observedOn: string): string {
+  const parts = observedOn.split("-");
+  const m = parts[1];
+  const d = parts[2];
+  if (m === undefined || d === undefined) {
+    return observedOn;
+  }
+  return `${Number(m)}/${Number(d)}`;
+}
+
 interface TrendChartProps {
   forecast: ForecastResponse;
   /** viewBox 높이. 메인 250, 상세 300. */
   height?: number;
+  /** 상세 차트에서만 x축 날짜 라벨(observedOn)을 표시한다. 미니는 false. */
+  showDates?: boolean;
 }
 
-export function TrendChart({ forecast: data, height = 250 }: TrendChartProps) {
+export function TrendChart({
+  forecast: data,
+  height = 250,
+  showDates = false,
+}: TrendChartProps) {
   const history = data.history;
   const future = data.forecast;
+
+  // 그려-들어오기(draw-in) 애니메이션 — 마운트 후 왼→오른 클립을 열어 선·밴드를 드러낸다.
+  // reduced-motion이면 즉시 최종 상태로 두고 전환을 건다(prefers-reduced-motion CSS도 병행 보증).
+  const [shown, setShown] = useState(false);
+  useEffect(() => {
+    if (
+      prefersReducedMotion() ||
+      typeof window.requestAnimationFrame !== "function"
+    ) {
+      setShown(true);
+      return;
+    }
+    const raf = window.requestAnimationFrame(() => setShown(true));
+    return () => window.cancelAnimationFrame(raf);
+  }, []);
 
   // y 범위: 실측·예측·밴드 전체 값 + 근처 임계값 + 위아래 여백.
   const values: number[] = [];
@@ -141,6 +178,19 @@ export function TrendChart({ forecast: data, height = 250 }: TrendChartProps) {
       `앞으로 ${future.length}일은 ${lastFuture.low}%에서 ${lastFuture.high}% 사이로 보여요.`,
     );
   }
+  // 상세 차트는 날짜 축을 함께 읽어준다(observedOn에서만).
+  if (showDates && firstHistory !== undefined && lastFuture !== undefined) {
+    summaryParts.push(
+      `기간은 ${formatMonthDay(firstHistory.observedOn)}부터 ${formatMonthDay(lastFuture.observedOn)}까지예요.`,
+    );
+  }
+
+  // 그려-들어오기 클립 id — 높이별로 고정(같은 문서 내 미니·상세 충돌 방지, 결정적).
+  const clipId = `trend-reveal-${height}`;
+  const revealClass = shown
+    ? `${styles.revealClip} ${styles.shown}`
+    : styles.revealClip;
+  const bandClass = shown ? `${styles.band} ${styles.bandShown}` : styles.band;
 
   return (
     <div className={styles.wrap}>
@@ -150,6 +200,18 @@ export function TrendChart({ forecast: data, height = 250 }: TrendChartProps) {
         role="img"
         aria-label={`지역 평년 대비 저수율 흐름 그래프: 실측 ${history.length}일과 예측 ${future.length}일`}
       >
+        <defs>
+          <clipPath id={clipId}>
+            <rect
+              className={revealClass}
+              x={0}
+              y={0}
+              width={WIDTH}
+              height={height}
+            />
+          </clipPath>
+        </defs>
+
         {/* y축 최소·최대 라벨 */}
         <text
           className={styles.axisLabel}
@@ -207,54 +269,71 @@ export function TrendChart({ forecast: data, height = 250 }: TrendChartProps) {
             >
               오늘
             </text>
-            <text className={styles.axisTick} x={PAD_LEFT} y={height - 9}>
-              {history.length}일 전
+            <text
+              className={styles.axisTick}
+              data-testid="trend-axis-start"
+              x={PAD_LEFT}
+              y={height - 9}
+            >
+              {showDates && firstHistory !== undefined
+                ? formatMonthDay(firstHistory.observedOn)
+                : `${history.length}일 전`}
             </text>
           </>
         ) : null}
         {future.length > 0 ? (
           <text
             className={styles.axisTick}
+            data-testid="trend-axis-end"
             x={WIDTH - PAD_RIGHT}
             y={height - 9}
             textAnchor="end"
           >
-            +{future.length}일
+            {showDates && lastFuture !== undefined
+              ? formatMonthDay(lastFuture.observedOn)
+              : `+${future.length}일`}
           </text>
         ) : null}
 
-        {/* 불확실성 밴드(API low/high 폴리곤) */}
-        {bandPath !== "" ? (
-          <path className={styles.band} data-testid="trend-band" d={bandPath} />
-        ) : null}
+        {/* 선·밴드는 클립으로 왼→오른 드러낸다(축·임계선·오늘선은 정적). */}
+        <g
+          data-testid="trend-reveal"
+          data-reveal={shown ? "shown" : "hidden"}
+          clipPath={`url(#${clipId})`}
+        >
+          {/* 불확실성 밴드(API low/high 폴리곤) */}
+          {bandPath !== "" ? (
+            <path className={bandClass} data-testid="trend-band" d={bandPath} />
+          ) : null}
 
-        {/* 실측 실선 */}
-        {actualPath !== "" ? (
-          <path
-            className={styles.actual}
-            data-testid="trend-actual"
-            d={actualPath}
-          />
-        ) : null}
+          {/* 실측 실선 */}
+          {actualPath !== "" ? (
+            <path
+              className={styles.actual}
+              data-testid="trend-actual"
+              d={actualPath}
+            />
+          ) : null}
 
-        {/* 예측 점선 */}
-        {forecastPath !== "" ? (
-          <path
-            className={styles.forecastLine}
-            data-testid="trend-forecast"
-            d={forecastPath}
-          />
-        ) : null}
+          {/* 예측 점선 */}
+          {forecastPath !== "" ? (
+            <path
+              className={styles.forecastLine}
+              data-testid="trend-forecast"
+              d={forecastPath}
+            />
+          ) : null}
 
-        {/* 오늘 기준점 마커(basis.avgRatio) */}
-        {todayX !== null ? (
-          <circle
-            className={styles.marker}
-            cx={todayX.toFixed(1)}
-            cy={y(data.basis.avgRatio).toFixed(1)}
-            r={4.6}
-          />
-        ) : null}
+          {/* 오늘 기준점 마커(basis.avgRatio) */}
+          {todayX !== null ? (
+            <circle
+              className={styles.marker}
+              cx={todayX.toFixed(1)}
+              cy={y(data.basis.avgRatio).toFixed(1)}
+              r={4.6}
+            />
+          ) : null}
+        </g>
       </svg>
       <p className={styles.srOnly} data-testid="trend-summary">
         {summaryParts.join(" ")}

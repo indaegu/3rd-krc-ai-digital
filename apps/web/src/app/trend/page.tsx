@@ -141,7 +141,7 @@ function TrendDetail({ data }: { data: ForecastResponse }) {
       </div>
 
       <Card>
-        <TrendChart forecast={data} height={300} />
+        <TrendChart forecast={data} height={300} showDates />
         <ul className={styles.legend} aria-label="차트 범례">
           <li>
             <i className={styles.legendSolid} aria-hidden="true" />
@@ -156,6 +156,10 @@ function TrendDetail({ data }: { data: ForecastResponse }) {
             불확실 구간
           </li>
         </ul>
+        <p className={styles.flatNote} data-testid="trend-flat-note">
+          예측선이 평평한 건 지금 수준이 이어질 가능성이 가장 높다는 뜻이에요.
+          실제 오르내림은 흐린 띠 범위로 봐요.
+        </p>
       </Card>
 
       <StageGuideCard stageGuide={data.stageGuide} />

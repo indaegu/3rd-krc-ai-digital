@@ -102,11 +102,18 @@ fun TrendScreen(
                 )
             }
 
-            // 큰 차트 + 범례.
+            // 큰 차트 + 범례 + 평평선 설명 캡션.
             MulsigyeCard {
-                TrendChart(forecast = data, height = 300.dp)
+                TrendChart(forecast = data, height = 300.dp, showDates = true)
                 Spacer(Modifier.height(12.dp))
                 TrendLegend()
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    text = "예측선이 평평한 건 지금 수준이 이어질 가능성이 가장 높다는 뜻이에요. " +
+                        "실제 오르내림은 흐린 띠 범위로 봐요.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Ink3,
+                )
             }
 
             // 단계별 행동 가이드 — 서버 stageGuide. 없으면 기존 단계 기준 표로 폴백.
