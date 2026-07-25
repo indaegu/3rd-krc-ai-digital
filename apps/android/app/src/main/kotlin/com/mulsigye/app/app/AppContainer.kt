@@ -3,6 +3,7 @@ package com.mulsigye.app.app
 import android.content.Context
 import androidx.datastore.preferences.preferencesDataStore
 import com.mulsigye.app.core.network.ApiClient
+import com.mulsigye.app.core.storage.NotificationPrefsStore
 import com.mulsigye.app.core.storage.RegionStore
 import com.mulsigye.app.feature.coach.data.DefaultCoachRepository
 import com.mulsigye.app.feature.coach.data.remote.CoachApi
@@ -24,6 +25,9 @@ import kotlinx.serialization.json.Json
 // 지역·동의 저장용 단일 DataStore. 코드 2종·동의 버전만 저장한다(RegionStore).
 private val Context.regionDataStore by preferencesDataStore(name = "mulsigye_region_store")
 
+// 옵트인 로컬 알림 설정 전용 DataStore. RegionStore와 분리한다(지역 페이로드에 섞지 않는다).
+private val Context.notificationDataStore by preferencesDataStore(name = "mulsigye_notification_prefs")
+
 class AppContainer(
     context: Context,
     apiBaseUrl: String,
@@ -38,6 +42,9 @@ class AppContainer(
     private val retrofit = ApiClient.create(apiBaseUrl, json)
 
     val regionStore: RegionStore = RegionStore(context.applicationContext.regionDataStore)
+
+    val notificationPrefsStore: NotificationPrefsStore =
+        NotificationPrefsStore(context.applicationContext.notificationDataStore)
 
     val regionRepository: RegionRepository =
         DefaultRegionRepository(retrofit.create(RegionApi::class.java), json)

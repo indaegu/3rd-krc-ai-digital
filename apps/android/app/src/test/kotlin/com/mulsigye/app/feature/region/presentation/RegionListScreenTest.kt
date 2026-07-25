@@ -26,6 +26,7 @@ class RegionListScreenTest : RobolectricComposeTest() {
         onRemoveRegion: (String) -> Unit = {},
         onMoveRegion: (Int, Int) -> Unit = { _, _ -> },
         onNavigateAdd: () -> Unit = {},
+        onNavigateNotifications: () -> Unit = {},
         onStart: () -> Unit = {},
     ) {
         composeTestRule.setContent {
@@ -36,6 +37,7 @@ class RegionListScreenTest : RobolectricComposeTest() {
                     onRemoveRegion = onRemoveRegion,
                     onMoveRegion = onMoveRegion,
                     onNavigateAdd = onNavigateAdd,
+                    onNavigateNotifications = onNavigateNotifications,
                     onStart = onStart,
                 )
             }

@@ -57,6 +57,7 @@ fun RegionListScreen(
     onRemoveRegion: (String) -> Unit,
     onMoveRegion: (Int, Int) -> Unit,
     onNavigateAdd: () -> Unit,
+    onNavigateNotifications: () -> Unit,
     onStart: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -83,8 +84,21 @@ fun RegionListScreen(
                 )
             }
 
-            TextButton(onClick = onNavigateAdd) {
-                Text("지역 추가하기", style = MaterialTheme.typography.labelLarge)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                TextButton(onClick = onNavigateAdd) {
+                    Text("지역 추가하기", style = MaterialTheme.typography.labelLarge)
+                }
+                Spacer(Modifier.weight(1f))
+                // 옵트인 알림 설정 진입(유도 문구 없이 중립적으로). 대표 지역 물 사정을 알림으로 받을 수 있다.
+                TextButton(
+                    onClick = onNavigateNotifications,
+                    modifier = Modifier.semantics { contentDescription = "알림 설정" },
+                ) {
+                    Text("알림 설정", style = MaterialTheme.typography.labelLarge)
+                }
             }
         }
 

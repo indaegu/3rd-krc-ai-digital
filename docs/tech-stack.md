@@ -30,13 +30,27 @@
 | 구조 | ViewModel + Repository + 단방향 UI 상태 | 네트워크·저장소와 화면을 분리해 테스트 가능 |
 | 네트워크 | Retrofit + OkHttp + kotlinx.serialization | `/api/v1/*` JSON 계약 소비 |
 | 비동기 | Coroutines + Flow | API·DataStore 결과를 Compose 상태로 연결 |
-| 로컬 저장 | Jetpack DataStore `datastore-preferences 1.1.7` | 지역 코드·대표 시설 코드·동의 버전만 기기 저장(주소 원문 미저장) |
+| 로컬 저장 | Jetpack DataStore `datastore-preferences 1.1.7` | 지역 코드·대표 시설 코드·동의 버전만 기기 저장(주소 원문 미저장). 알림 설정은 별도 Preferences store에 저장 |
+| 옵트인 로컬 알림 | AndroidX WorkManager `work-runtime-ktx 2.10.5` + 플랫폼 NotificationManagerCompat/NotificationChannel | 계정·서버 푸시 없이 온디바이스 주기 작업으로 대표 지역 물 사정/단계 변화를 알린다. FCM/Firebase 없음 |
 | UI 프리미티브 | Compose `foundation`(BOM 2026.06.00) | HorizontalPager·Canvas 게이지/차트를 라이브러리 없이 직접 렌더 |
 | 단위 UI 테스트 | Robolectric `4.15.1` + `androidx.compose.ui:ui-test-junit4`(BOM) + `androidx.test:core 1.7.0` | device 없이 `testDebugUnitTest`에서 Compose 화면·reduced-motion 분기 검증(`@Config(sdk=[34])`·NATIVE 그래픽스) |
 | SDK | `minSdk 26`, `compileSdk 36`, `targetSdk 36` | 지원 범위를 과도하게 넓히지 않고 Android 16·Play 기준 대비 |
 | 빌드 버전 | 호환되는 안정 JDK·Kotlin·Compose·AGP를 Version Catalog에 정확히 고정 | 스캐폴드 후 문서와 실제 빌드의 불일치 방지 |
 | 배포 | 동일 서명키의 release APK + Play용 AAB | 심사용 설치와 최종 네이티브 배포를 함께 준비 |
 | 딥링크 | Android App Links(P1) | 앱 설치 시 Compose 화면, 미설치 시 웹 폴백 |
+
+## Android 옵트인 로컬 알림
+
+- **범위**: Android 전용. 웹에는 알림이 없다. 사용자가 직접 켠 경우에만(기본 꺼짐) 동작한다.
+- **메커니즘**: AndroidX WorkManager 주기 작업이 기존 Repository 계층으로 `/api/v1/status`를 불러와,
+  플랫폼 `NotificationManagerCompat`/`NotificationChannel`로 로컬 알림을 만든다. KRC·Supabase·LLM을
+  직접 부르지 않는다(계약 재사용). FCM·Firebase·서버 푸시·계정은 쓰지 않는다.
+- **개인정보 근거**: 계정이 없고 서버로 사용자 식별자를 보내지 않는다. 알림 판단·발송은 이 기기에서만
+  일어나며, 조회에 쓰는 값은 공개된 행정구역 번호(지역 코드)뿐이다. 설정은 별도 온디바이스 DataStore에
+  저장하고, 알림은 언제든 끌 수 있다. 정확 알람 권한(Exact Alarm)은 쓰지 않고 근사 타이밍만 쓴다.
+- **권한**: `POST_NOTIFICATIONS`(Android 13+)를 설정 화면에서 런타임 요청하고, 거부되면 토글을 끈 채
+  안내만 한다. 단계 순서는 서버 SSOT(`apps/web/src/lib/data/drought-stage.ts` STAGE_ORDER)와 동치인
+  Android 표시 순서를 재사용하며 임계값·판정을 클라이언트가 만들지 않는다(규칙 5·10).
 
 ## LLM 코치
 
@@ -76,7 +90,9 @@
 - WebView, JavaScript 브릿지, 클라이언트의 KRC·Supabase·LLM 직접 호출 금지.
 - Android에 서버 비밀값, keystore, 서명 비밀번호를 포함하거나 커밋하지 않는다.
 - 플랫폼별 예측·단계·대표 저수지 선정 로직 복제 금지.
-- Auth·로그인·알림 라이브러리를 추가하지 않는다.
+- Auth·로그인 라이브러리를 추가하지 않는다. 3rd-party 푸시(FCM/Firebase 등)·서버 푸시도 금지다.
+- 단, **옵트인 로컬 알림**에 한해 AndroidX WorkManager(`androidx.work:work-runtime-ktx`)와
+  플랫폼 알림(NotificationManagerCompat/NotificationChannel)을 허용한다(아래 "Android 옵트인 로컬 알림" 참조).
 
 ## 고정 버전 (모노레포 부트스트랩)
 
@@ -98,6 +114,7 @@
 | AGP | 8.13.2 |
 | Kotlin | 2.3.21 |
 | Compose BOM | 2026.06.00 |
+| AndroidX WorkManager | work-runtime-ktx 2.10.5 |
 
 - Vercel의 Root Directory는 `apps/web`이다. Turborepo는 사용하지 않는다.
 - TypeScript 7.0.2는 JS API가 없는 네이티브 컴파일러라 Next.js 빌드와 typescript-eslint가

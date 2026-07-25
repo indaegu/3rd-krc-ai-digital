@@ -1,7 +1,13 @@
 package com.mulsigye.app.app
 
+import android.Manifest
 import android.app.Activity
+import android.content.pm.PackageManager
+import android.os.Build
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -22,7 +28,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mulsigye.app.core.designsystem.theme.Bg
 import com.mulsigye.app.core.designsystem.theme.MulsigyeTheme
+import com.mulsigye.app.core.notifications.WaterNotifications
 import com.mulsigye.app.core.storage.RegionStoreState
+import com.mulsigye.app.feature.notifications.presentation.NotificationSettingsScreen
+import com.mulsigye.app.feature.notifications.presentation.NotificationSettingsViewModel
+import com.mulsigye.app.feature.notifications.work.NotificationScheduler
 import com.mulsigye.app.feature.consent.presentation.CONSENT_VERSION
 import com.mulsigye.app.feature.consent.presentation.ConsentSheet
 import com.mulsigye.app.feature.forecast.presentation.ForecastUiState
@@ -92,6 +102,13 @@ fun AppRouter(container: AppContainer, store: RegionStoreState) {
         }
     }
 
+    // 앱을 열 때마다 현재 알림 설정으로 스케줄을 다시 건다(시각이 이동했거나 재부팅으로 취소된 경우 보정).
+    // 옵트인이 꺼져 있으면 reschedule가 작업을 취소하므로, 켜지 않은 사용자에겐 아무 일도 없다.
+    val appContext = context.applicationContext
+    LaunchedEffect(Unit) {
+        NotificationScheduler.reschedule(appContext, container.notificationPrefsStore.current())
+    }
+
     // #1 최초 사용자: 동의를 마쳤고 등록 이력이 없으며 지역이 비어 있으면 빈 상태 대신
     // 곧바로 지역 검색(RegionAdd)으로 보낸다. 지역을 모두 지운 재방문 사용자
     // (hasEverRegistered=true)는 대상이 아니라 기존 빈 상태를 유지한다. 한 세션에 1회만.
@@ -127,6 +144,7 @@ fun AppRouter(container: AppContainer, store: RegionStoreState) {
                 Screen.RegionAdd -> RegionAddRoute(container, backStack)
                 Screen.Main -> MainRoute(container, store, backStack)
                 Screen.Trend -> TrendRoute(container, store, backStack)
+                Screen.NotificationSettings -> NotificationSettingsRoute(container, backStack)
 
                 is Screen.Policy -> PolicyScreen(
                     kind = current.kind,
@@ -163,6 +181,7 @@ private fun RegionsRoute(
         onRemoveRegion = vm::remove,
         onMoveRegion = vm::move,
         onNavigateAdd = { backStack.push(Screen.RegionAdd) },
+        onNavigateNotifications = { backStack.push(Screen.NotificationSettings) },
         onStart = { backStack.replaceAll(Screen.Main) },
     )
 
@@ -242,6 +261,58 @@ private fun MainRoute(container: AppContainer, store: RegionStoreState, backStac
         onRefresh = refresh,
         onNavigateRegions = { backStack.push(Screen.Regions) },
         onNavigateTrend = { backStack.push(Screen.Trend) },
+    )
+}
+
+/**
+ * 알림 설정 라우트. ViewModel(저장·스케줄)과 런타임 권한 요청(Android 13+)을 배선한다.
+ * 마스터를 켤 때만 권한을 요청하고, 거부되면 토글을 끈 채 힌트를 보여준다(옵트인 유지).
+ */
+@Composable
+private fun NotificationSettingsRoute(container: AppContainer, backStack: BackStack) {
+    val context = LocalContext.current
+    val appContext = context.applicationContext
+
+    val vm: NotificationSettingsViewModel = viewModel(
+        factory = NotificationSettingsViewModel.Factory(
+            store = container.notificationPrefsStore,
+            reschedule = { prefs -> NotificationScheduler.reschedule(appContext, prefs) },
+        ),
+    )
+    val state by vm.uiState.collectAsStateWithLifecycle()
+
+    // Android 13+ 알림 권한 요청 런처. 허용이면 마스터 on, 거부면 힌트.
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { granted ->
+        if (granted) vm.confirmEnable() else vm.markPermissionDenied()
+    }
+
+    NotificationSettingsScreen(
+        state = state,
+        onBack = { backStack.pop() },
+        onToggleEnabled = { want ->
+            if (want) {
+                val needsPermission = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                    ContextCompat.checkSelfPermission(
+                        context,
+                        Manifest.permission.POST_NOTIFICATIONS,
+                    ) != PackageManager.PERMISSION_GRANTED
+                if (needsPermission) {
+                    permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                } else if (WaterNotifications.canPost(context)) {
+                    vm.confirmEnable()
+                } else {
+                    // 시스템 알림 자체가 꺼진 경우(권한은 있으나 채널/앱 알림 off).
+                    vm.markPermissionDenied()
+                }
+            } else {
+                vm.disable()
+            }
+        },
+        onToggleDaily = vm::setDailyEnabled,
+        onAdjustDailyTime = vm::setDailyTime,
+        onToggleStageAlert = vm::setStageAlertEnabled,
     )
 }
 
