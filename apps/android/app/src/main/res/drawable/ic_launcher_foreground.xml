@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 임시 앱 아이콘 전경 — 흰 물방울(안전영역 중앙). 최종 시안 수신 후 교체 예정. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,34 C54,34 39,53 39,65 C39,73.3 45.7,80 54,80 C62.3,80 69,73.3 69,65 C69,53 54,34 54,34 Z" />
+    <path
+        android:fillColor="#BBD9FF"
+        android:pathData="M49,60 C49,66 52,70 57,71 C55.5,71.8 53.8,72 52,72 C46.8,72 43,68 43,63 C43,60.5 44,58.4 45.6,57 C47,58 48,59 49,60 Z" />
+</vector>
