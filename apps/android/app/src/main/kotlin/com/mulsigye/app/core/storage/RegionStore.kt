@@ -127,7 +127,12 @@ class RegionStore(
         val parsed = runCatching { json.decodeFromString<RegionStoreState>(raw) }.getOrNull()
             ?: return RegionStoreState()
         if (parsed.schemaVersion != SCHEMA_VERSION) return RegionStoreState()
-        return parsed.copy(currentIndex = clampIndex(parsed.currentIndex, parsed.regions.size))
+        return parsed.copy(
+            currentIndex = clampIndex(parsed.currentIndex, parsed.regions.size),
+            // 마이그레이션: hasEverRegistered 도입 전 구버전 payload는 이 필드가 false로 복원되지만,
+            // 이미 지역이 있으면 등록 이력이 있는 것이므로 true로 올린다(재방문 사용자의 빈 상태 보존).
+            hasEverRegistered = parsed.hasEverRegistered || parsed.regions.isNotEmpty(),
+        )
     }
 
     private fun clampIndex(index: Int, length: Int): Int {

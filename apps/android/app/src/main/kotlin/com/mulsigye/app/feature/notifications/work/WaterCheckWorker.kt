@@ -45,7 +45,12 @@ class WaterCheckWorker(
         if (prefs.stageAlertEnabled) {
             val order = status.stageBands?.map { it.code }?.takeIf { it.isNotEmpty() } ?: STAGE_ORDER
             val currentCode = status.region.officialStage.code
-            if (NotificationLogic.shouldNotifyStageWorsened(prefs.lastNotifiedStageCode, currentCode, order)) {
+            // 대표 지역이 바뀌면(순서 변경·삭제) 이전 기준선은 다른 지역 것이므로 악화 판단을 건너뛴다.
+            // 같은 지역일 때만 비교해 오탐(엉뚱한 "단계가 나빠졌어요")을 막는다.
+            val sameRegion = prefs.lastNotifiedSigunCode == region.sigunCode
+            if (sameRegion &&
+                NotificationLogic.shouldNotifyStageWorsened(prefs.lastNotifiedStageCode, currentCode, order)
+            ) {
                 WaterNotifications.post(
                     applicationContext,
                     WaterNotifications.STAGE_NOTIFICATION_ID,
@@ -53,8 +58,8 @@ class WaterCheckWorker(
                     NotificationLogic.buildStageWorsenedText(status),
                 )
             }
-            // 알림 여부와 무관하게 기준선을 현재 단계로 갱신(다음 악화만 알리도록).
-            container.notificationPrefsStore.setLastNotifiedStageCode(currentCode)
+            // 알림 여부와 무관하게 기준선을 현재 지역·단계로 갱신(다음 악화만, 같은 지역에서만 알리도록).
+            container.notificationPrefsStore.setLastNotified(region.sigunCode, currentCode)
         }
 
         // (2) 매일 알림 — 매일 시각이 설정된 경우에만(이 주기 실행이 그 시각에 맞춰 걸려 있다).

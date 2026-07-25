@@ -56,11 +56,13 @@ class NotificationPrefsStoreTest {
     }
 
     @Test
-    fun `단계 기준선 코드를 저장하고 지운다`() = runTest {
+    fun `단계 기준선을 지역·단계와 함께 저장하고 지운다`() = runTest {
         val s = store()
-        s.setLastNotifiedStageCode("care")
+        s.setLastNotified("46170", "care")
+        assertEquals("46170", s.current().lastNotifiedSigunCode)
         assertEquals("care", s.current().lastNotifiedStageCode)
-        s.setLastNotifiedStageCode(null)
+        s.setLastNotified(null, null)
+        assertNull(s.current().lastNotifiedSigunCode)
         assertNull(s.current().lastNotifiedStageCode)
     }
 

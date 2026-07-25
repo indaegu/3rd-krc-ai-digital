@@ -142,6 +142,16 @@ class RegionStoreTest {
     }
 
     @Test
+    fun legacyPayloadWithoutRegionsKeepsHasEverRegisteredFalse() = testScope.runTest {
+        // 지역이 없는 구버전 payload는 최초 사용자로 본다(false 유지).
+        dataStore.edit {
+            it[RegionStore.KEY] =
+                """{"schemaVersion":1,"consentVersion":"consent-v1","regions":[],"currentIndex":0}"""
+        }
+        assertFalse(store.regionStoreFlow.first().hasEverRegistered)
+    }
+
+    @Test
     fun neverStoresAddressOrName() = testScope.runTest {
         // 주소·이름이 섞여 들어온 저장값을 읽어도 코드 2종만 남기고 재저장한다.
         dataStore.edit {
@@ -213,14 +223,15 @@ class RegionStoreTest {
     }
 
     @Test
-    fun decodeDefaultsHasEverRegisteredToFalseForOldPayload() = testScope.runTest {
-        // 구 페이로드(필드 없음)도 마이그레이션 없이 false로 안전 복원된다.
+    fun decodeMigratesHasEverRegisteredForOldPayloadWithRegions() = testScope.runTest {
+        // 구 페이로드(필드 없음)라도 지역이 있으면 등록 이력이 있는 것이므로 true로 마이그레이션한다
+        // (재방문 사용자가 지역을 지웠을 때 최초 검색으로 튀지 않도록).
         dataStore.edit {
             it[RegionStore.KEY] =
                 """{"schemaVersion":1,"consentVersion":"consent-v1","regions":[{"sigunCode":"44230","facCode":"4423010045"}],"currentIndex":0}"""
         }
         val state = store.regionStoreFlow.first()
-        assertFalse(state.hasEverRegistered)
+        assertTrue(state.hasEverRegistered)
         assertEquals(1, state.regions.size) // 나머지 필드는 정상 복원.
         assertEquals("consent-v1", state.consentVersion)
     }
