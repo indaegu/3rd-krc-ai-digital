@@ -70,7 +70,7 @@ fun SplashScreen(
             drawPath(path = drop, color = Blue)
         }
         Spacer(Modifier.height(16.dp))
-        Text(text = "물시계", style = MaterialTheme.typography.displayLarge, color = Ink)
+        Text(text = "수신호", style = MaterialTheme.typography.displayLarge, color = Ink)
         Spacer(Modifier.height(8.dp))
         Text(
             text = "우리 동네 물 사정, 며칠 앞서",

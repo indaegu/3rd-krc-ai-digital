@@ -87,7 +87,7 @@ fun MainHeader(
             WaterDrop(fallProgress = fallProgress)
             Spacer(Modifier.width(8.dp))
             Text(
-                text = "물시계",
+                text = "수신호",
                 style = MaterialTheme.typography.titleLarge,
                 color = Ink,
             )

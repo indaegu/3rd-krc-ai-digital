@@ -73,7 +73,8 @@ fun TrendChartCard(
             }
         }
         Spacer(Modifier.height(12.dp))
-        TrendChart(forecast = forecast)
+        // 미니 차트에도 x축 날짜(첫 날짜·오늘·마지막 날짜)를 보여준다(#11 — 상세와 동일 showDates 경로).
+        TrendChart(forecast = forecast, showDates = true)
         Spacer(Modifier.height(12.dp))
         TrendLegend()
     }

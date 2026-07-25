@@ -284,13 +284,13 @@ describe("메인 예측 모듈", () => {
 });
 
 describe("메인 코치·근거 모듈", () => {
-  it("coach가 오면 물시계 코치와 근거 고지 모듈을 보여준다", async () => {
+  it("coach가 오면 수신호 코치와 근거 고지 모듈을 보여준다", async () => {
     seedRegion();
     stubApiFetch({ status: () => jsonResponse(NORMAL) });
 
     render(<HomePage />);
 
-    expect(await screen.findByText("물시계 코치")).toBeInTheDocument();
+    expect(await screen.findByText("수신호 코치")).toBeInTheDocument();
     expect(screen.getByText(COACH_STATIC.coach.headline)).toBeInTheDocument();
     // 근거 고지 모듈 + status ∪ forecast sources 칩(중복 제거).
     expect(screen.getByText("이 화면의 근거")).toBeInTheDocument();
@@ -329,7 +329,7 @@ describe("메인 코치·근거 모듈", () => {
     expect(
       await screen.findByText("코치 설명을 지금 불러오지 못했어요."),
     ).toBeInTheDocument();
-    expect(screen.getByText("물시계 코치")).toBeInTheDocument();
+    expect(screen.getByText("수신호 코치")).toBeInTheDocument();
     expect(
       screen.queryByText(COACH_STATIC.coach.headline),
     ).not.toBeInTheDocument();

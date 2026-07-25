@@ -40,6 +40,56 @@ class AppRouterTest {
     }
 
     @Test
+    fun `최초 사용자는 동의 후 지역 검색으로 보낸다`() {
+        // consent 있음 + 지역 없음 + 등록 이력 없음 → RegionAdd로 직행.
+        val store = RegionStoreState(
+            consentVersion = "consent-v1",
+            regions = emptyList(),
+            hasEverRegistered = false,
+        )
+        assertEquals(true, shouldOpenFirstTimeSearch(store))
+    }
+
+    @Test
+    fun `지역을 모두 지운 재방문 사용자는 빈 상태를 유지한다`() {
+        // consent 있음 + 지역 없음 + 등록 이력 있음 → 자동 검색 열지 않음(빈 상태).
+        val store = RegionStoreState(
+            consentVersion = "consent-v1",
+            regions = emptyList(),
+            hasEverRegistered = true,
+        )
+        assertEquals(false, shouldOpenFirstTimeSearch(store))
+        assertEquals(Screen.Regions, startScreen(store))
+    }
+
+    @Test
+    fun `동의 전에는 최초 사용자라도 검색을 열지 않는다`() {
+        val store = RegionStoreState(
+            consentVersion = null,
+            regions = emptyList(),
+            hasEverRegistered = false,
+        )
+        assertEquals(false, shouldOpenFirstTimeSearch(store))
+    }
+
+    @Test
+    fun `콜드 스타트는 지역이 있으면 대표(index 0)로 되돌린다`() {
+        val store = RegionStoreState(
+            consentVersion = "consent-v1",
+            regions = listOf(region, region.copy(sigunCode = "44230")),
+            currentIndex = 1,
+        )
+        assertEquals(true, shouldResetToPrimaryOnColdStart(store))
+        assertEquals(0, PRIMARY_REGION_INDEX)
+    }
+
+    @Test
+    fun `콜드 스타트는 지역이 없으면 되돌리지 않는다`() {
+        val store = RegionStoreState(consentVersion = "consent-v1", regions = emptyList())
+        assertEquals(false, shouldResetToPrimaryOnColdStart(store))
+    }
+
+    @Test
     fun `뒤로가기는 한 단계 pop 한다`() {
         val stack = listOf(Screen.Main, Screen.Trend)
         assertEquals(listOf(Screen.Main), popBackStack(stack))

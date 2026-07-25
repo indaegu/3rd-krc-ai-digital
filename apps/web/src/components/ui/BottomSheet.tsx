@@ -10,6 +10,8 @@ interface BottomSheetProps {
   label: string;
   /** Esc·딤 클릭 시 호출. 닫기를 막아야 하면(예: 필수 동의) 호출부에서 무시한다. */
   onClose: () => void;
+  /** 딤(스크림)에 덧입힐 클래스. 필수 시트가 뒤 화면을 진하게 가리고 흐릴 때 쓴다(#5). */
+  dimClassName?: string | undefined;
   children: ReactNode;
 }
 
@@ -20,6 +22,7 @@ export function BottomSheet({
   open,
   label,
   onClose,
+  dimClassName,
   children,
 }: BottomSheetProps) {
   const sheetRef = useRef<HTMLDivElement>(null);
@@ -85,7 +88,11 @@ export function BottomSheet({
 
   return (
     <div className={styles.overlay}>
-      <div className={styles.dim} onClick={onClose} aria-hidden="true" />
+      <div
+        className={dimClassName ? `${styles.dim} ${dimClassName}` : styles.dim}
+        onClick={onClose}
+        aria-hidden="true"
+      />
       <div
         ref={sheetRef}
         role="dialog"

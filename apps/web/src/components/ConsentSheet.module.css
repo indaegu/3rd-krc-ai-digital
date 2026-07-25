@@ -1,3 +1,11 @@
+/* 필수 동의 딤 — 뒤 화면을 진하게 가리고 흐릿하게 처리한다(#5). 동의 전에는 배경이
+   읽히지 않아도 된다. backdrop-filter 미지원 브라우저는 진한 반투명 배경으로 폴백한다. */
+.strongDim {
+  background: rgb(15 20 28 / 68%);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
 .title {
   margin: 4px 0 8px;
   font-size: 1.4rem;

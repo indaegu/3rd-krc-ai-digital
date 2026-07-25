@@ -30,13 +30,15 @@ const pages = [
 ] as const;
 
 describe("폴리시 화면 콘텐츠 가드", () => {
+  // 알림: 옵트인 로컬 알림은 Android 전용 기능이라 웹 정책 페이지에는 알림 문구가 없다.
+  // 다만 "알림"이라는 단어 자체는 더 이상 금지 어휘가 아니므로(옵트인은 정당한 기능) 그 blanket
+  // 단언은 제거하고, 원치 않는 넛지 가드인 로그인 유도·'가까운 저수지'는 그대로 유지한다.
   it.each(pages)(
-    "%s에는 로그인·알림·'가까운 저수지' 문구가 없다",
+    "%s에는 로그인 유도·'가까운 저수지' 문구가 없다",
     (_name, Page) => {
       const { container } = render(<Page />);
 
       expect(container.textContent).not.toMatch(/로그인/);
-      expect(container.textContent).not.toMatch(/알림/);
       expect(container.textContent).not.toMatch(/가까운 저수지/);
     },
   );

@@ -13,7 +13,11 @@ import org.junit.Test
 
 /**
  * 폴리시 화면 3종 콘텐츠 가드. 웹 policy.test.tsx와 동일 원칙:
- * 로그인·알림 문구가 없고, 각 종류의 핵심 고지가 존재한다.
+ * 로그인 유도 문구가 없고, 각 종류의 핵심 고지가 존재한다.
+ *
+ * 알림: Android는 옵트인 로컬 알림을 제공하므로 약관/방침이 이제 알림을 **밝혀야** 한다.
+ * 과거의 "알림 문구가 없다" 단언을 뒤집어, TERMS·PRIVACY는 옵트인 알림 고지를 검증하고
+ * 로그인 유도 금지 가드는 그대로 유지한다(원치 않는 넛지 차단).
  */
 class PolicyScreenTest : RobolectricComposeTest() {
     @get:Rule
@@ -34,7 +38,6 @@ class PolicyScreenTest : RobolectricComposeTest() {
         composeTestRule.onAllNodesWithText("저장하지 않아요", substring = true)
             .fetchSemanticsNodes().isNotEmpty().let { assertEquals(true, it) }
         assertNoText("로그인")
-        assertNoText("알림")
     }
 
     // 회귀 방지: 메인 화면이 로드될 때마다 sigunCode를 /api/v1/*로 전송하므로,
@@ -54,7 +57,8 @@ class PolicyScreenTest : RobolectricComposeTest() {
         composeTestRule.onAllNodesWithText("공식 가뭄 예·경보가 우선", substring = true)
             .fetchSemanticsNodes().isNotEmpty().let { assertEquals(true, it) }
         assertNoText("로그인")
-        assertNoText("알림")
+        // 옵트인 알림을 밝힌다(끄기 가능·선택).
+        assertHasText("언제든 설정에서 끌 수 있어요")
     }
 
     @Test
@@ -64,7 +68,17 @@ class PolicyScreenTest : RobolectricComposeTest() {
         composeTestRule.onAllNodesWithText("비식별", substring = true)
             .fetchSemanticsNodes().isNotEmpty().let { assertEquals(true, it) }
         assertNoText("로그인")
-        assertNoText("알림")
+    }
+
+    // 옵트인 로컬 알림 고지: 개인정보 처리방침은 알림이 기본 꺼짐·이 기기에서만·끄기 가능임을 밝힌다.
+    @Test
+    fun `개인정보 처리방침은 옵트인 로컬 알림을 밝힌다`() {
+        setPolicy(PolicyKind.PRIVACY)
+        assertHasText("알림은 기본적으로 꺼져 있어요")
+        assertHasText("이 기기 안에서만 동작해요")
+        assertHasText("언제든 설정에서 끌 수 있어요")
+        // 계정·서버 푸시가 아님을 밝힌다.
+        assertHasText("계정이나 서버 푸시 없이")
     }
 
     // 회귀 방지: 조회에 지역 코드가 전송됨을 밝히고, 잘못된 "보내지 않아요" 고지가 없어야 한다.
@@ -79,5 +93,10 @@ class PolicyScreenTest : RobolectricComposeTest() {
     private fun assertNoText(text: String) {
         composeTestRule.onAllNodesWithText(text, substring = true)
             .fetchSemanticsNodes().isEmpty().let { assertEquals(true, it) }
+    }
+
+    private fun assertHasText(text: String) {
+        composeTestRule.onAllNodesWithText(text, substring = true)
+            .fetchSemanticsNodes().isNotEmpty().let { assertEquals(true, it) }
     }
 }

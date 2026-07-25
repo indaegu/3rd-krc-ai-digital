@@ -39,13 +39,13 @@ afterEach(() => {
   cleanup();
 });
 
-describe("CoachCard 물시계 코치 카드", () => {
+describe("CoachCard 수신호 코치 카드", () => {
   it("헤더·headline·summary·행동 3개(번호+제목+보조설명)를 보여준다", () => {
     const { container } = render(
       <CoachCard state={{ kind: "ready", data: COACH }} />,
     );
 
-    expect(screen.getByText("물시계 코치")).toBeInTheDocument();
+    expect(screen.getByText("수신호 코치")).toBeInTheDocument();
     expect(container.textContent).toContain(COACH.coach.headline);
     expect(container.textContent).toContain(COACH.coach.summary);
 

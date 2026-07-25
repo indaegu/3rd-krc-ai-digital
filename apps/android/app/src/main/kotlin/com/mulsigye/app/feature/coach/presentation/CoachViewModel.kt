@@ -12,7 +12,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-/** 물시계 코치 모듈 상태. 웹 CoachCardState(discriminated union)와 동형. */
+/** 수신호 코치 모듈 상태. 웹 CoachCardState(discriminated union)와 동형. */
 sealed interface CoachUiState {
     data object Loading : CoachUiState
     data class Ready(val data: CoachResult.Success) : CoachUiState
@@ -20,7 +20,7 @@ sealed interface CoachUiState {
 }
 
 /**
- * 물시계 코치 모듈 ViewModel. 시군 코드로 getCoach를 부르고 Loading/Ready/Error로 노출한다.
+ * 수신호 코치 모듈 ViewModel. 시군 코드로 getCoach를 부르고 Loading/Ready/Error로 노출한다.
  *
  * - 비차단 로드: 코치는 다른 모듈(status·forecast)을 막지 않으며 실패해도 이 모듈만 오류가 된다.
  * - refresh()는 이미 Loading이면 무시한다(웹 `coach.kind !== "loading"` 가드와 동일).

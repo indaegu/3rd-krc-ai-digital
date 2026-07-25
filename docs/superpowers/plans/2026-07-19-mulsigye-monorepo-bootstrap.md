@@ -395,7 +395,7 @@ openapi: 3.1.0
 info:
   title: Mulsigye API
   version: 1.0.0
-  description: 물시계 웹과 Android가 함께 소비하는 버전 고정 API 계약
+  description: 수신호 웹과 Android가 함께 소비하는 버전 고정 API 계약
 paths:
   /api/v1/health:
     get:
@@ -950,9 +950,9 @@ describe("HealthCard", () => {
 
     render(<HealthCard />);
 
-    expect(screen.getByText("물시계를 준비하고 있어요.")).toBeInTheDocument();
+    expect(screen.getByText("수신호를 준비하고 있어요.")).toBeInTheDocument();
     expect(
-      await screen.findByText("물시계 서버와 연결됐어요.")
+      await screen.findByText("수신호 서버와 연결됐어요.")
     ).toBeInTheDocument();
   });
 
@@ -1187,7 +1187,7 @@ export function HealthCard() {
   }, [load]);
 
   if (state.kind === "loading") {
-    return <p className={styles.message}>물시계를 준비하고 있어요.</p>;
+    return <p className={styles.message}>수신호를 준비하고 있어요.</p>;
   }
 
   if (state.kind === "error") {
@@ -1204,7 +1204,7 @@ export function HealthCard() {
 
   return (
     <section className={styles.card} aria-live="polite">
-      <h2>물시계 서버와 연결됐어요.</h2>
+      <h2>수신호 서버와 연결됐어요.</h2>
       <p>
         {state.data.stale
           ? "최근 확인한 정보를 보여드려요."
@@ -1273,7 +1273,7 @@ const pretendard = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "물시계",
+  title: "수신호",
   description: "농업용수 부족 시점을 살피는 AI 물관리 코치"
 };
 
@@ -1298,7 +1298,7 @@ export default function HomePage() {
     <main className={styles.main}>
       <section className={styles.hero}>
         <p className={styles.eyebrow}>AI 물관리 코치</p>
-        <h1>물시계</h1>
+        <h1>수신호</h1>
         <p>우리 지역 물 사정을 살피고, 지금 할 일을 쉬운 말로 알려드려요.</p>
       </section>
       <HealthCard />
@@ -2341,7 +2341,7 @@ Create `apps/android/app/src/main/res/values/strings.xml`:
 ```xml
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">물시계</string>
+    <string name="app_name">수신호</string>
 </resources>
 ```
 
@@ -2675,14 +2675,14 @@ fun HealthScreen(
             when (state) {
                 HealthUiState.Loading -> {
                     Text(
-                        text = "물시계를 준비하고 있어요.",
+                        text = "수신호를 준비하고 있어요.",
                         style = MaterialTheme.typography.titleLarge,
                     )
                 }
 
                 is HealthUiState.Ready -> {
                     Text(
-                        text = "물시계 서버와 연결됐어요.",
+                        text = "수신호 서버와 연결됐어요.",
                         style = MaterialTheme.typography.titleLarge,
                     )
                     Text(
@@ -2753,7 +2753,7 @@ fun MulsigyeApp(container: AppContainer) {
             verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
             Text(text = "AI 물관리 코치", color = MaterialTheme.colorScheme.primary)
-            Text(text = "물시계", style = MaterialTheme.typography.displayLarge)
+            Text(text = "수신호", style = MaterialTheme.typography.displayLarge)
             Text(text = "우리 지역 물 사정을 살피고, 지금 할 일을 쉬운 말로 알려드려요.")
             HealthScreen(state = state, onRetry = healthViewModel::refresh)
             Text(
@@ -3492,7 +3492,7 @@ git push origin docs/llm-coach-design
 Update the existing `main` target PR title to:
 
 ```text
-feat: 물시계 모노레포와 첫 health 세로 조각 구성
+feat: 수신호 모노레포와 첫 health 세로 조각 구성
 ```
 
 Use this PR checklist:

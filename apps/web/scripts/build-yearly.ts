@@ -45,7 +45,7 @@ function main(): void {
   writeFileSync(outPath, `${JSON.stringify(snapshot, null, 2)}\n`, "utf8");
 
   const regionCount = Object.keys(snapshot).length;
-  console.log(`[물시계 build:yearly] 원천: ${SOURCE_FILE_NAME}`);
+  console.log(`[수신호 build:yearly] 원천: ${SOURCE_FILE_NAME}`);
   console.log(
     `- 정규화: 적재 ${formatCount(normalized.rows.length)}행, 격리 ${formatCount(normalized.quarantined.length)}행`,
   );
@@ -59,7 +59,7 @@ try {
   main();
 } catch (error: unknown) {
   console.error(
-    `[물시계 build:yearly] 실패: ${error instanceof Error ? error.message : String(error)}`,
+    `[수신호 build:yearly] 실패: ${error instanceof Error ? error.message : String(error)}`,
   );
   process.exitCode = 1;
 }

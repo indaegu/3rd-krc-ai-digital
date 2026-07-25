@@ -89,7 +89,7 @@ live 코치 (Task 9, 별도 PR) — 설계 spec 6.1 순서 그대로
 ### Task 2: 지역 설정·주소 검색·대표 저수지 등록 플로우 (`/regions`, `/regions/add`)
 
 **Files:**
-- Create: `apps/web/src/app/regions/page.tsx` + `.module.css` — 등록 지역 리스트(선택·삭제 버튼 `aria-label="{지역} 삭제"`·빈 상태 "아직 등록한 지역이 없어요"), 하단 "물시계 시작하기" CTA(지역 있을 때만). 지역 이름·저수지명은 코드로 `/api/v1/status`를 병렬 호출해 표시(저장소에는 코드만).
+- Create: `apps/web/src/app/regions/page.tsx` + `.module.css` — 등록 지역 리스트(선택·삭제 버튼 `aria-label="{지역} 삭제"`·빈 상태 "아직 등록한 지역이 없어요"), 하단 "수신호 시작하기" CTA(지역 있을 때만). 지역 이름·저수지명은 코드로 `/api/v1/status`를 병렬 호출해 표시(저장소에는 코드만).
 - Create: `apps/web/src/app/regions/add/page.tsx` + `.module.css` — 검색 입력(300ms 디바운스) → `GET /regions/search` 후보 리스트(인라인 스피너·빈 결과 카피) → 후보 선택 시 `POST /regions/resolve` → 확인 카드("이 주소로 등록할까요?" + "우리 지역 대표 저수지 · {name}") → `prepared:false`면 "이 지역은 아직 준비 중이에요" + 등록 비활성 → 등록 버튼(내부 스피너·중복 잠금) → 저장소 추가 후 `/regions` 복귀. **주소 원문은 등록 후 어떤 저장소에도 남기지 않는다.**
 - Create: `apps/web/src/components/RegionList.tsx`, `apps/web/src/components/AddressSearch.tsx`
 - Test: `AddressSearch.test.tsx` — fetch 스텁(기존 계약 examples 재사용): 해피패스, not-ready 처리, 503 재시도 버튼, 등록 후 localStorage에 코드 2개만 존재. `RegionList.test.tsx` — 빈 상태·선택 전환·삭제·현재 지역 삭제 시 currentIndex 보정.
@@ -165,10 +165,10 @@ live 코치 (Task 9, 별도 PR) — 설계 spec 6.1 순서 그대로
 
 ---
 
-### Task 6: 물시계 코치 카드·근거 고지 모듈 + 프로토타입 동기화
+### Task 6: 수신호 코치 카드·근거 고지 모듈 + 프로토타입 동기화
 
 **Files:**
-- Create: `apps/web/src/components/CoachCard.tsx` — "물시계 코치" 헤더 + headline·summary + 행동 3개(번호·제목·보조 설명). mode·fallbackReason에 따른 구조 차이 없음. coach 503 시 모듈만 오류 카드. 채팅 암시 UI 금지.
+- Create: `apps/web/src/components/CoachCard.tsx` — "수신호 코치" 헤더 + headline·summary + 행동 3개(번호·제목·보조 설명). mode·fallbackReason에 따른 구조 차이 없음. coach 503 시 모듈만 오류 카드. 채팅 암시 UI 금지.
 - Create: `apps/web/src/components/SourcesCard.tsx` — "이 화면의 근거": 공인 기준 설명 + 공식 우선 + `sources` 칩 + stale 지연 안내.
 - Modify: `apps/web/src/app/page.tsx` — coach 페치(비차단) + 모듈 삽입.
 - Modify: `prototype/mulsigye-app-prototype-v2.html` — "코치에게 물어보기" 버튼 제거, 백테스트 오차 실값 형식 갱신(pred-v1 수치).
@@ -180,7 +180,7 @@ live 코치 (Task 9, 별도 PR) — 설계 spec 6.1 순서 그대로
 - [ ] **Step 3: Commit**
   ```powershell
   git add apps/web/src prototype
-  git commit -m "feat(web): 물시계 코치 카드·근거 고지 모듈, 프로토타입 채팅 암시 제거"
+  git commit -m "feat(web): 수신호 코치 카드·근거 고지 모듈, 프로토타입 채팅 암시 제거"
   ```
 
 ---

@@ -21,6 +21,7 @@ sealed interface Screen {
     data object RegionAdd : Screen
     data object Main : Screen
     data object Trend : Screen
+    data object NotificationSettings : Screen
     data class Policy(val kind: PolicyKind) : Screen
 }
 
@@ -34,6 +35,24 @@ fun startScreen(store: RegionStoreState): Screen = when {
     store.regions.isEmpty() -> Screen.Regions
     else -> Screen.Main
 }
+
+/**
+ * #1 최초 사용자 여부. 동의를 마쳤고(consent set) 등록 이력이 없으며(hasEverRegistered=false)
+ * 지역이 비어 있으면 true → 빈 상태 대신 지역 검색(RegionAdd)으로 곧바로 보낸다.
+ * 지역을 모두 지운 재방문 사용자(hasEverRegistered=true)는 false → 기존 빈 상태를 유지한다.
+ */
+fun shouldOpenFirstTimeSearch(store: RegionStoreState): Boolean =
+    store.consentVersion != null && store.regions.isEmpty() && !store.hasEverRegistered
+
+/**
+ * #7 콜드 스타트 시 표시 지역을 대표(index 0)로 되돌릴지. 등록 지역이 있으면 true.
+ * (세션 중 헤더로 바꾼 선택은 그대로 두고, 다음 콜드 스타트에서만 대표로 복귀한다.)
+ */
+fun shouldResetToPrimaryOnColdStart(store: RegionStoreState): Boolean =
+    store.regions.isNotEmpty()
+
+/** 대표 지역 인덱스. 목록 맨 위(0)를 대표로 본다(#7). */
+const val PRIMARY_REGION_INDEX = 0
 
 /**
  * 뒤로가기 한 단계. 루트(크기 1)면 null을 돌려 "앱 종료(finish)"를 알린다.
@@ -50,6 +69,7 @@ fun screenToToken(screen: Screen): String = when (screen) {
     Screen.RegionAdd -> "regionAdd"
     Screen.Main -> "main"
     Screen.Trend -> "trend"
+    Screen.NotificationSettings -> "notificationSettings"
     is Screen.Policy -> "policy:${screen.kind.name}"
 }
 
@@ -61,6 +81,7 @@ fun tokenToScreen(token: String): Screen = when {
     token == "regionAdd" -> Screen.RegionAdd
     token == "main" -> Screen.Main
     token == "trend" -> Screen.Trend
+    token == "notificationSettings" -> Screen.NotificationSettings
     token.startsWith("policy:") ->
         Screen.Policy(runCatching { PolicyKind.valueOf(token.removePrefix("policy:")) }.getOrDefault(PolicyKind.TERMS))
     else -> Screen.Main

@@ -16,6 +16,11 @@ import com.mulsigye.app.core.designsystem.theme.Bg
 // 바텀시트 딤: rgba(25,31,40,.45) (design-system).
 private val SheetScrim = Color(0x73191F28)
 
+// 필수 시트(동의 등) 딤 — 뒤 화면을 또렷이 가리도록 진하게(~0.70). 뒤 배경은 읽히지 않아도 된다(#5).
+// 실제 배경 블러(RenderEffect)는 시트 밖 콘텐츠를 대상으로 해야 해 이 공용 컴포넌트에서 안전히 적용하기
+// 어려우므로, minSdk 26까지 신뢰성 있게 동작하는 진한 스크림으로 대체한다.
+private val SheetScrimStrong = Color(0xB3191F28)
+
 /**
  * 공용 바텀시트: 상단 radius 24dp, 그랩바(기본 dragHandle), 규정 딤(design-system).
  *
@@ -37,7 +42,7 @@ fun MulsigyeBottomSheet(
         sheetState = sheetState,
         shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
         containerColor = Bg,
-        scrimColor = SheetScrim,
+        scrimColor = if (required) SheetScrimStrong else SheetScrim,
         dragHandle = if (required) null else { { BottomSheetDefaults.DragHandle() } },
         content = content,
     )

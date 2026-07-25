@@ -12,7 +12,7 @@ const pretendard = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "물시계",
+  title: "수신호",
   description: "농업용수 부족 시점을 살피는 AI 물관리 코치",
 };
 

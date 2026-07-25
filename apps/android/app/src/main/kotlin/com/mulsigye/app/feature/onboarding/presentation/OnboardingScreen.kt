@@ -21,11 +21,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mulsigye.app.core.designsystem.component.CtaButton
+import com.mulsigye.app.core.ui.rememberReducedMotion
+import kotlin.math.absoluteValue
 import com.mulsigye.app.core.designsystem.theme.Bg
 import com.mulsigye.app.core.designsystem.theme.Blue
 import com.mulsigye.app.core.designsystem.theme.BlueTint
@@ -53,7 +56,7 @@ private val SLIDES: List<OnboardingSlide> = listOf(
         art = BlueTint,
         emoji = "💧",
         title = "우리 동네 물 사정을\n며칠 앞서 알려드려요",
-        body = "저수지 데이터로 보는 물관리 코치, 물시계예요.",
+        body = "저수지 데이터로 보는 물관리 코치, 수신호예요.",
     ),
     OnboardingSlide(
         art = OkBg,
@@ -81,6 +84,8 @@ fun OnboardingScreen(
     modifier: Modifier = Modifier,
 ) {
     val pagerState = rememberPagerState(pageCount = { SLIDES.size })
+    // OS "애니메이션 삭제"면 슬라이드 페이드/스케일 없이 정적으로 둔다(reduced-motion).
+    val reducedMotion = rememberReducedMotion()
 
     Column(
         modifier = modifier
@@ -99,6 +104,24 @@ fun OnboardingScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
+                    // 스와이프하는 동안 정착 위치에서 멀어질수록 슬라이드를 부드럽게 페이드·축소해
+                    // 좌우 전환의 하드 컷을 없앤다. reduced-motion이면 이 효과를 건너뛰고 정적으로 둔다.
+                    .then(
+                        if (reducedMotion) {
+                            Modifier
+                        } else {
+                            Modifier.graphicsLayer {
+                                val distance = (
+                                    (pagerState.currentPage - page) +
+                                        pagerState.currentPageOffsetFraction
+                                    ).absoluteValue.coerceIn(0f, 1f)
+                                alpha = 1f - 0.7f * distance
+                                val scale = 1f - 0.06f * distance
+                                scaleX = scale
+                                scaleY = scale
+                            }
+                        },
+                    )
                     .padding(horizontal = 8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center,

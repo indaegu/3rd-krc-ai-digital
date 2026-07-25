@@ -20,7 +20,7 @@ const SLIDES: Slide[] = [
   {
     bg: "var(--blue-tint)",
     title: "우리 동네 물 사정을 며칠 앞서 알려드려요",
-    body: "저수지 데이터로 보는 물관리 코치, 물시계예요.",
+    body: "저수지 데이터로 보는 물관리 코치, 수신호예요.",
     icon: (
       <svg viewBox="0 0 24 24" fill="var(--blue)">
         <path d="M12 2C12 2 5 10.2 5 15a7 7 0 0 0 14 0C19 10.2 12 2 12 2Z" />
@@ -71,9 +71,9 @@ export default function OnboardingPage() {
 
   return (
     <main className={styles.main}>
-      <h1 className={styles.srOnly}>물시계 소개</h1>
+      <h1 className={styles.srOnly}>수신호 소개</h1>
 
-      <ul className={styles.carousel} aria-label="물시계 소개">
+      <ul className={styles.carousel} aria-label="수신호 소개">
         {SLIDES.map((slide, index) => (
           <li key={index} className={styles.slide}>
             <span

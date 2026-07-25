@@ -143,6 +143,8 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.androidx.datastore.preferences)
+    // 옵트인 로컬 알림 스케줄링(WorkManager). FCM/서버 푸시 없음 — 온디바이스 주기 작업만 사용한다.
+    implementation(libs.androidx.work.runtime.ktx)
 
     testImplementation(libs.junit)
     testImplementation(libs.okhttp.mockwebserver)

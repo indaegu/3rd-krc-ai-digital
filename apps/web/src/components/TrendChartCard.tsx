@@ -31,7 +31,8 @@ export function TrendChartCard({ forecast }: TrendChartCardProps) {
           </svg>
         </Link>
       </div>
-      <TrendChart forecast={forecast} />
+      {/* 미니 차트에도 x축 날짜(첫 날짜·오늘·마지막 날짜)를 보여준다(#11 — 상세와 동일 showDates 경로). */}
+      <TrendChart forecast={forecast} showDates />
       <ul className={styles.legend} aria-label="차트 범례">
         <li>
           <i className={styles.legendSolid} aria-hidden="true" />

@@ -2,6 +2,7 @@
 // 폴리시 3종(위치기반 이용약관·서비스 이용약관·개인정보 처리방침)을 ~해요체로 제공한다.
 // 핵심 고지: 주소 원문·검색어 미저장, 선택한 시군 코드는 조회를 위해 API 서버로 전송, 예측 참고·공식 우선 면책,
 // 코치(LLM)에는 비식별 값만 전달. 카피는 웹 policy/*와 동일 원칙(공통 SSOT).
+// Android 전용 옵트인 로컬 알림 고지(기본 꺼짐·계정/서버 푸시 없음·이 기기에서만·언제든 끄기)를 약관/방침에 덧붙인다.
 
 package com.mulsigye.app.feature.policy.presentation
 
@@ -44,7 +45,7 @@ private data class PolicyDoc(
 private fun docFor(kind: PolicyKind): PolicyDoc = when (kind) {
     PolicyKind.LOCATION -> PolicyDoc(
         title = "위치기반 서비스 이용약관",
-        intro = "물시계는 우리 지역 대표 저수지를 찾는 데에만 위치 정보를 써요.",
+        intro = "수신호는 우리 지역 대표 저수지를 찾는 데에만 위치 정보를 써요.",
         sections = listOf(
             PolicySection(
                 "무엇에 쓰나요",
@@ -74,7 +75,7 @@ private fun docFor(kind: PolicyKind): PolicyDoc = when (kind) {
 
     PolicyKind.TERMS -> PolicyDoc(
         title = "서비스 이용약관",
-        intro = "물시계는 농업용수 저수지 사정을 쉽게 보여주는 무료 서비스예요.",
+        intro = "수신호는 농업용수 저수지 사정을 쉽게 보여주는 무료 서비스예요.",
         sections = listOf(
             PolicySection(
                 "어떤 서비스인가요",
@@ -94,7 +95,14 @@ private fun docFor(kind: PolicyKind): PolicyDoc = when (kind) {
                 "공식 정보가 먼저예요",
                 listOf(
                     "실제 물관리 대응은 한국농어촌공사와 관계 기관의 공식 안내를 먼저 따라 주세요.",
-                    "물시계의 수치나 설명이 공식 정보와 다르면 공식 정보가 맞아요.",
+                    "수신호의 수치나 설명이 공식 정보와 다르면 공식 정보가 맞아요.",
+                ),
+            ),
+            PolicySection(
+                "알림은 선택이에요",
+                listOf(
+                    "원하면 매일 정해진 시간이나 단계가 나빠질 때 알림을 받을 수 있어요.",
+                    "알림은 가입 없이 이 기기에서만 동작하고, 언제든 설정에서 끌 수 있어요.",
                 ),
             ),
             PolicySection(
@@ -106,7 +114,7 @@ private fun docFor(kind: PolicyKind): PolicyDoc = when (kind) {
 
     PolicyKind.PRIVACY -> PolicyDoc(
         title = "개인정보 처리방침",
-        intro = "물시계는 개인을 알아볼 수 있는 정보를 모으지 않아요.",
+        intro = "수신호는 개인을 알아볼 수 있는 정보를 모으지 않아요.",
         sections = listOf(
             PolicySection(
                 "모으는 정보가 적어요",
@@ -125,6 +133,14 @@ private fun docFor(kind: PolicyKind): PolicyDoc = when (kind) {
                 listOf(
                     "쉬운 설명을 만들 때는 저수율과 단계 같은 값만 비식별로 전달해요.",
                     "주소, 지역 이름처럼 개인이나 위치를 알 수 있는 정보는 보내지 않아요.",
+                ),
+            ),
+            PolicySection(
+                "알림은 켤 때만, 이 기기에서만",
+                listOf(
+                    "알림은 기본적으로 꺼져 있어요. 설정에서 직접 켠 경우에만 받아요.",
+                    "알림은 계정이나 서버 푸시 없이 이 기기 안에서만 동작해요. 정해진 때에 대표 지역의 지역 코드로 물 사정만 확인해서 알려드려요.",
+                    "알림은 언제든 설정에서 끌 수 있어요.",
                 ),
             ),
             PolicySection(
