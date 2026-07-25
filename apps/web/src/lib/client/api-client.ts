@@ -26,6 +26,24 @@ interface RequestOptions {
   signal?: AbortSignal;
 }
 
+// 코치 응답 클라이언트 캐시 — 반복 조회(메인↔상세 이동, 지역 왕복, 메인 재진입) 때
+// /api/v1/coach를 매번 다시 부르지 않도록 성공 응답만 짧게 재사용한다.
+// 모듈 레벨 Map은 페이지/컴포넌트보다 위에 있어 리마운트에도 살아남는다(클라이언트 전용).
+// 사용자 새로고침(로고 탭·당겨서 새로고침)은 force로 캐시를 우회해 항상 신선 페치한다.
+const COACH_CACHE_TTL_MS = 30 * 60 * 1000; // 30분 — 코치는 ~시간 단위 데이터라 안전한 값.
+
+interface CoachCacheEntry {
+  response: CoachResponse;
+  fetchedAtMillis: number;
+}
+
+const coachCache = new Map<string, CoachCacheEntry>();
+
+/** 테스트 전용: 모듈 레벨 코치 캐시를 비운다(테스트 간 격리). */
+export function clearCoachCache(): void {
+  coachCache.clear();
+}
+
 const NETWORK_ERROR_MESSAGE =
   "서버와 연결하지 못했어요. 잠시 후 다시 시도해 주세요.";
 const UNKNOWN_ERROR_MESSAGE = "잠시 문제가 생겼어요. 다시 시도해 주세요.";
@@ -125,14 +143,28 @@ export function getForecast(
   );
 }
 
-export function getCoach(
+export async function getCoach(
   sigunCode: string,
-  options?: RequestOptions,
+  options?: RequestOptions & { force?: boolean },
 ): Promise<ApiResult<CoachResponse>> {
-  return requestJson<CoachResponse>(
+  if (!options?.force) {
+    const cached = coachCache.get(sigunCode);
+    if (cached && Date.now() - cached.fetchedAtMillis < COACH_CACHE_TTL_MS) {
+      return { kind: "ok", data: cached.response };
+    }
+  }
+  const result = await requestJson<CoachResponse>(
     `/api/v1/coach?sigunCode=${encodeURIComponent(sigunCode)}`,
     baseInit(options),
   );
+  // 성공만 캐시한다(오류는 절대 캐시하지 않는다). force여도 신선 성공은 캐시를 갱신한다.
+  if (result.kind === "ok") {
+    coachCache.set(sigunCode, {
+      response: result.data,
+      fetchedAtMillis: Date.now(),
+    });
+  }
+  return result;
 }
 
 export function getNearby(

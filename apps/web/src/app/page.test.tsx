@@ -17,6 +17,7 @@ import {
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { clearCoachCache } from "../lib/client/api-client";
 import { REGION_STORE_KEY } from "../lib/client/region-store";
 import HomePage from "./page";
 
@@ -150,6 +151,8 @@ function seedRegion() {
 
 beforeEach(() => {
   window.localStorage.clear();
+  // 코치 응답은 모듈 레벨 캐시에 남아 테스트 간 페치 횟수를 흐트러뜨린다 — 매 테스트 초기화한다.
+  clearCoachCache();
   // jsdom에는 matchMedia가 없다 — reduced motion으로 스텁해 장식 모션을 끈다.
   vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: true }));
 });

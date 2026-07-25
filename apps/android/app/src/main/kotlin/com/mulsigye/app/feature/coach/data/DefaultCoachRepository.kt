@@ -17,9 +17,22 @@ import kotlinx.serialization.json.Json
 class DefaultCoachRepository(
     private val api: CoachApi,
     private val json: Json,
+    private val cache: CoachCache = CoachCache(),
 ) : CoachRepository {
 
-    override suspend fun load(sigunCode: String): CoachResult =
+    override suspend fun load(sigunCode: String, forceRefresh: Boolean): CoachResult {
+        if (!forceRefresh) {
+            cache.get(sigunCode)?.let { return it }
+        }
+        val result = fetch(sigunCode)
+        // 성공만 캐시한다(오류는 절대 캐시하지 않는다). force여도 신선 성공은 캐시를 갱신한다.
+        if (result is CoachResult.Success) {
+            cache.put(sigunCode, result)
+        }
+        return result
+    }
+
+    private suspend fun fetch(sigunCode: String): CoachResult =
         try {
             val response = api.getCoach(sigunCode)
             val body = response.body()

@@ -45,6 +45,16 @@ fun shouldOpenFirstTimeSearch(store: RegionStoreState): Boolean =
     store.consentVersion != null && store.regions.isEmpty() && !store.hasEverRegistered
 
 /**
+ * #2 필수 동의 시트가 열려 있는 동안 뒤 콘텐츠를 실제 블러로 가릴지 결정한다. 조건은 동의 시트를
+ * 자동으로 여는 [RegionsRoute]와 정확히 같다: 동의 미설정(consentVersion == null)이고 지역
+ * 화면(Screen.Regions)일 때. 시트 자체는 별도 창(ModalBottomSheet)에 그려지므로 콘텐츠 Box에
+ * 건 블러는 시트 내용에 닿지 않는다. Modifier.blur는 API 31+에서만 실제로 렌더되고 그 이하에선
+ * 시트의 진한 스크림이 폴백으로 배경을 가린다(정적 효과라 reduced-motion 대상이 아니다).
+ */
+fun shouldBlurBehindConsent(store: RegionStoreState, current: Screen): Boolean =
+    store.consentVersion == null && current == Screen.Regions
+
+/**
  * #7 콜드 스타트 시 표시 지역을 대표(index 0)로 되돌릴지. 등록 지역이 있으면 true.
  * (세션 중 헤더로 바꾼 선택은 그대로 두고, 다음 콜드 스타트에서만 대표로 복귀한다.)
  */

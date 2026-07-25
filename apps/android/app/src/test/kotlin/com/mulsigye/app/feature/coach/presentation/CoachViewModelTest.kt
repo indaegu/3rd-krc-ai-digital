@@ -92,6 +92,22 @@ class CoachViewModelTest {
     }
 
     @Test
+    fun initialLoadUsesCacheAndRefreshForcesRefetch() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val repo = QueueCoachRepository(mutableListOf(success(), success()))
+
+        val vm = CoachViewModel(repo, "44230", dispatcher)
+        advanceUntilIdle()
+        // 초기 로드는 캐시를 사용한다(forceRefresh=false).
+        assertEquals(listOf(false), repo.forceRefreshCalls)
+
+        vm.refresh()
+        advanceUntilIdle()
+        // 새로고침은 캐시를 우회한다(forceRefresh=true).
+        assertEquals(listOf(false, true), repo.forceRefreshCalls)
+    }
+
+    @Test
     fun refreshIsIgnoredWhileLoading() = runTest {
         val dispatcher = StandardTestDispatcher(testScheduler)
         val repo = QueueCoachRepository(mutableListOf(success(), success(), success()))
@@ -115,8 +131,12 @@ private class QueueCoachRepository(
     var callCount = 0
         private set
 
-    override suspend fun load(sigunCode: String): CoachResult {
+    /** load 호출마다 전달된 forceRefresh 값을 순서대로 기록한다. */
+    val forceRefreshCalls = mutableListOf<Boolean>()
+
+    override suspend fun load(sigunCode: String, forceRefresh: Boolean): CoachResult {
         callCount += 1
+        forceRefreshCalls += forceRefresh
         return results.removeAt(0)
     }
 }

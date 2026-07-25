@@ -103,6 +103,27 @@ class RegionStore(
         }
     }
 
+    /**
+     * 여러 지역을 한 번에 삭제(관리 모드의 "선택 삭제"). [codes]에 담긴 시군 코드를 모두 지운다.
+     * currentIndex는 "삭제 전에 가리키던 지역"을 계속 가리키도록, 그 앞에서 지워진 개수만큼 앞당긴다.
+     * 가리키던 지역 자체가 지워졌으면 남은 목록 범위로 clamp한다. hasEverRegistered는 유지한다
+     * (등록 이력은 삭제로 사라지지 않는다 — removeRegion과 동일 규칙).
+     */
+    suspend fun removeRegions(codes: Set<String>) = update { store ->
+        if (codes.isEmpty()) return@update store
+        val kept = mutableListOf<StoredRegion>()
+        var index = store.currentIndex
+        store.regions.forEachIndexed { i, region ->
+            if (region.sigunCode in codes) {
+                // 현재 선택보다 앞에서 지워지면 인덱스를 앞당긴다(가리키던 지역은 그대로 따라감).
+                if (i < store.currentIndex) index -= 1
+            } else {
+                kept.add(region)
+            }
+        }
+        store.copy(regions = kept, currentIndex = clampIndex(index, kept.size))
+    }
+
     suspend fun selectRegion(index: Int) = update { store ->
         store.copy(currentIndex = clampIndex(index, store.regions.size))
     }

@@ -23,7 +23,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mulsigye.app.core.designsystem.theme.Bg
@@ -52,6 +54,9 @@ import com.mulsigye.app.feature.status.presentation.StatusViewModel
 import com.mulsigye.app.feature.coach.presentation.CoachViewModel
 import com.mulsigye.app.feature.nearby.presentation.NearbyViewModel
 import kotlinx.coroutines.launch
+
+// #2 동의 시트 뒤 콘텐츠 블러 강도. 뒤 텍스트가 읽히지 않을 만큼 충분히 흐리게(API 31+).
+private val ConsentBackdropBlur = 18.dp
 
 /**
  * 앱 진입점. 지역·동의 저장소(RegionStore) Flow를 관찰해 게이팅한다(웹 page.tsx 흐름과 동일).
@@ -129,11 +134,22 @@ fun AppRouter(container: AppContainer, store: RegionStoreState) {
         }
     }
 
+    // #2 필수 동의 시트가 열려 있으면(동의 미설정 + 지역 화면) 뒤 콘텐츠 전체를 블러 처리해 뒤 텍스트를
+    // 읽을 수 없게 만든다. 시트는 별도 창(ModalBottomSheet)에 그려지므로 이 블러가 시트엔 닿지 않는다.
+    // API 31+에서 실제 렌더되고, 그 이하에선 시트의 진한 스크림이 폴백으로 배경을 가린다.
+    val blurBehindConsent = shouldBlurBehindConsent(store, backStack.current)
+
     Box(modifier = Modifier.fillMaxSize().background(Bg)) {
         // 상태바·내비게이션 바 인셋만큼 콘텐츠를 밀어 각 화면 상단 제목이 상태바에 먹히지 않게 한다
         // (targetSdk 35+는 edge-to-edge가 강제되므로 인셋 패딩이 필수다). 스플래시 오버레이는
         // 풀블리드로 보이도록 이 패딩 밖에 둔다.
-        Box(modifier = Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .statusBarsPadding()
+                .navigationBarsPadding()
+                .then(if (blurBehindConsent) Modifier.blur(ConsentBackdropBlur) else Modifier),
+        ) {
             when (val current = backStack.current) {
                 Screen.Onboarding -> OnboardingScreen(
                     // CTA → 지역 설정으로. 그곳에서 동의 시트가 자동으로 열린다(consent 없을 때).
@@ -180,6 +196,9 @@ private fun RegionsRoute(
         onSelectRegion = vm::select,
         onRemoveRegion = vm::remove,
         onMoveRegion = vm::move,
+        onToggleManageMode = vm::toggleManageMode,
+        onToggleSelection = vm::toggleSelection,
+        onDeleteSelected = vm::deleteSelected,
         onNavigateAdd = { backStack.push(Screen.RegionAdd) },
         onNavigateNotifications = { backStack.push(Screen.NotificationSettings) },
         onStart = { backStack.replaceAll(Screen.Main) },

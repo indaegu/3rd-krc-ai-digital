@@ -5,6 +5,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import com.mulsigye.app.core.network.ApiClient
 import com.mulsigye.app.core.storage.NotificationPrefsStore
 import com.mulsigye.app.core.storage.RegionStore
+import com.mulsigye.app.feature.coach.data.CoachCache
 import com.mulsigye.app.feature.coach.data.DefaultCoachRepository
 import com.mulsigye.app.feature.coach.data.remote.CoachApi
 import com.mulsigye.app.feature.coach.domain.CoachRepository
@@ -55,8 +56,12 @@ class AppContainer(
     val forecastRepository: ForecastRepository =
         DefaultForecastRepository(retrofit.create(ForecastApi::class.java), json)
 
+    // 코치 캐시는 AppContainer(앱 수명)가 들고 있어 지역별 CoachViewModel 재생성에도 살아남는다.
+    // 반복 진입 때 /api/v1/coach를 다시 부르지 않고 30분 TTL 안에서 성공 응답을 재사용한다.
+    private val coachCache = CoachCache()
+
     val coachRepository: CoachRepository =
-        DefaultCoachRepository(retrofit.create(CoachApi::class.java), json)
+        DefaultCoachRepository(retrofit.create(CoachApi::class.java), json, coachCache)
 
     val nearbyRepository: NearbyRepository =
         DefaultNearbyRepository(retrofit.create(NearbyApi::class.java), json)

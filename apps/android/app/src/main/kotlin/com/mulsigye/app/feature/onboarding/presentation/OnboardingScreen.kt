@@ -20,6 +20,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -50,6 +52,10 @@ private data class OnboardingSlide(
     val title: String,
     val body: String,
 )
+
+// 정착 위치에서 완전히 벗어났을 때(|offset|=1)의 최대 블러·라운드. 오프셋에 비례해 커진다.
+private val MaxSlideBlur = 18.dp
+private val MaxSlideCorner = 28.dp
 
 private val SLIDES: List<OnboardingSlide> = listOf(
     OnboardingSlide(
@@ -101,25 +107,30 @@ fun OnboardingScreen(
                 .weight(1f),
         ) { page ->
             val slide = SLIDES[page]
+            // 이 장이 정착 위치에서 얼마나 벗어났는지(0=정착, 1=한 장 밖). 스크롤 중 매 프레임 갱신된다.
+            val pageOffset = (
+                (pagerState.currentPage - page) +
+                    pagerState.currentPageOffsetFraction
+                ).absoluteValue.coerceIn(0f, 1f)
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    // 스와이프하는 동안 정착 위치에서 멀어질수록 슬라이드를 부드럽게 페이드·축소해
-                    // 좌우 전환의 하드 컷을 없앤다. reduced-motion이면 이 효과를 건너뛰고 정적으로 둔다.
+                    // 스와이프하는 동안 정착 위치에서 멀어질수록 페이드·축소에 더해 라운드 클립과 블러를 키워
+                    // 인접 슬라이드가 스냅 대신 부드럽게 섞이게 한다(하드 컷 제거). 정착하면 offset=0이라
+                    // 블러 0dp·라운드 0dp로 또렷해진다. reduced-motion이면 이 효과를 모두 건너뛰고 정적으로 둔다.
                     .then(
                         if (reducedMotion) {
                             Modifier
                         } else {
-                            Modifier.graphicsLayer {
-                                val distance = (
-                                    (pagerState.currentPage - page) +
-                                        pagerState.currentPageOffsetFraction
-                                    ).absoluteValue.coerceIn(0f, 1f)
-                                alpha = 1f - 0.7f * distance
-                                val scale = 1f - 0.06f * distance
-                                scaleX = scale
-                                scaleY = scale
-                            }
+                            Modifier
+                                .graphicsLayer {
+                                    alpha = 1f - 0.7f * pageOffset
+                                    val scale = 1f - 0.06f * pageOffset
+                                    scaleX = scale
+                                    scaleY = scale
+                                }
+                                .blur(radius = MaxSlideBlur * pageOffset)
+                                .clip(RoundedCornerShape(MaxSlideCorner * pageOffset))
                         },
                     )
                     .padding(horizontal = 8.dp),

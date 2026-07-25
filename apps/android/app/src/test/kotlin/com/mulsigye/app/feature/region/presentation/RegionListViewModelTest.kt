@@ -18,6 +18,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -145,5 +146,100 @@ class RegionListViewModelTest {
 
         assertEquals(1, vm.uiState.value.items.size)
         assertEquals(0, vm.uiState.value.currentIndex)
+    }
+
+    @Test
+    fun toggleManageModeEntersAndExitsClearingSelection() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val storeInstance = store()
+        storeInstance.addRegion(nonsan)
+        storeInstance.addRegion(naju)
+        val statusRepo = FakeStatusRepository().apply { default = statusSuccess("x", "x", "x") }
+        val vm = RegionListViewModel(storeInstance, statusRepo, dispatcher)
+        advanceUntilIdle()
+        assertFalse(vm.uiState.value.manageMode)
+
+        vm.toggleManageMode()
+        vm.toggleSelection("44230")
+        advanceUntilIdle()
+        assertTrue(vm.uiState.value.manageMode)
+        assertEquals(setOf("44230"), vm.uiState.value.selected)
+
+        vm.toggleManageMode() // 나가면 선택이 비워진다.
+        advanceUntilIdle()
+        assertFalse(vm.uiState.value.manageMode)
+        assertTrue(vm.uiState.value.selected.isEmpty())
+    }
+
+    @Test
+    fun toggleSelectionAddsAndRemoves() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val storeInstance = store()
+        storeInstance.addRegion(nonsan)
+        storeInstance.addRegion(naju)
+        val statusRepo = FakeStatusRepository().apply { default = statusSuccess("x", "x", "x") }
+        val vm = RegionListViewModel(storeInstance, statusRepo, dispatcher)
+        advanceUntilIdle()
+
+        vm.toggleSelection("44230")
+        vm.toggleSelection("46170")
+        advanceUntilIdle()
+        assertEquals(setOf("44230", "46170"), vm.uiState.value.selected)
+
+        vm.toggleSelection("44230") // 다시 누르면 해제.
+        advanceUntilIdle()
+        assertEquals(setOf("46170"), vm.uiState.value.selected)
+    }
+
+    @Test
+    fun deleteSelectedRemovesChosenRegionsAndClearsSelection() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val storeInstance = store()
+        storeInstance.addRegion(nonsan)
+        storeInstance.addRegion(naju)
+        storeInstance.addRegion(StoredRegion(sigunCode = "50110", facCode = "5011010004"))
+        val statusRepo = FakeStatusRepository().apply { default = statusSuccess("x", "x", "x") }
+        val vm = RegionListViewModel(storeInstance, statusRepo, dispatcher)
+        advanceUntilIdle()
+
+        vm.toggleSelection("44230")
+        vm.toggleSelection("50110")
+        vm.deleteSelected()
+        advanceUntilIdle()
+
+        assertEquals(listOf("46170"), vm.uiState.value.items.map { it.sigunCode })
+        assertTrue(vm.uiState.value.selected.isEmpty())
+    }
+
+    @Test
+    fun deleteSelectedWithNoSelectionIsNoop() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val storeInstance = store()
+        storeInstance.addRegion(nonsan)
+        storeInstance.addRegion(naju)
+        val statusRepo = FakeStatusRepository().apply { default = statusSuccess("x", "x", "x") }
+        val vm = RegionListViewModel(storeInstance, statusRepo, dispatcher)
+        advanceUntilIdle()
+
+        vm.deleteSelected()
+        advanceUntilIdle()
+
+        assertEquals(2, vm.uiState.value.items.size)
+    }
+
+    @Test
+    fun moveReordersRegions() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val storeInstance = store()
+        storeInstance.addRegion(nonsan)
+        storeInstance.addRegion(naju) // [nonsan, naju]
+        val statusRepo = FakeStatusRepository().apply { default = statusSuccess("x", "x", "x") }
+        val vm = RegionListViewModel(storeInstance, statusRepo, dispatcher)
+        advanceUntilIdle()
+
+        vm.move(1, 0) // naju를 맨 위로 → 대표.
+        advanceUntilIdle()
+
+        assertEquals(listOf("46170", "44230"), vm.uiState.value.items.map { it.sigunCode })
     }
 }

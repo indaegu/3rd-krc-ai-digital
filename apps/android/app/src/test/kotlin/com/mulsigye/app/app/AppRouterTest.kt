@@ -73,6 +73,27 @@ class AppRouterTest {
     }
 
     @Test
+    fun `동의가 없고 지역 화면이면 뒤 콘텐츠를 블러한다`() {
+        // 동의 시트가 자동으로 열리는 조건과 동일 → 뒤 콘텐츠 블러 활성.
+        val store = RegionStoreState(consentVersion = null, regions = emptyList())
+        assertEquals(true, shouldBlurBehindConsent(store, Screen.Regions))
+    }
+
+    @Test
+    fun `동의를 마치면 지역 화면이라도 블러하지 않는다`() {
+        val store = RegionStoreState(consentVersion = "consent-v1", regions = emptyList())
+        assertEquals(false, shouldBlurBehindConsent(store, Screen.Regions))
+    }
+
+    @Test
+    fun `동의가 없어도 지역 화면이 아니면 블러하지 않는다`() {
+        // 시트는 Regions에서만 열리므로 다른 화면에선 뒤 블러가 붙지 않는다.
+        val store = RegionStoreState(consentVersion = null, regions = emptyList())
+        assertEquals(false, shouldBlurBehindConsent(store, Screen.Onboarding))
+        assertEquals(false, shouldBlurBehindConsent(store, Screen.Main))
+    }
+
+    @Test
     fun `콜드 스타트는 지역이 있으면 대표(index 0)로 되돌린다`() {
         val store = RegionStoreState(
             consentVersion = "consent-v1",
