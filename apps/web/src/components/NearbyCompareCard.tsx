@@ -39,12 +39,13 @@ function formatRatio(avgRatio: number): string {
 }
 
 export function NearbyCompareCard({ data }: { data: NearbyResponse }) {
+  // 훅은 early return보다 위에서 호출한다(react-hooks/rules-of-hooks).
+  const [expanded, setExpanded] = useState(false);
   const { sidoName, regions } = data;
   if (regions.length === 0) {
     return null;
   }
 
-  const [expanded, setExpanded] = useState(false);
   const current = regions.find((region) => region.current);
   // 순위는 '넉넉한 순'으로 매긴다 — 나보다 avgRatio가 높은 지역 수 + 1.
   const rank =
