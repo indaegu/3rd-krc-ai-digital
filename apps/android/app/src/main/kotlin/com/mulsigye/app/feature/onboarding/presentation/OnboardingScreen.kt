@@ -20,17 +20,18 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mulsigye.app.core.designsystem.component.CtaButton
-import com.mulsigye.app.core.ui.rememberReducedMotion
-import kotlin.math.absoluteValue
 import com.mulsigye.app.core.designsystem.theme.Bg
 import com.mulsigye.app.core.designsystem.theme.Blue
 import com.mulsigye.app.core.designsystem.theme.BlueTint
@@ -53,9 +54,8 @@ private data class OnboardingSlide(
     val body: String,
 )
 
-// 정착 위치에서 완전히 벗어났을 때(|offset|=1)의 최대 블러·라운드. 오프셋에 비례해 커진다.
-private val MaxSlideBlur = 18.dp
-private val MaxSlideCorner = 28.dp
+/** 페이저 좌우 끝 페이드 폭. 이 폭만큼 양 끝이 투명으로 사라져 슬라이드 경계가 부드럽게 이어진다. */
+private val EdgeFadeWidth = 28.dp
 
 private val SLIDES: List<OnboardingSlide> = listOf(
     OnboardingSlide(
@@ -79,6 +79,27 @@ private val SLIDES: List<OnboardingSlide> = listOf(
 )
 
 /**
+ * 페이저 좌우 끝 가장자리만 부드럽게 페이드(feather)한다 — 슬라이드 전체를 흐리게 하지 않고
+ * 양 끝 [fadeWidth]폭만 투명으로 가는 가로 그라디언트를 DstIn으로 곱해, 스와이프할 때
+ * 인접 슬라이드가 딱딱 끊기지 않고 자연스럽게 녹아들어 보이게 한다(중앙은 또렷).
+ */
+private fun Modifier.edgeFade(fadeWidth: Dp): Modifier = this
+    .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
+    .drawWithContent {
+        drawContent()
+        val frac = (fadeWidth.toPx() / size.width).coerceIn(0f, 0.5f)
+        drawRect(
+            brush = Brush.horizontalGradient(
+                0f to Color.Transparent,
+                frac to Color.Black,
+                1f - frac to Color.Black,
+                1f to Color.Transparent,
+            ),
+            blendMode = BlendMode.DstIn,
+        )
+    }
+
+/**
  * 온보딩 — 최초 사용자만 보는 3장 캐러셀(HorizontalPager + 점 표시). 순수 컴포저블.
  *
  * CTA "내 지역 설정하기" → [onDone](라우터가 지역 설정으로 이동, 그곳에서 동의 시트가 열린다).
@@ -90,8 +111,6 @@ fun OnboardingScreen(
     modifier: Modifier = Modifier,
 ) {
     val pagerState = rememberPagerState(pageCount = { SLIDES.size })
-    // OS "애니메이션 삭제"면 슬라이드 페이드/스케일 없이 정적으로 둔다(reduced-motion).
-    val reducedMotion = rememberReducedMotion()
 
     Column(
         modifier = modifier
@@ -104,35 +123,14 @@ fun OnboardingScreen(
             state = pagerState,
             modifier = Modifier
                 .fillMaxWidth()
-                .weight(1f),
+                .weight(1f)
+                // 좌우 끝만 부드럽게 페이드해 슬라이드 경계가 딱 끊기지 않게 한다(전체 블러 아님).
+                .edgeFade(EdgeFadeWidth),
         ) { page ->
             val slide = SLIDES[page]
-            // 이 장이 정착 위치에서 얼마나 벗어났는지(0=정착, 1=한 장 밖). 스크롤 중 매 프레임 갱신된다.
-            val pageOffset = (
-                (pagerState.currentPage - page) +
-                    pagerState.currentPageOffsetFraction
-                ).absoluteValue.coerceIn(0f, 1f)
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    // 스와이프하는 동안 정착 위치에서 멀어질수록 페이드·축소에 더해 라운드 클립과 블러를 키워
-                    // 인접 슬라이드가 스냅 대신 부드럽게 섞이게 한다(하드 컷 제거). 정착하면 offset=0이라
-                    // 블러 0dp·라운드 0dp로 또렷해진다. reduced-motion이면 이 효과를 모두 건너뛰고 정적으로 둔다.
-                    .then(
-                        if (reducedMotion) {
-                            Modifier
-                        } else {
-                            Modifier
-                                .graphicsLayer {
-                                    alpha = 1f - 0.7f * pageOffset
-                                    val scale = 1f - 0.06f * pageOffset
-                                    scaleX = scale
-                                    scaleY = scale
-                                }
-                                .blur(radius = MaxSlideBlur * pageOffset)
-                                .clip(RoundedCornerShape(MaxSlideCorner * pageOffset))
-                        },
-                    )
                     .padding(horizontal = 8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center,
