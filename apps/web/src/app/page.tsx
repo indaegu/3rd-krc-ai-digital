@@ -185,7 +185,8 @@ export default function HomePage() {
   }, [router]);
 
   // status·forecast 병렬 페치 — 한쪽이 실패해도 다른 모듈은 유지한다.
-  const load = useCallback((sigunCode: string) => {
+  // force: 사용자 새로고침이면 코치 클라이언트 캐시를 우회해 신선 페치한다.
+  const load = useCallback((sigunCode: string, force = false) => {
     setStatus({ kind: "loading" });
     setForecast({ kind: "loading" });
     setCoach({ kind: "loading" });
@@ -219,7 +220,8 @@ export default function HomePage() {
       }
     });
     // 코치는 비차단 페치 — 실패해도 이 모듈만 오류 카드가 되고 나머지는 유지된다.
-    void getCoach(sigunCode).then((result) => {
+    // 반복 조회는 캐시(TTL 30분)에서 재사용하고, 새로고침(force)만 다시 부른다.
+    void getCoach(sigunCode, { force }).then((result) => {
       if (!mountedRef.current) {
         return;
       }
@@ -255,7 +257,8 @@ export default function HomePage() {
 
   const refresh = useCallback(() => {
     if (region !== null && status.kind !== "loading") {
-      load(region.sigunCode);
+      // 사용자 새로고침은 코치 캐시를 우회한다(force = true).
+      load(region.sigunCode, true);
     }
   }, [region, status.kind, load]);
 

@@ -35,20 +35,22 @@ class CoachViewModel(
     val uiState: StateFlow<CoachUiState> = _uiState.asStateFlow()
 
     init {
-        load()
+        // 초기 로드는 캐시를 사용한다(반복 진입 때 코치를 재사용). 캐시 히트는 곧장 Ready로 간다.
+        load(forceRefresh = false)
     }
 
     fun refresh() {
         if (_uiState.value is CoachUiState.Loading) {
             return
         }
-        load()
+        // 사용자 새로고침은 캐시를 우회해 항상 다시 페치한다.
+        load(forceRefresh = true)
     }
 
-    private fun load() {
+    private fun load(forceRefresh: Boolean) {
         _uiState.value = CoachUiState.Loading
         viewModelScope.launch(dispatcher) {
-            _uiState.value = when (val result = repository.load(sigunCode)) {
+            _uiState.value = when (val result = repository.load(sigunCode, forceRefresh)) {
                 is CoachResult.Success -> CoachUiState.Ready(result)
                 is CoachResult.Failure -> CoachUiState.Error(
                     message = result.message,
