@@ -54,12 +54,16 @@ object WaterNotifications {
     /**
      * 알림 하나 발송. 권한이 없으면 아무 것도 하지 않는다. 탭하면 앱 메인으로 들어간다.
      * OEM 별 예외(SecurityException)에도 워커가 죽지 않도록 방어한다.
+     *
+     * **실제로 발송했는지를 돌려준다**(true=발송, false=권한 없음·시스템 토글 꺼짐·발송 실패).
+     * 호출자는 이 값으로만 "알림 모아보기" 기록을 남겨야 한다 — 뜨지도 않은 알림을
+     * 받은 것처럼 보여주면 안 된다(product.md 알림 모아보기 정의).
      */
     // canPost()가 POST_NOTIFICATIONS 권한과 시스템 토글을 먼저 확인하므로 notify는 안전하다.
     // (lint는 메서드 경계를 넘는 권한 가드를 추적하지 못해 오탐하므로 억제한다.)
     @SuppressLint("MissingPermission")
-    fun post(context: Context, id: Int, title: String, text: String) {
-        if (!canPost(context)) return
+    fun post(context: Context, id: Int, title: String, text: String): Boolean {
+        if (!canPost(context)) return false
         val contentIntent = PendingIntent.getActivity(
             context,
             id,
@@ -77,10 +81,12 @@ object WaterNotifications {
             .setContentIntent(contentIntent)
             .setAutoCancel(true)
             .build()
-        try {
+        return try {
             NotificationManagerCompat.from(context).notify(id, notification)
+            true
         } catch (_: SecurityException) {
             // 권한이 방금 회수된 드문 경합. 조용히 무시한다(재시도·크래시 없음).
+            false
         }
     }
 }

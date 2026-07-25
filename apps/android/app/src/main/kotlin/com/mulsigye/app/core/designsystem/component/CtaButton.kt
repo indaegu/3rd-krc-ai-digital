@@ -3,7 +3,7 @@ package com.mulsigye.app.core.designsystem.component
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -20,8 +20,11 @@ import com.mulsigye.app.core.designsystem.theme.Blue
 import com.mulsigye.app.core.designsystem.theme.Gray200
 import com.mulsigye.app.core.designsystem.theme.Ink3
 
+/** 주 CTA 높이(시안 기준). pill 모양이라 radius는 높이의 절반이 된다(CircleShape). */
+private val CtaHeight = 60.dp
+
 /**
- * 주 CTA. 높이 56dp, radius 16dp, `blue`, 글자 굵기 700, 비활성은 `gray200`(design-system).
+ * 주 CTA. 높이 60dp, 완전한 pill(radius 30dp), `blue`, 글자 굵기 700, 비활성은 `gray200`(design-system).
  *
  * `busy = true` 이면 버튼 라벨을 감추고 흰 스피너만 보이며(중복 입력 잠금), 배경을 흐리게 해
  * "지금은 누를 수 없는 상태"임을 색으로도 드러낸다. TalkBack에는 "<라벨> 처리 중"으로 읽힌다.
@@ -38,11 +41,11 @@ fun CtaButton(
         onClick = { if (!busy) onClick() },
         modifier = modifier
             .fillMaxWidth()
-            .height(56.dp)
+            .height(CtaHeight)
             // 로딩 중에는 라벨을 감추므로 접근성 이름을 버튼에 직접 준다.
             .then(if (busy) Modifier.semantics { contentDescription = "$text 처리 중" } else Modifier),
         enabled = enabled,
-        shape = RoundedCornerShape(16.dp),
+        shape = CircleShape,
         colors = ButtonDefaults.buttonColors(
             // 로딩은 눌러도 반응하지 않으므로 배경을 흐리게 해 상태를 드러낸다.
             containerColor = if (busy) Blue.copy(alpha = 0.55f) else Blue,

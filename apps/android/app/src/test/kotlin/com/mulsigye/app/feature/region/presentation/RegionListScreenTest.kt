@@ -174,9 +174,9 @@ class RegionListScreenTest : RobolectricComposeTest() {
             twoRegions(manageMode = true, selected = setOf("46170")),
             onDeleteSelected = { deleted = true },
         )
-        // 선택 개수가 삭제 버튼에 표기된다.
-        composeTestRule.onNodeWithText("선택 삭제 (1)").assertIsDisplayed()
-        composeTestRule.onNodeWithContentDescription("선택한 지역 삭제").performClick()
+        // 선택 개수는 아이콘 버튼의 접근성 이름에 담긴다(상단 액션은 아이콘 — 시안 §9).
+        composeTestRule.onNodeWithContentDescription("선택한 지역 삭제 (1)").assertIsDisplayed()
+        composeTestRule.onNodeWithContentDescription("선택한 지역 삭제 (1)").performClick()
         // 확인 다이얼로그 → 삭제.
         composeTestRule.onNodeWithText("1곳을 지울까요?").assertIsDisplayed()
         composeTestRule.onNodeWithText("삭제").performClick()

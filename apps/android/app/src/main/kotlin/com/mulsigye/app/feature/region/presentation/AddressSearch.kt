@@ -1,5 +1,6 @@
 package com.mulsigye.app.feature.region.presentation
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -11,6 +12,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -23,6 +25,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -35,16 +38,18 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import com.mulsigye.app.core.designsystem.component.CtaButton
@@ -82,15 +87,25 @@ fun AddressSearch(
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            // 시안(§10): 초점과 무관하게 파란 테두리 + 넉넉한 라운드, 안에는 입력 예시 플레이스홀더.
+            // 떠오르는 라벨(label) 대신 접근성 이름을 semantics로 주어 시안의 깔끔한 한 줄을 지킨다.
             OutlinedTextField(
                 value = state.query,
                 onValueChange = onQueryChange,
                 modifier = Modifier
                     .fillMaxWidth()
+                    .heightIn(min = 60.dp)
+                    .semantics { contentDescription = "도로명주소 검색" }
                     .testTag("addressQueryField"),
                 singleLine = true,
-                label = { Text("도로명주소 검색") },
-                placeholder = { Text("예) 시민로 210") },
+                placeholder = { Text("예) 미래로 11", color = Ink3) },
+                shape = RoundedCornerShape(16.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = Blue,
+                    unfocusedBorderColor = Blue,
+                    focusedTextColor = Ink,
+                    unfocusedTextColor = Ink,
+                ),
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
             )
             Text(
@@ -272,6 +287,8 @@ private fun PrimaryAddressCheck(checked: Boolean, onToggle: () -> Unit) {
             .padding(vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        // 체크 표시는 글꼴 글리프(✓) 대신 Canvas로 그린다 — 글리프는 baseline 때문에 사각형
+        // 정중앙보다 아래로 치우쳐 보였다. 두 선분을 박스 가운데에 대칭으로 그려 정중앙에 맞춘다.
         Box(
             modifier = Modifier
                 .size(22.dp)
@@ -280,7 +297,27 @@ private fun PrimaryAddressCheck(checked: Boolean, onToggle: () -> Unit) {
                 .clearAndSetSemantics {},
             contentAlignment = Alignment.Center,
         ) {
-            Text(text = "✓", color = if (checked) Color.White else Ink3, fontWeight = FontWeight.Bold)
+            Canvas(modifier = Modifier.size(14.dp)) {
+                val w = size.width
+                val h = size.height
+                val stroke = w * 0.19f
+                val color = if (checked) Color.White else Ink3
+                // ✓ 꺾은선: 왼쪽 중간 → 아래 꼭짓점 → 오른쪽 위. 세로로는 박스 중앙 기준 대칭.
+                drawLine(
+                    color = color,
+                    start = Offset(w * 0.16f, h * 0.52f),
+                    end = Offset(w * 0.42f, h * 0.78f),
+                    strokeWidth = stroke,
+                    cap = StrokeCap.Round,
+                )
+                drawLine(
+                    color = color,
+                    start = Offset(w * 0.42f, h * 0.78f),
+                    end = Offset(w * 0.85f, h * 0.24f),
+                    strokeWidth = stroke,
+                    cap = StrokeCap.Round,
+                )
+            }
         }
         Spacer(Modifier.width(10.dp))
         Text(

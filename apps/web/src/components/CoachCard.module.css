@@ -11,12 +11,14 @@
 }
 
 .face {
+  /* 마스코트 에셋은 배경이 투명하다 — 원형 배경(blue-tint)을 CSS로 깔고 안쪽에 여백을 준다(시안 §7). */
   flex: none;
   width: 51px;
   height: 51px;
-  object-fit: cover;
+  padding: 5px;
   border-radius: 50%;
   background: var(--blue-tint);
+  object-fit: contain;
 }
 
 .title {

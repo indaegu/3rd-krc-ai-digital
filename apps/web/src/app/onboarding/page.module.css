@@ -65,27 +65,34 @@
   -webkit-mask-image: linear-gradient(
     90deg,
     transparent 0,
-    #000 32px,
-    #000 calc(100% - 32px),
+    #000 20px,
+    #000 calc(100% - 20px),
     transparent 100%
   );
   mask-image: linear-gradient(
     90deg,
     transparent 0,
-    #000 32px,
-    #000 calc(100% - 32px),
+    #000 20px,
+    #000 calc(100% - 20px),
     transparent 100%
   );
 }
 
 .slide {
   display: flex;
+  /* flex 항목의 자동 최소 크기(min-width: auto)가 100%를 넘겨 슬라이드가 화면보다 넓어지는 것을
+     막는다. box-sizing도 명시해 좌우 패딩이 100% 안쪽으로 들어오게 한다. */
+  box-sizing: border-box;
   flex: 0 0 100%;
+  min-width: 0;
+  max-width: 100%;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 20px;
-  padding: 16px;
+  /* 좌우 패딩은 캐러셀 페이드 폭(20px)보다 크게 — 제목·본문이 페이드에 물려 흐려지지 않게 한다.
+     좁은 화면에서는 본문이 자연스럽게 두 줄로 줄바꿈된다. */
+  padding: 16px 24px;
   text-align: center;
   scroll-snap-align: center;
 }
@@ -118,8 +125,8 @@
 }
 
 .art {
-  width: 185px;
-  height: auto;
+  width: min(62%, 240px);
+  height: 230px;
   margin-bottom: 12px;
   object-fit: contain;
 }
@@ -150,11 +157,12 @@
   width: 8px;
   height: 8px;
   border-radius: 999px;
-  background: var(--gray200);
+  /* 그라디언트 배경 위에서도 보이도록 --gray200 대신 --ink4를 쓴다(명도 대비 확보). */
+  background: var(--ink4);
 }
 
 .dotOn {
-  width: 20px;
+  width: 22px;
   background: var(--blue);
 }
 

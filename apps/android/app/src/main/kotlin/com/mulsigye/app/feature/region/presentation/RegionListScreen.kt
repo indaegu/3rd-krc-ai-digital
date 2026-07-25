@@ -1,5 +1,6 @@
 package com.mulsigye.app.feature.region.presentation
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.Arrangement
@@ -10,6 +11,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -19,6 +21,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
@@ -36,18 +39,28 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import com.mulsigye.app.core.designsystem.component.CtaButton
 import com.mulsigye.app.core.designsystem.component.Shimmer
@@ -56,6 +69,7 @@ import com.mulsigye.app.core.designsystem.theme.BlueTint
 import com.mulsigye.app.core.designsystem.theme.Gray50
 import com.mulsigye.app.core.designsystem.theme.Ink2
 import com.mulsigye.app.core.designsystem.theme.Ink3
+import com.mulsigye.app.core.designsystem.theme.Ink4
 import kotlin.math.roundToInt
 
 /** 목록 항목 사이 간격(dp). 드래그 목표 인덱스 계산 시 한 칸 높이에 이 간격을 더한다. */
@@ -143,48 +157,24 @@ fun RegionListScreen(
                         color = Ink2,
                     )
                 }
-                if (showManageToggle) {
-                    // 길게 누르기의 접근성 대체 수단이자 종료 수단. 제스처를 몰라도 여기로 켜고 끈다.
-                    TextButton(
-                        onClick = onToggleManageMode,
-                        modifier = Modifier.semantics {
-                            contentDescription = if (manage) "지역 관리 완료" else "지역 관리 시작"
-                        },
-                    ) {
-                        Text(
-                            text = if (manage) "완료" else "지역 관리",
-                            style = MaterialTheme.typography.labelLarge,
-                        )
-                    }
-                }
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                if (manage) {
-                    // 관리 모드 액션: 고른 지역을 한 번에 삭제(개수 표기). 고른 게 없으면 비활성.
-                    val count = state.selected.size
-                    TextButton(
-                        onClick = { if (count > 0) showDeleteConfirm = true },
-                        enabled = count > 0,
-                        modifier = Modifier.semantics { contentDescription = "선택한 지역 삭제" },
-                    ) {
-                        Text(
-                            text = if (count > 0) "선택 삭제 ($count)" else "선택 삭제",
-                            style = MaterialTheme.typography.labelLarge,
-                        )
-                    }
-                } else {
-                    // "지역 추가하기"는 목록 아래 행 카드로 옮겼다(시안 §9). 여기에는 옵트인 알림 설정만 둔다.
-                    Spacer(Modifier.weight(1f))
-                    // 옵트인 알림 설정 진입(유도 문구 없이 중립적으로). 대표 지역 물 사정을 알림으로 받을 수 있다.
-                    TextButton(
-                        onClick = onNavigateNotifications,
-                        modifier = Modifier.semantics { contentDescription = "알림 설정" },
-                    ) {
-                        Text("알림 설정", style = MaterialTheme.typography.labelLarge)
+                // 상단 액션은 아이콘 버튼으로 둔다 — 좌측 제목·안내 문구의 폭을 잡아먹지 않게 한다.
+                // 아이콘만 있는 버튼이라 각각 접근 가능한 이름(contentDescription)을 반드시 준다.
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (manage) {
+                        val count = state.selected.size
+                        HeaderIcon(
+                            label = if (count > 0) "선택한 지역 삭제 ($count)" else "선택한 지역 삭제",
+                            enabled = count > 0,
+                            onClick = { if (count > 0) showDeleteConfirm = true },
+                        ) { drawTrash(if (count > 0) Ink2 else Ink4) }
+                        HeaderIcon(label = "지역 관리 완료", onClick = onToggleManageMode) { drawCheck(Blue) }
+                    } else {
+                        // 옵트인 알림 설정 진입(중립적으로 — 유도 문구·배지 없음).
+                        HeaderIcon(label = "알림 설정", onClick = onNavigateNotifications) { drawBell(Ink2) }
+                        if (showManageToggle) {
+                            // 길게 누르기의 접근성 대체 수단. 제스처를 몰라도 여기로 관리 모드를 켠다.
+                            HeaderIcon(label = "지역 관리 시작", onClick = onToggleManageMode) { drawManage(Ink2) }
+                        }
                     }
                 }
             }
@@ -422,86 +412,185 @@ private fun RegionRow(
         else -> item.sigunCode
     }
 
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        if (manage) {
-            // 체크박스 = 삭제 대상 선택. 줄 전체를 토글 타깃으로 두고 위/아래 이동은 커스텀 액션으로 제공한다.
-            Surface(
-                modifier = Modifier
-                    .weight(1f)
-                    .toggleable(
-                        value = selected,
-                        role = Role.Checkbox,
-                        onValueChange = { onToggleSelection() },
-                    )
-                    .semantics {
-                        contentDescription = displayName
-                        customActions = buildList {
-                            if (!isFirst) add(CustomAccessibilityAction("위로 이동") { onMoveUp(); true })
-                            if (!isLast) add(CustomAccessibilityAction("아래로 이동") { onMoveDown(); true })
+    // 시안(§9): 한 줄이 하나의 카드다. 삭제 X·드래그 손잡이도 카드 안에 넣고, 터치 영역만
+    // 별도 48dp 버튼으로 분리한다(카드 탭 = 선택/토글, 아이콘 탭 = 그 아이콘의 동작).
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .then(
+                if (manage) {
+                    Modifier
+                        .toggleable(
+                            value = selected,
+                            role = Role.Checkbox,
+                            onValueChange = { onToggleSelection() },
+                        )
+                        .semantics {
+                            contentDescription = displayName
+                            customActions = buildList {
+                                if (!isFirst) add(CustomAccessibilityAction("위로 이동") { onMoveUp(); true })
+                                if (!isLast) add(CustomAccessibilityAction("아래로 이동") { onMoveDown(); true })
+                            }
                         }
-                    },
-                shape = RoundedCornerShape(12.dp),
-                color = if (selected) BlueTint else Gray50,
+                } else {
+                    Modifier
+                        .selectable(selected = selected, onClick = onSelect)
+                        .pointerInput(Unit) {
+                            detectDragGesturesAfterLongPress(
+                                onDragStart = { onLongPress() },
+                                onDrag = { _, _ -> },
+                            )
+                        }
+                },
+            ),
+        shape = RoundedCornerShape(12.dp),
+        color = if (selected) BlueTint else Gray50,
+    ) {
+        Row(
+            modifier = Modifier
+                // 관리 모드 행은 손잡이를 품어야 해서 조금 더 두껍게 둔다(얇아 보이지 않도록).
+                .heightIn(min = if (manage) 68.dp else 60.dp)
+                .padding(start = if (manage) 8.dp else 16.dp, end = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (manage) {
+                // 시각 표시만 담당(클릭은 카드 toggleable). 접근성 트리에서는 제외한다.
+                Checkbox(checked = selected, onCheckedChange = null)
+                Spacer(Modifier.width(4.dp))
+            }
+            // 이름 + (대표면) "기본 주소지" 작은 배지를 이름 오른쪽에 붙인다(시안).
+            Row(
+                modifier = Modifier.weight(1f),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    // 시각 표시만 담당(클릭은 상위 toggleable). 접근성 트리에서는 제외한다.
-                    Checkbox(checked = selected, onCheckedChange = null)
+                RegionName(item)
+                if (isPrimary && !manage) {
                     Spacer(Modifier.width(8.dp))
-                    Box(modifier = Modifier.weight(1f)) { RegionName(item) }
+                    PrimaryBadge()
                 }
             }
 
-            Spacer(Modifier.width(8.dp))
-
-            // 드래그 손잡이 — 길게 눌러 끌면 순서가 바뀐다. 스크린리더는 위 커스텀 액션을 대신 쓴다.
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .then(dragHandleModifier)
-                    .semantics { contentDescription = "$displayName 순서 이동 손잡이" },
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(text = "≡", style = MaterialTheme.typography.titleLarge, color = Ink3)
-            }
-        } else {
-            Surface(
-                modifier = Modifier
-                    .weight(1f)
-                    .selectable(selected = selected, onClick = onSelect)
-                    .pointerInput(Unit) {
-                        detectDragGesturesAfterLongPress(onDragStart = { onLongPress() }, onDrag = { _, _ -> })
-                    },
-                shape = RoundedCornerShape(12.dp),
-                color = if (selected) BlueTint else Gray50,
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
+            if (manage) {
+                // 드래그 손잡이 — 길게 눌러 끌면 순서가 바뀐다. 스크린리더는 위 커스텀 액션을 쓴다.
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .then(dragHandleModifier)
+                        .semantics { contentDescription = "$displayName 순서 이동 손잡이" },
+                    contentAlignment = Alignment.Center,
                 ) {
-                    if (isPrimary) PrimaryBadge()
-                    RegionName(item)
+                    Text(text = "≡", style = MaterialTheme.typography.titleLarge, color = Ink3)
                 }
-            }
-
-            Spacer(Modifier.width(8.dp))
-
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .clickable(onClick = onRemove)
-                    .semantics { contentDescription = "$displayName 삭제" },
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(text = "×", style = MaterialTheme.typography.titleLarge, color = Ink2)
+            } else {
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clickable(onClick = onRemove)
+                        .semantics { contentDescription = "$displayName 삭제" },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Canvas(modifier = Modifier.size(16.dp)) {
+                        val s = size.width
+                        val w = s * 0.15f
+                        drawLine(Ink2, Offset(0f, 0f), Offset(s, s), strokeWidth = w, cap = StrokeCap.Round)
+                        drawLine(Ink2, Offset(s, 0f), Offset(0f, s), strokeWidth = w, cap = StrokeCap.Round)
+                    }
+                }
             }
         }
     }
+}
+
+/**
+ * 헤더 아이콘 버튼 — 48dp 터치 목표 + 접근 가능한 이름. 아이콘은 코드베이스 관례대로 Canvas로 그린다.
+ */
+@Composable
+private fun HeaderIcon(
+    label: String,
+    onClick: () -> Unit,
+    enabled: Boolean = true,
+    icon: DrawScope.() -> Unit,
+) {
+    Box(
+        modifier = Modifier
+            .size(48.dp)
+            .clip(CircleShape)
+            .clickable(enabled = enabled, onClick = onClick)
+            .semantics { contentDescription = label },
+        contentAlignment = Alignment.Center,
+    ) {
+        Canvas(modifier = Modifier.size(22.dp).clearAndSetSemantics {}) { icon() }
+    }
+}
+
+/** 알림(벨) — 중립 아이콘. 배지·도트는 두지 않는다(알림 유도 금지). */
+private fun DrawScope.drawBell(color: Color) {
+    val w = size.width
+    val h = size.height
+    val stroke = w * 0.1f
+    val path = Path().apply {
+        moveTo(w * 0.22f, h * 0.66f)
+        lineTo(w * 0.78f, h * 0.66f)
+        lineTo(w * 0.7f, h * 0.5f)
+        lineTo(w * 0.7f, h * 0.36f)
+        cubicTo(w * 0.7f, h * 0.16f, w * 0.3f, h * 0.16f, w * 0.3f, h * 0.36f)
+        lineTo(w * 0.3f, h * 0.5f)
+        close()
+    }
+    drawPath(path = path, color = color, style = Stroke(width = stroke))
+    drawArc(
+        color = color,
+        startAngle = 0f,
+        sweepAngle = 180f,
+        useCenter = false,
+        topLeft = Offset(w * 0.4f, h * 0.62f),
+        size = Size(w * 0.2f, h * 0.2f),
+        style = Stroke(width = stroke),
+    )
+}
+
+/** 지역 관리(줄 + 손잡이 점) 아이콘 — 순서 변경·정리를 뜻한다. */
+private fun DrawScope.drawManage(color: Color) {
+    val w = size.width
+    val h = size.height
+    val stroke = h * 0.1f
+    listOf(0.26f, 0.5f, 0.74f).forEachIndexed { i, fy ->
+        val right = if (i == 1) 0.7f else 0.86f
+        drawLine(
+            color = color,
+            start = Offset(w * 0.14f, h * fy),
+            end = Offset(w * right, h * fy),
+            strokeWidth = stroke,
+            cap = StrokeCap.Round,
+        )
+    }
+}
+
+/** 완료(체크) 아이콘. */
+private fun DrawScope.drawCheck(color: Color) {
+    val w = size.width
+    val h = size.height
+    val stroke = w * 0.14f
+    drawLine(color, Offset(w * 0.16f, h * 0.54f), Offset(w * 0.42f, h * 0.78f), strokeWidth = stroke, cap = StrokeCap.Round)
+    drawLine(color, Offset(w * 0.42f, h * 0.78f), Offset(w * 0.86f, h * 0.24f), strokeWidth = stroke, cap = StrokeCap.Round)
+}
+
+/** 선택 삭제(휴지통) 아이콘. */
+private fun DrawScope.drawTrash(color: Color) {
+    val w = size.width
+    val h = size.height
+    val stroke = w * 0.09f
+    drawLine(color, Offset(w * 0.16f, h * 0.28f), Offset(w * 0.84f, h * 0.28f), strokeWidth = stroke, cap = StrokeCap.Round)
+    drawLine(color, Offset(w * 0.4f, h * 0.28f), Offset(w * 0.4f, h * 0.18f), strokeWidth = stroke, cap = StrokeCap.Round)
+    drawLine(color, Offset(w * 0.6f, h * 0.28f), Offset(w * 0.6f, h * 0.18f), strokeWidth = stroke, cap = StrokeCap.Round)
+    drawLine(color, Offset(w * 0.4f, h * 0.18f), Offset(w * 0.6f, h * 0.18f), strokeWidth = stroke, cap = StrokeCap.Round)
+    val body = Path().apply {
+        moveTo(w * 0.24f, h * 0.28f)
+        lineTo(w * 0.3f, h * 0.84f)
+        lineTo(w * 0.7f, h * 0.84f)
+        lineTo(w * 0.76f, h * 0.28f)
+    }
+    drawPath(path = body, color = color, style = Stroke(width = stroke))
 }
 
 /** 지역 한 줄의 이름 표시(로딩=스켈레톤, 준비=제목, 오류=코드+안내). */
@@ -537,13 +626,15 @@ private fun RegionName(item: RegionListItem) {
  */
 @Composable
 private fun PrimaryBadge() {
-    Surface(shape = RoundedCornerShape(14.dp), color = BlueTint) {
+    Surface(shape = RoundedCornerShape(6.dp), color = BlueTint) {
         Text(
+            // 이름보다 한 단계 작은 글자(시안) — 이름 오른쪽에 붙어 보조 라벨로 읽힌다.
             text = "기본 주소지",
             style = MaterialTheme.typography.labelMedium,
+            fontSize = 12.sp,
             fontWeight = FontWeight.SemiBold,
             color = Blue,
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+            modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
         )
     }
 }

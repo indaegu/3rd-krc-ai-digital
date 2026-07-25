@@ -153,7 +153,9 @@ export function AddressSearch() {
   return (
     <div className={styles.root}>
       <div className={styles.field}>
-        <label className={styles.label} htmlFor="address-search-query">
+        {/* 시안(§10): 떠 있는 라벨 없이 입력 예시만 보이게 한다. 라벨은 화면에서만 감추고
+            스크린리더에는 그대로 읽히도록 남긴다(접근 가능한 이름 유지). */}
+        <label className={styles.srOnlyLabel} htmlFor="address-search-query">
           도로명주소 검색
         </label>
         <input
@@ -161,7 +163,7 @@ export function AddressSearch() {
           className={styles.input}
           type="text"
           autoComplete="off"
-          placeholder="예) 시민로 210"
+          placeholder="예) 미래로 11"
           value={query}
           onChange={(event) => handleQueryChange(event.target.value)}
         />

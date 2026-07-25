@@ -1,7 +1,9 @@
 package com.mulsigye.app.app
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -9,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -23,7 +26,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.mulsigye.app.core.designsystem.component.CtaButton
@@ -66,6 +71,8 @@ fun MainScreen(
     onRefresh: () -> Unit,
     onNavigateRegions: () -> Unit,
     onNavigateTrend: () -> Unit,
+    onNavigateNotificationInbox: () -> Unit,
+    onNavigateAppSettings: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     // 헤더 드롭다운은 대표 지역명만 보여준다(시안 §3). 저수지명은 TodayCard 탭 라벨이 소유한다.
@@ -95,18 +102,27 @@ fun MainScreen(
         ) {
         MainHeader(
             regionLabel = regionLabel,
-            refreshing = statusState is StatusUiState.Loading,
-            onRefresh = onRefresh,
             onNavigateRegions = onNavigateRegions,
+            onNavigateNotificationInbox = onNavigateNotificationInbox,
+            onNavigateAppSettings = onNavigateAppSettings,
         )
 
+        // 기준시각 = 다시 불러오기 버튼(시안 헤더에는 새로고침 아이콘이 없다). 당겨서 새로고침도 그대로.
         stampText(statusState)?.let { stamp ->
-            Text(
-                text = stamp,
-                style = MaterialTheme.typography.bodyMedium,
-                color = Ink2,
-                modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
-            )
+            Box(
+                modifier = Modifier
+                    .clickable(onClick = onRefresh)
+                    .semantics { contentDescription = "새로고침" }
+                    .sizeIn(minHeight = 48.dp)
+                    .padding(horizontal = 20.dp),
+                contentAlignment = Alignment.CenterStart,
+            ) {
+                Text(
+                    text = stamp,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Ink2,
+                )
+            }
         }
 
         Column(

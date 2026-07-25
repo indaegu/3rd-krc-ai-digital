@@ -119,12 +119,18 @@ fun ReservoirGauge(
 
         val fillFraction = (level.value / 100f).coerceIn(0f, 1f)
         if (fillFraction > 0f) {
-            val surfaceY = h * (1f - fillFraction)
             val amplitude = if (reducedMotion) 0f else h * 0.018f
+            // 물결이 통 위로 잘려 상단에 옅은 홈이 파여 보이지 않도록 수면을 진폭만큼 아래로 제한한다.
+            // (만수에 가까우면 수면이 통 맨 위여서 사인 골이 그대로 빈 공간으로 남았다.)
+            val surfaceY = (h * (1f - fillFraction)).coerceAtLeast(amplitude * 2f)
             clipPath(container) {
                 // 물 색 = 브랜드 파랑 고정. 뒤 물결은 옅은 파랑, 앞 물결은 파랑으로 살짝 물결진다.
                 drawWave(surfaceY = surfaceY, phase = waveB, amplitude = amplitude, color = Blue.copy(alpha = 0.5f), width = beakerRight, height = h)
                 drawWave(surfaceY = surfaceY + amplitude, phase = waveA, amplitude = amplitude, color = Blue, width = beakerRight, height = h)
+                // 만수(수면이 제한선까지 올라온 경우)에는 수면 위 남은 띠를 파랑으로 메워 홈을 없앤다.
+                if (fillFraction > 0.995f) {
+                    drawRect(color = Blue, size = Size(beakerRight, surfaceY))
+                }
             }
         }
 

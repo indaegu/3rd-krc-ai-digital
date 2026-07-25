@@ -22,6 +22,8 @@ sealed interface Screen {
     data object Main : Screen
     data object Trend : Screen
     data object NotificationSettings : Screen
+    data object NotificationInbox : Screen
+    data object AppSettings : Screen
     data class Policy(val kind: PolicyKind) : Screen
 }
 
@@ -80,6 +82,8 @@ fun screenToToken(screen: Screen): String = when (screen) {
     Screen.Main -> "main"
     Screen.Trend -> "trend"
     Screen.NotificationSettings -> "notificationSettings"
+    Screen.NotificationInbox -> "notificationInbox"
+    Screen.AppSettings -> "appSettings"
     is Screen.Policy -> "policy:${screen.kind.name}"
 }
 
@@ -92,6 +96,8 @@ fun tokenToScreen(token: String): Screen = when {
     token == "main" -> Screen.Main
     token == "trend" -> Screen.Trend
     token == "notificationSettings" -> Screen.NotificationSettings
+    token == "notificationInbox" -> Screen.NotificationInbox
+    token == "appSettings" -> Screen.AppSettings
     token.startsWith("policy:") ->
         Screen.Policy(runCatching { PolicyKind.valueOf(token.removePrefix("policy:")) }.getOrDefault(PolicyKind.TERMS))
     else -> Screen.Main

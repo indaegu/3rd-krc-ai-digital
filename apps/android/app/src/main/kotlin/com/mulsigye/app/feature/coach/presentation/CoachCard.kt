@@ -33,6 +33,7 @@ import com.mulsigye.app.core.designsystem.component.CtaButton
 import com.mulsigye.app.core.designsystem.component.MulsigyeCard
 import com.mulsigye.app.core.designsystem.theme.Bg
 import com.mulsigye.app.core.designsystem.theme.Blue
+import com.mulsigye.app.core.designsystem.theme.BlueTint
 import com.mulsigye.app.core.designsystem.theme.Ink
 import com.mulsigye.app.core.designsystem.theme.Ink2
 import com.mulsigye.app.core.designsystem.theme.Ink3
@@ -88,16 +89,24 @@ fun CoachCard(
 @Composable
 private fun CoachHeader() {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        // 코치 원형 아바타(coach_avatar). 장식이라 접근성 트리에서 제외한다(이름은 제목이 소유).
-        Image(
-            painter = painterResource(R.drawable.coach_avatar),
-            contentDescription = null,
-            contentScale = ContentScale.Crop,
+        // 코치 원형 아바타 — 마스코트 에셋은 배경이 투명하므로 원형 배경(BlueTint)을 깔고
+        // 안쪽에 Fit으로 넣어 팔·다리가 잘리지 않게 한다(시안 §7, 51dp 원).
+        Box(
             modifier = Modifier
-                .size(48.dp)
+                .size(51.dp)
                 .clip(CircleShape)
+                .background(BlueTint)
                 .clearAndSetSemantics {},
-        )
+            contentAlignment = Alignment.Center,
+        ) {
+            Image(
+                painter = painterResource(R.drawable.coach_avatar),
+                // 장식 이미지 — 이름은 옆 제목("수신호 코치")이 소유한다.
+                contentDescription = null,
+                contentScale = ContentScale.Fit,
+                modifier = Modifier.size(42.dp),
+            )
+        }
         Spacer(Modifier.width(12.dp))
         Column {
             Text(

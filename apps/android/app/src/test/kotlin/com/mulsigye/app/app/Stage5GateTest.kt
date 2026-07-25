@@ -141,13 +141,14 @@ class Stage5GateTest : RobolectricComposeTest() {
     /**
      * 예측을 사실로 단정하는 금지 표현(규칙 3·product.md 카피 규칙) + 유도 문구.
      *
-     * "알림"은 여전히 **메인 화면**에서 금지한다: 옵트인 로컬 알림 설정은 지역 설정(RegionListScreen)
-     * 화면의 중립적 진입으로만 도달하고, 메인 화면에는 알림을 켜라고 부추기는 넛지·배너·배지를 두지
-     * 않는다(design-system 콘텐츠 가드). 즉 이 가드는 메인 화면의 넛지 차단을 계속 지킨다.
+     * 메인 헤더에는 이미 받은 알림을 다시 보는 중립 진입("알림 모아보기")이 있다(시안 §3). 금지 대상은
+     * **알림을 켜라고 부추기는 넛지**다: "알림 받기/켜기/켜세요" 같은 권유 문구와 배지·도트를 두지
+     * 않는다(design-system 콘텐츠 가드). 그래서 "알림"이라는 낱말 자체가 아니라 넛지 문구를 막는다.
      */
     private val forbidden = listOf(
         "내려가요", "발생합니다", "됩니다", "위험합니다", // 금지 단정
-        "가까운 저수지", "알림", "로그인", // 거리·(메인 화면)푸시 넛지·계정 유도 금지
+        "가까운 저수지", "로그인", // 거리·계정 유도 금지
+        "알림 받기", "알림 켜기", "알림을 켜", "알림 받으세요", // (메인 화면) 푸시 넛지 금지
     )
 
     // ── MockWebServer: 경로별로 계약 픽스처를 서빙(3개 병렬 호출을 순서 무관하게). ──────────
@@ -208,6 +209,8 @@ class Stage5GateTest : RobolectricComposeTest() {
                     onRefresh = {},
                     onNavigateRegions = {},
                     onNavigateTrend = {},
+                    onNavigateNotificationInbox = {},
+                    onNavigateAppSettings = {},
                 )
             }
         }
@@ -342,7 +345,7 @@ class Stage5GateTest : RobolectricComposeTest() {
                 val statusState by statusVm.uiState.collectAsState()
                 val forecastState by forecastVm.uiState.collectAsState()
                 val coachState by coachVm.uiState.collectAsState()
-                MainScreen(statusState, forecastState, coachState, NearbyUiState.Loading, {}, {}, {})
+                MainScreen(statusState, forecastState, coachState, NearbyUiState.Loading, {}, {}, {}, {}, {})
             }
         }
 
@@ -407,7 +410,7 @@ class Stage5GateTest : RobolectricComposeTest() {
         val coach = CoachUiState.Ready(CoachFixtures.success(scenario.coachFixture))
         composeTestRule.setContent {
             MulsigyeTheme {
-                MainScreen(status, forecast, coach, NearbyUiState.Loading, {}, {}, {})
+                MainScreen(status, forecast, coach, NearbyUiState.Loading, {}, {}, {}, {}, {})
             }
         }
     }

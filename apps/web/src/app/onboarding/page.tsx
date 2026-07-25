@@ -62,8 +62,8 @@ export default function OnboardingPage() {
               src={slide.image}
               alt=""
               aria-hidden="true"
-              width={185}
-              height={185}
+              width={370}
+              height={462}
             />
             <h2 className={styles.slideTitle}>{slide.title}</h2>
             <p className={styles.slideBody}>{slide.body}</p>

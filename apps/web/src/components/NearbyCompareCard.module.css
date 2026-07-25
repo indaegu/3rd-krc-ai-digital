@@ -95,3 +95,17 @@
   color: var(--crit-fg);
   background: var(--crit-bg);
 }
+
+/* "N곳 더 보기 / 접기" — 도 안 지역이 많을 때 목록을 펼치는 중립 버튼. */
+.moreButton {
+  min-height: 48px;
+  margin-top: 4px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: var(--blue-deep);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
