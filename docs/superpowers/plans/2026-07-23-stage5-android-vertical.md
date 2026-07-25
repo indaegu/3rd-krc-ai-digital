@@ -127,11 +127,11 @@ base URL: BuildConfig.API_BASE_URL (기존 주입 구조 유지)
 
 ---
 
-### Task 6: 물시계 코치 카드·근거 고지 모듈·공통 면책 문구
+### Task 6: 수신호 코치 카드·근거 고지 모듈·공통 면책 문구
 
 **Files:** feature/coach/presentation(CoachViewModel·CoachCard — mode 3값 구조 동일·오류 격리·채팅 UI 금지), feature/status/presentation/SourcesCard(status∪forecast sources·stale 안내), core/ui/Disclaimer.kt. 테스트: 행동 3개·mode 렌더 동일·채팅 암시 부재·sources 병합.
 
-- [ ] Step 1~3, commit `"feat(android): 물시계 코치 카드·근거 고지 모듈·공통 면책 문구"`
+- [ ] Step 1~3, commit `"feat(android): 수신호 코치 카드·근거 고지 모듈·공통 면책 문구"`
 
 ---
 

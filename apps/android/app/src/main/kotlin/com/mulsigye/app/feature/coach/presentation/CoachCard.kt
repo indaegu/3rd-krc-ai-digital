@@ -34,7 +34,7 @@ import com.mulsigye.app.feature.coach.domain.CoachContent
 private const val MAX_ACTIONS = 3
 
 /**
- * 물시계 코치 모듈 — 순수 컴포저블(상태 + 콜백만 받음).
+ * 수신호 코치 모듈 — 순수 컴포저블(상태 + 콜백만 받음).
  *
  * - 서버가 확정한 headline·summary·행동(최대 3개)을 그대로 표시한다(규칙 10).
  * - mode(llm/cache/static)·fallbackReason은 **읽지 않는다** → 어떤 mode에서도 렌더 구조가 동일하다.
@@ -91,7 +91,7 @@ private fun CoachHeader() {
         Spacer(Modifier.width(12.dp))
         Column {
             Text(
-                text = "물시계 코치",
+                text = "수신호 코치",
                 style = MaterialTheme.typography.titleMedium,
                 color = Ink,
                 modifier = Modifier.semantics { heading() },

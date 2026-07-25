@@ -35,7 +35,7 @@ export default function RegionsPage() {
       </Link>
 
       {hasRegions ? (
-        <CtaButton onClick={() => router.push("/")}>물시계 시작하기</CtaButton>
+        <CtaButton onClick={() => router.push("/")}>수신호 시작하기</CtaButton>
       ) : null}
     </main>
   );

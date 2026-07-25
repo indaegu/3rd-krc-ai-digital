@@ -53,7 +53,7 @@ private val SLIDES: List<OnboardingSlide> = listOf(
         art = BlueTint,
         emoji = "💧",
         title = "우리 동네 물 사정을\n며칠 앞서 알려드려요",
-        body = "저수지 데이터로 보는 물관리 코치, 물시계예요.",
+        body = "저수지 데이터로 보는 물관리 코치, 수신호예요.",
     ),
     OnboardingSlide(
         art = OkBg,

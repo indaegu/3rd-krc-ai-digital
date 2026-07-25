@@ -33,7 +33,7 @@ import com.mulsigye.app.core.designsystem.theme.Ink2
 import com.mulsigye.app.core.designsystem.theme.Ink3
 
 /**
- * 등록 지역 목록 화면 — 선택 전환·삭제·빈 상태와 "물시계 시작하기" CTA.
+ * 등록 지역 목록 화면 — 선택 전환·삭제·빈 상태와 "수신호 시작하기" CTA.
  *
  * 순수 컴포저블(상태 + 콜백). 지역명·저수지명은 ViewModel이 status로 채운 [state]에서만
  * 읽고 저장소는 코드만 갖는다. 카피는 product.md·웹 RegionList와 동일 문구다.
@@ -88,7 +88,7 @@ fun RegionListScreen(
         if (state.items.isNotEmpty()) {
             // 지역 이름을 아직 불러오는 중(스켈레톤)이면 시작을 막는다 — 확정 전 진입 방지.
             val resolving = state.items.any { it.name is RegionNameState.Loading }
-            CtaButton(text = "물시계 시작하기", onClick = onStart, enabled = !resolving)
+            CtaButton(text = "수신호 시작하기", onClick = onStart, enabled = !resolving)
         }
     }
 }

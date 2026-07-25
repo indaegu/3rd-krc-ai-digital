@@ -274,7 +274,7 @@ export default function HomePage() {
       {/* 스플래시는 게이팅과 별개 오버레이 — consent·지역이 모두 있는 메인 위에
           1.5s 덮었다 사라진다(reduced-motion이면 즉시 통과). */}
       {splashDone ? null : <Splash onDone={finishSplash} />}
-      <h1 className={styles.srOnly}>물시계</h1>
+      <h1 className={styles.srOnly}>수신호</h1>
       <MainHeader
         regionLabel={regionLabel}
         refreshing={status.kind === "loading"}
@@ -323,7 +323,7 @@ export default function HomePage() {
           </Card>
         ) : null}
 
-        {/* ④ 물시계 코치 — 비차단. 스켈레톤·오류 카드는 모듈이 스스로 소유한다. */}
+        {/* ④ 수신호 코치 — 비차단. 스켈레톤·오류 카드는 모듈이 스스로 소유한다. */}
         <CoachCard state={coach} onRetry={refresh} />
 
         {/* ④-b 주변 지역 비교 — 같은 시·도 안에서 우리 지역 물 사정 비교(비차단).

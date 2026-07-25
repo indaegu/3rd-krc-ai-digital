@@ -144,7 +144,7 @@ fun MainScreen(
                 )
             }
 
-            // ④ 물시계 코치 — 비차단(스켈레톤·오류는 모듈이 소유).
+            // ④ 수신호 코치 — 비차단(스켈레톤·오류는 모듈이 소유).
             CoachCard(state = coachState, onRetry = onRefresh)
 
             // ④-b 주변 지역 비교 — 같은 시·도 안에서 우리 지역 물 사정 비교(비차단).

@@ -14,7 +14,7 @@ import org.junit.Rule
 import org.junit.Test
 
 /**
- * 물시계 코치 카드 렌더 검증.
+ * 수신호 코치 카드 렌더 검증.
  *
  * - 서버가 확정한 headline·summary·행동(최대 3개)을 그대로 표시한다(규칙 10).
  * - mode(llm/cache/static)·fallbackReason은 렌더 구조를 바꾸지 않는다(구조 불변 — 테스트로 강제).
@@ -38,7 +38,7 @@ class CoachCardTest : RobolectricComposeTest() {
     @Test
     fun staticFixtureShowsHeaderHeadlineSummaryAndThreeActions() {
         setCard(ready())
-        composeTestRule.onNodeWithText("물시계 코치").assertIsDisplayed()
+        composeTestRule.onNodeWithText("수신호 코치").assertIsDisplayed()
         composeTestRule.onNodeWithText("지금 할 일을 하나씩 확인해요.", substring = true).assertIsDisplayed()
         composeTestRule
             .onNodeWithText("공식 가뭄 예·경보를 먼저 확인해요", substring = true)
@@ -102,7 +102,7 @@ class CoachCardTest : RobolectricComposeTest() {
             CoachUiState.Error(message = "코치 설명을 불러오지 못했어요.", retryable = true),
         )
         // 코치 모듈만 오류 카드로 대체하되 헤더는 유지한다.
-        composeTestRule.onNodeWithText("물시계 코치").assertIsDisplayed()
+        composeTestRule.onNodeWithText("수신호 코치").assertIsDisplayed()
         composeTestRule.onNodeWithText("코치 설명을 불러오지 못했어요.", substring = true).assertIsDisplayed()
         // 채팅·자유입력 암시 UI는 어떤 상태에서도 없다.
         listOf("물어보기", "질문", "채팅", "메시지", "입력", "보내기").forEach { word ->

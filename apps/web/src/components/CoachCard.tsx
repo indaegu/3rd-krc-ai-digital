@@ -1,4 +1,4 @@
-// 물시계 코치 모듈 — 서버가 확정한 headline·summary·행동(최대 3개)을 그대로
+// 수신호 코치 모듈 — 서버가 확정한 headline·summary·행동(최대 3개)을 그대로
 // 보여준다(규칙 10). mode·fallbackReason은 표시 차이를 만들지 않는다(계약 주석).
 // 자유 채팅/입력 UI는 절대 넣지 않는다(spec 15절). coach 실패 시 이 모듈만
 // 오류 카드로 대체하고 다른 모듈에는 영향을 주지 않는다.
@@ -31,7 +31,7 @@ function CoachHeader() {
         </svg>
       </span>
       <span className={styles.title}>
-        <h2 className={styles.name}>물시계 코치</h2>
+        <h2 className={styles.name}>수신호 코치</h2>
         <span className={styles.sub}>우리 지역 물 사정을 쉬운 말로</span>
       </span>
     </div>

@@ -7,7 +7,7 @@ export default function PrivacyPolicyPage() {
   return (
     <PolicyDoc
       title="개인정보 처리방침"
-      intro="물시계는 개인을 알아볼 수 있는 정보를 모으지 않아요."
+      intro="수신호는 개인을 알아볼 수 있는 정보를 모으지 않아요."
       sections={[
         {
           heading: "모으는 정보가 적어요",

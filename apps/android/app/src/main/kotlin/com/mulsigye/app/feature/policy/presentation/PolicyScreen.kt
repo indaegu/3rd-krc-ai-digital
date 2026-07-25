@@ -44,7 +44,7 @@ private data class PolicyDoc(
 private fun docFor(kind: PolicyKind): PolicyDoc = when (kind) {
     PolicyKind.LOCATION -> PolicyDoc(
         title = "위치기반 서비스 이용약관",
-        intro = "물시계는 우리 지역 대표 저수지를 찾는 데에만 위치 정보를 써요.",
+        intro = "수신호는 우리 지역 대표 저수지를 찾는 데에만 위치 정보를 써요.",
         sections = listOf(
             PolicySection(
                 "무엇에 쓰나요",
@@ -74,7 +74,7 @@ private fun docFor(kind: PolicyKind): PolicyDoc = when (kind) {
 
     PolicyKind.TERMS -> PolicyDoc(
         title = "서비스 이용약관",
-        intro = "물시계는 농업용수 저수지 사정을 쉽게 보여주는 무료 서비스예요.",
+        intro = "수신호는 농업용수 저수지 사정을 쉽게 보여주는 무료 서비스예요.",
         sections = listOf(
             PolicySection(
                 "어떤 서비스인가요",
@@ -94,7 +94,7 @@ private fun docFor(kind: PolicyKind): PolicyDoc = when (kind) {
                 "공식 정보가 먼저예요",
                 listOf(
                     "실제 물관리 대응은 한국농어촌공사와 관계 기관의 공식 안내를 먼저 따라 주세요.",
-                    "물시계의 수치나 설명이 공식 정보와 다르면 공식 정보가 맞아요.",
+                    "수신호의 수치나 설명이 공식 정보와 다르면 공식 정보가 맞아요.",
                 ),
             ),
             PolicySection(
@@ -106,7 +106,7 @@ private fun docFor(kind: PolicyKind): PolicyDoc = when (kind) {
 
     PolicyKind.PRIVACY -> PolicyDoc(
         title = "개인정보 처리방침",
-        intro = "물시계는 개인을 알아볼 수 있는 정보를 모으지 않아요.",
+        intro = "수신호는 개인을 알아볼 수 있는 정보를 모으지 않아요.",
         sections = listOf(
             PolicySection(
                 "모으는 정보가 적어요",

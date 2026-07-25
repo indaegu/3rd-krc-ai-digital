@@ -37,7 +37,7 @@ export function MainHeader({
             <path d="M12 2C12 2 5 10.2 5 15a7 7 0 0 0 14 0C19 10.2 12 2 12 2Z" />
           </svg>
         </span>
-        <span className={styles.logoText}>물시계</span>
+        <span className={styles.logoText}>수신호</span>
       </button>
       <Link
         href="/regions"

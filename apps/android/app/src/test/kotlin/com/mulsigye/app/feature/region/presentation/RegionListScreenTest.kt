@@ -84,6 +84,6 @@ class RegionListScreenTest : RobolectricComposeTest() {
             }
         }
 
-        composeTestRule.onNodeWithText("물시계 시작하기").assertIsDisplayed()
+        composeTestRule.onNodeWithText("수신호 시작하기").assertIsDisplayed()
     }
 }

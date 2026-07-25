@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>물시계 · 앱 프로토타입 v2</title>
+<title>수신호 · 앱 프로토타입 v2</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <style>
 /* ═══ 토큰 (Toss·카카오뱅크 계열) ═══ */
@@ -408,7 +408,7 @@ body{
     <section class="screen on" id="s-splash">
       <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem">
         <div class="mark"><svg viewBox="0 0 24 24"><path d="M12 2C12 2 5 10.2 5 15a7 7 0 0 0 14 0C19 10.2 12 2 12 2Z"/></svg></div>
-        <div class="word">물시계</div>
+        <div class="word">수신호</div>
         <div class="cap">우리 동네 물 사정, 며칠 앞서</div>
       </div>
     </section>
@@ -421,7 +421,7 @@ body{
             <svg viewBox="0 0 24 24" fill="var(--blue)"><path d="M12 2C12 2 5 10.2 5 15a7 7 0 0 0 14 0C19 10.2 12 2 12 2Z"/></svg>
           </div>
           <h2>우리 동네 물 사정을<br>며칠 앞서 알려드려요</h2>
-          <p>저수지 데이터로 보는 물관리 코치, 물시계</p>
+          <p>저수지 데이터로 보는 물관리 코치, 수신호</p>
         </div>
         <div class="slide">
           <div class="art" style="background:#EAF7F1">
@@ -461,7 +461,7 @@ body{
         <div id="regionArea"></div>
       </div>
       <div class="cta-wrap" id="regionCtaWrap" style="display:none">
-        <button class="cta" id="startMain">물시계 시작하기</button>
+        <button class="cta" id="startMain">수신호 시작하기</button>
       </div>
     </section>
 
@@ -506,7 +506,7 @@ body{
       <header class="mainhead">
         <button class="logo-btn" id="logoBtn" aria-label="새로고침">
           <span class="drop"><svg viewBox="0 0 24 24"><path d="M12 2C12 2 5 10.2 5 15a7 7 0 0 0 14 0C19 10.2 12 2 12 2Z"/></svg></span>
-          <b>물시계</b>
+          <b>수신호</b>
         </button>
         <button class="region-btn" id="regionBtn">
           <span id="regionLabel">빛가람동 · 나주호</span>
@@ -588,11 +588,11 @@ body{
             </div>
           </section>
 
-          <!-- 물시계 코치 -->
+          <!-- 수신호 코치 -->
           <section class="card coach">
             <div class="who">
               <span class="face"><svg viewBox="0 0 24 24"><path d="M12 2C12 2 5 10.2 5 15a7 7 0 0 0 14 0C19 10.2 12 2 12 2Z"/></svg></span>
-              <span><b>물시계 코치</b><small>우리 지역 물 사정을 쉬운 말로</small></span>
+              <span><b>수신호 코치</b><small>우리 지역 물 사정을 쉬운 말로</small></span>
             </div>
             <p class="bubble" id="coachMsg"></p>
             <ul class="todo" id="todo"></ul>
@@ -653,7 +653,7 @@ body{
     <div class="dim" id="dim"></div>
     <div class="sheet" id="consentSheet" role="dialog" aria-label="약관 동의">
       <div class="grab"></div>
-      <h3>물시계를 시작하려면<br>동의가 필요해요</h3>
+      <h3>수신호를 시작하려면<br>동의가 필요해요</h3>
       <p class="sub">주소는 시군구와 대표 저수지를 정한 뒤 저장하지 않아요</p>
       <button class="agree-all" id="agreeAll">
         <span class="ck"><svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg></span>

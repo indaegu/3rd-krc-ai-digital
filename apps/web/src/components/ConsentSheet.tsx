@@ -86,7 +86,7 @@ export function ConsentSheet({ onConsented }: ConsentSheetProps) {
       onClose={() => undefined}
     >
       <h2 className={styles.title}>
-        물시계를 시작하려면
+        수신호를 시작하려면
         <br />
         동의가 필요해요
       </h2>

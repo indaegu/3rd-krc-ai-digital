@@ -7,7 +7,7 @@ export default function LocationPolicyPage() {
   return (
     <PolicyDoc
       title="위치기반 서비스 이용약관"
-      intro="물시계는 우리 지역 대표 저수지를 찾는 데에만 위치 정보를 써요."
+      intro="수신호는 우리 지역 대표 저수지를 찾는 데에만 위치 정보를 써요."
       sections={[
         {
           heading: "무엇에 쓰나요",

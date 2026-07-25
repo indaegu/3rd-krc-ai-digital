@@ -2,7 +2,7 @@ openapi: 3.1.0
 info:
   title: Mulsigye API
   version: 1.0.0
-  description: 물시계 웹과 Android가 함께 소비하는 버전 고정 API 계약
+  description: 수신호 웹과 Android가 함께 소비하는 버전 고정 API 계약
 paths:
   /api/v1/health:
     get:

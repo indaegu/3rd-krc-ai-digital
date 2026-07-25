@@ -114,7 +114,7 @@ fun ConsentSheetContent(
             .padding(start = 24.dp, end = 24.dp, bottom = 24.dp, top = 28.dp),
     ) {
         Text(
-            text = "물시계를 시작하려면\n동의가 필요해요",
+            text = "수신호를 시작하려면\n동의가 필요해요",
             style = MaterialTheme.typography.titleLarge,
             color = Ink,
             modifier = Modifier.semantics { heading() },

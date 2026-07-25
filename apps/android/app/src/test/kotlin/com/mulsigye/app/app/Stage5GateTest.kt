@@ -283,8 +283,8 @@ class Stage5GateTest : RobolectricComposeTest() {
             assertAbsent("만수위에 가까워요", substring = true)
         }
 
-        // 물시계 코치 행동 3개(정적 코치 계약값).
-        assertPresent("물시계 코치")
+        // 수신호 코치 행동 3개(정적 코치 계약값).
+        assertPresent("수신호 코치")
         listOf(
             "물꼬를 조금만 열어 두어요",
             "공식 가뭄 안내를 확인해요",

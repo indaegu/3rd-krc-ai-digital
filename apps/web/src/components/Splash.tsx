@@ -29,13 +29,13 @@ export function Splash({ onDone }: SplashProps) {
   }, [onDone]);
 
   return (
-    <div className={styles.overlay} role="status" aria-label="물시계를 여는 중">
+    <div className={styles.overlay} role="status" aria-label="수신호를 여는 중">
       <span className={styles.mark} aria-hidden="true">
         <svg viewBox="0 0 24 24">
           <path d="M12 2C12 2 5 10.2 5 15a7 7 0 0 0 14 0C19 10.2 12 2 12 2Z" />
         </svg>
       </span>
-      <span className={styles.word}>물시계</span>
+      <span className={styles.word}>수신호</span>
       <span className={styles.caption}>우리 동네 물 사정, 며칠 앞서</span>
     </div>
   );
