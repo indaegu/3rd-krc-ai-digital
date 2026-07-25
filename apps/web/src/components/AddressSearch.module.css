@@ -8,8 +8,17 @@
   gap: 8px;
 }
 
-.label {
-  font-weight: 700;
+/* 라벨은 시각적으로 감추고 스크린리더에만 남긴다(시안: 입력창 안에 예시만 보인다). */
+.srOnlyLabel {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .input {

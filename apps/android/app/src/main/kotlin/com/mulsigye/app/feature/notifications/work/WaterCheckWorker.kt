@@ -53,21 +53,24 @@ class WaterCheckWorker(
                 NotificationLogic.shouldNotifyStageWorsened(prefs.lastNotifiedStageCode, currentCode, order)
             ) {
                 val text = NotificationLogic.buildStageWorsenedText(status)
-                WaterNotifications.post(
+                val posted = WaterNotifications.post(
                     applicationContext,
                     WaterNotifications.STAGE_NOTIFICATION_ID,
                     NotificationLogic.STAGE_TITLE,
                     text,
                 )
-                // 알림 모아보기에서 다시 볼 수 있게 발송 기록을 남긴다(기기 내 저장).
-                container.notificationHistoryStore.record(
-                    NotificationHistoryEntry(
-                        title = NotificationLogic.STAGE_TITLE,
-                        body = text,
-                        receivedAt = System.currentTimeMillis(),
-                        sigunCode = region.sigunCode,
-                    ),
-                )
+                // 실제로 발송된 경우에만 "알림 모아보기" 기록을 남긴다(권한 회수·토글 꺼짐이면
+                // 알림이 뜨지 않으므로 받은 것처럼 보이면 안 된다).
+                if (posted) {
+                    container.notificationHistoryStore.record(
+                        NotificationHistoryEntry(
+                            title = NotificationLogic.STAGE_TITLE,
+                            body = text,
+                            receivedAt = System.currentTimeMillis(),
+                            sigunCode = region.sigunCode,
+                        ),
+                    )
+                }
             }
             // 알림 여부와 무관하게 기준선을 현재 지역·단계로 갱신(다음 악화만, 같은 지역에서만 알리도록).
             container.notificationPrefsStore.setLastNotified(region.sigunCode, currentCode)
@@ -76,20 +79,22 @@ class WaterCheckWorker(
         // (2) 매일 알림 — 매일 시각이 설정된 경우에만(이 주기 실행이 그 시각에 맞춰 걸려 있다).
         if (prefs.dailyTimeMinutes != null) {
             val text = NotificationLogic.buildDailyText(status)
-            WaterNotifications.post(
+            val posted = WaterNotifications.post(
                 applicationContext,
                 WaterNotifications.DAILY_NOTIFICATION_ID,
                 NotificationLogic.DAILY_TITLE,
                 text,
             )
-            container.notificationHistoryStore.record(
-                NotificationHistoryEntry(
-                    title = NotificationLogic.DAILY_TITLE,
-                    body = text,
-                    receivedAt = System.currentTimeMillis(),
-                    sigunCode = region.sigunCode,
-                ),
-            )
+            if (posted) {
+                container.notificationHistoryStore.record(
+                    NotificationHistoryEntry(
+                        title = NotificationLogic.DAILY_TITLE,
+                        body = text,
+                        receivedAt = System.currentTimeMillis(),
+                        sigunCode = region.sigunCode,
+                    ),
+                )
+            }
         }
 
         return Result.success()

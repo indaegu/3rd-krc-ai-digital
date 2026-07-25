@@ -1,9 +1,10 @@
 "use client";
 
 // 메인 헤더 — 좌측 지역 드롭다운(대표 시군명 + chevron, 탭하면 지역 설정으로 이동해
-// 대표 지역을 전환한다) + 그 아래 기준 시각(보조 텍스트). 우상단 pill에 [새로고침]·구분선·[설정].
-// 웹은 알림 기능이 없으므로 벨(알림을 암시하는 UI)을 두지 않는다(apps/web/AGENTS.md 규칙).
-// 톱니는 앱 환경설정(/settings)으로 간다.
+// 대표 지역을 전환한다) + 그 아래 기준 시각. 기준 시각이 곧 새로고침 버튼이다(터치 48px).
+// 우상단 pill에는 앱 환경설정(/settings)만 둔다 — 웹은 알림 기능이 없어 알림 모아보기 진입이
+// 없고, 알림을 암시하는 UI도 만들지 않는다(apps/web/AGENTS.md). 이 배치는 design-system.md의
+// 헤더 규칙(pill = 알림 모아보기(Android)·앱 환경설정, 새로고침 = 기준시각)과 같다.
 // 라벨·기준시각은 응답 값으로만 표시한다(하드코딩 금지).
 
 import Link from "next/link";
@@ -35,26 +36,19 @@ export function MainHeader({ regionLabel, asOf, onRefresh }: MainHeaderProps) {
             <path d="M6 9l6 6 6-6" />
           </svg>
         </Link>
-        {asOf === null ? null : <span className={styles.asOf}>{asOf}</span>}
+        {/* 기준 시각 = 새로고침 버튼(design-system 헤더 규칙). 터치 목표 48px. */}
+        {asOf === null ? null : (
+          <button
+            type="button"
+            className={styles.asOf}
+            aria-label="새로고침"
+            onClick={onRefresh}
+          >
+            {asOf}
+          </button>
+        )}
       </div>
       <div className={styles.pill}>
-        {/* 새로고침 — 벨 자리에 두는 중립 컨트롤(웹은 알림 기능이 없다). */}
-        <button
-          type="button"
-          className={styles.iconBtn}
-          aria-label="새로고침"
-          onClick={onRefresh}
-        >
-          <svg
-            className={styles.refreshIcon}
-            viewBox="0 0 24 24"
-            aria-hidden="true"
-          >
-            <path d="M21 12a9 9 0 1 1-3-6.7L21 8" />
-            <path d="M21 3v5h-5" />
-          </svg>
-        </button>
-        <span className={styles.divider} aria-hidden="true" />
         <Link
           href="/settings"
           className={styles.iconLink}
