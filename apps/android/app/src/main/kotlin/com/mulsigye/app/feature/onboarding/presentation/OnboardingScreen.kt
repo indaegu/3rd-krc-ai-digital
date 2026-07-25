@@ -156,7 +156,9 @@ fun OnboardingScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 8.dp),
+                    // 좌우 패딩은 EdgeFadeWidth(28dp)보다 크게 — 제목·본문이 페이드에 물려
+                    // 흐릿하게 잘리지 않게 한다.
+                    .padding(horizontal = 32.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center,
             ) {
