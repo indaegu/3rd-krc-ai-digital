@@ -42,6 +42,33 @@
   scroll-snap-align: center;
 }
 
+/* 좌우 전환의 하드 컷 대신, 스크롤 위치에 따라 슬라이드를 부드럽게 크로스페이드한다.
+   정착(가운데) 구간은 또렷하게, 가장자리로 밀려날수록 옅어진다. 스크롤 연동 애니메이션
+   미지원 브라우저는 기존처럼 불투명하게 유지된다(우아한 폴백). reduced-motion이면 끈다. */
+@keyframes slideEdgeFade {
+  0% {
+    opacity: 0.2;
+  }
+
+  45%,
+  55% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0.2;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: view()) {
+    .slide {
+      animation: slideEdgeFade linear both;
+      animation-timeline: view(inline);
+    }
+  }
+}
+
 .art {
   display: flex;
   align-items: center;

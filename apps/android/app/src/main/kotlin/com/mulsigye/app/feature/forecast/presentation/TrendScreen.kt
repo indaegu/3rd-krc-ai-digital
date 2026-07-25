@@ -99,7 +99,7 @@ fun TrendScreen(
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
                     text = "${data.sigunName} 지역 평년 대비 저수율",
-                    style = MaterialTheme.typography.headlineLarge,
+                    style = MaterialTheme.typography.titleLarge,
                     color = Ink,
                     modifier = Modifier.semantics { heading() },
                 )

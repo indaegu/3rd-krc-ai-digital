@@ -263,8 +263,8 @@ describe("단계 4 게이트 ① — 4개 상태 메인 전체 트리", () => {
         expect(screen.queryByText(/만수위에 가까워요/)).not.toBeInTheDocument();
       }
 
-      // 물시계 코치 행동 3개(coach 카드의 ol 항목).
-      expect(screen.getByText("물시계 코치")).toBeInTheDocument();
+      // 수신호 코치 행동 3개(coach 카드의 ol 항목).
+      expect(screen.getByText("수신호 코치")).toBeInTheDocument();
       expect(container.querySelectorAll("ol li")).toHaveLength(3);
 
       // 모든 예측 화면 공통 고지.
@@ -314,7 +314,7 @@ describe("단계 4 게이트 ③ — 카피 감사", () => {
 
       const { container } = render(createElement(HomePage));
 
-      await screen.findByText("물시계 코치");
+      await screen.findByText("수신호 코치");
 
       assertCopyClean(container);
       // 예측 표시 화면에는 공식 우선 고지가 있어야 한다.
@@ -334,7 +334,7 @@ describe("단계 4 게이트 ④ — 접근성 자동화분", () => {
 
     const { container } = render(createElement(HomePage));
 
-    await screen.findByText("물시계 코치");
+    await screen.findByText("수신호 코치");
 
     assertHeadingOrder(container);
     assertButtonsNamed(container);

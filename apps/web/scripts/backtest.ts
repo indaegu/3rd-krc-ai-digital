@@ -84,7 +84,7 @@ function main(): void {
     .map(([reason, count]) => `${reason} ${formatCount(count)}`)
     .join(", ");
 
-  console.log(`[물시계 backtest] 원천: ${SOURCE_FILE_NAME}`);
+  console.log(`[수신호 backtest] 원천: ${SOURCE_FILE_NAME}`);
   console.log(`- SHA-256: ${sourceChecksum}`);
   console.log(
     `- 정규화: 적재 ${formatCount(normalized.rows.length)}행, 격리 ${formatCount(normalized.quarantined.length)}행`,
@@ -114,7 +114,7 @@ try {
   main();
 } catch (error: unknown) {
   console.error(
-    `[물시계 backtest] 실패: ${error instanceof Error ? error.message : String(error)}`,
+    `[수신호 backtest] 실패: ${error instanceof Error ? error.message : String(error)}`,
   );
   process.exitCode = 1;
 }

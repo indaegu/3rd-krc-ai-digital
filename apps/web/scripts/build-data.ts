@@ -80,7 +80,7 @@ async function main(): Promise<void> {
 
   const report = await runBuildData(options);
 
-  console.log(`[물시계 build:data] 모드: ${mode}`);
+  console.log(`[수신호 build:data] 모드: ${mode}`);
   for (const [key, source] of Object.entries(report.sources)) {
     const reasons = Object.entries(source.quarantineByReason)
       .filter(([, count]) => count > 0)
@@ -112,7 +112,7 @@ async function main(): Promise<void> {
 
 main().catch((error: unknown) => {
   console.error(
-    `[물시계 build:data] 실패: ${error instanceof Error ? error.message : String(error)}`,
+    `[수신호 build:data] 실패: ${error instanceof Error ? error.message : String(error)}`,
   );
   process.exitCode = 1;
 });

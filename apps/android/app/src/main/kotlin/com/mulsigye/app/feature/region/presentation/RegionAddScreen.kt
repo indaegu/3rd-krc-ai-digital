@@ -62,7 +62,7 @@ fun RegionAddScreen(
                 Spacer(Modifier.width(4.dp))
                 Text(
                     text = "지역 추가",
-                    style = MaterialTheme.typography.headlineLarge,
+                    style = MaterialTheme.typography.titleLarge,
                     modifier = Modifier.semantics { heading() },
                 )
             }

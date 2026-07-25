@@ -84,6 +84,8 @@ export function ConsentSheet({ onConsented }: ConsentSheetProps) {
       label="약관 동의"
       // 필수 동의 — 딤/Esc로 닫히지 않도록 무시한다.
       onClose={() => undefined}
+      // 필수 동의라 뒤 화면은 읽히지 않아도 된다 — 딤을 진하게, 배경을 흐리게 가린다(#5).
+      dimClassName={styles.strongDim}
     >
       <h2 className={styles.title}>
         수신호를 시작하려면
