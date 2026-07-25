@@ -31,7 +31,10 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mulsigye.app.core.designsystem.theme.Bg
 import com.mulsigye.app.core.designsystem.theme.MulsigyeTheme
 import com.mulsigye.app.core.notifications.WaterNotifications
+import com.mulsigye.app.BuildConfig
+import com.mulsigye.app.core.storage.NotificationHistoryEntry
 import com.mulsigye.app.core.storage.RegionStoreState
+import com.mulsigye.app.feature.notifications.presentation.NotificationInboxScreen
 import com.mulsigye.app.feature.notifications.presentation.NotificationSettingsScreen
 import com.mulsigye.app.feature.notifications.presentation.NotificationSettingsViewModel
 import com.mulsigye.app.feature.notifications.work.NotificationScheduler
@@ -44,6 +47,7 @@ import com.mulsigye.app.feature.forecast.presentation.TrendLoadingScreen
 import com.mulsigye.app.feature.forecast.presentation.TrendScreen
 import com.mulsigye.app.feature.onboarding.presentation.OnboardingScreen
 import com.mulsigye.app.feature.policy.presentation.PolicyScreen
+import com.mulsigye.app.feature.settings.presentation.AppSettingsScreen
 import com.mulsigye.app.feature.region.presentation.RegionAddScreen
 import com.mulsigye.app.feature.region.presentation.RegionAddViewModel
 import com.mulsigye.app.feature.region.presentation.RegionListScreen
@@ -156,11 +160,31 @@ fun AppRouter(container: AppContainer, store: RegionStoreState) {
                     onDone = { backStack.push(Screen.Regions) },
                 )
 
-                Screen.Regions -> RegionsRoute(container, store, backStack, scope)
+                Screen.Regions -> RegionsRoute(
+                    container = container,
+                    store = store,
+                    backStack = backStack,
+                    scope = scope,
+                    // "시작하기"로 메인에 들어갈 때마다 전환 연출(스플래시)을 다시 재생한다.
+                    onStart = {
+                        splashShown = false
+                        backStack.replaceAll(Screen.Main)
+                    },
+                )
                 Screen.RegionAdd -> RegionAddRoute(container, backStack)
                 Screen.Main -> MainRoute(container, store, backStack)
                 Screen.Trend -> TrendRoute(container, store, backStack)
                 Screen.NotificationSettings -> NotificationSettingsRoute(container, backStack)
+                Screen.NotificationInbox -> NotificationInboxRoute(container, backStack)
+                Screen.AppSettings -> AppSettingsScreen(
+                    versionName = BuildConfig.VERSION_NAME,
+                    onBack = { backStack.pop() },
+                    onOpenNotificationSettings = { backStack.push(Screen.NotificationSettings) },
+                    onOpenRegions = { backStack.push(Screen.Regions) },
+                    onOpenTerms = { backStack.push(Screen.Policy(PolicyKind.TERMS)) },
+                    onOpenPrivacy = { backStack.push(Screen.Policy(PolicyKind.PRIVACY)) },
+                    onOpenLocationPolicy = { backStack.push(Screen.Policy(PolicyKind.LOCATION)) },
+                )
 
                 is Screen.Policy -> PolicyScreen(
                     kind = current.kind,
@@ -185,6 +209,7 @@ private fun RegionsRoute(
     store: RegionStoreState,
     backStack: BackStack,
     scope: kotlinx.coroutines.CoroutineScope,
+    onStart: () -> Unit,
 ) {
     val vm: RegionListViewModel = viewModel(
         factory = RegionListViewModel.Factory(container.regionStore, container.statusRepository),
@@ -201,7 +226,7 @@ private fun RegionsRoute(
         onDeleteSelected = vm::deleteSelected,
         onNavigateAdd = { backStack.push(Screen.RegionAdd) },
         onNavigateNotifications = { backStack.push(Screen.NotificationSettings) },
-        onStart = { backStack.replaceAll(Screen.Main) },
+        onStart = onStart,
     )
 
     // 최초 진입(동의 없음)이면 필수 동의 시트를 자동으로 연다. 동의 시 저장소에 consent-v1 저장.
@@ -280,6 +305,8 @@ private fun MainRoute(container: AppContainer, store: RegionStoreState, backStac
         onRefresh = refresh,
         onNavigateRegions = { backStack.push(Screen.Regions) },
         onNavigateTrend = { backStack.push(Screen.Trend) },
+        onNavigateNotificationInbox = { backStack.push(Screen.NotificationInbox) },
+        onNavigateAppSettings = { backStack.push(Screen.AppSettings) },
     )
 }
 
@@ -332,6 +359,30 @@ private fun NotificationSettingsRoute(container: AppContainer, backStack: BackSt
         onToggleDaily = vm::setDailyEnabled,
         onAdjustDailyTime = vm::setDailyTime,
         onToggleStageAlert = vm::setStageAlertEnabled,
+    )
+}
+
+/**
+ * 알림 모아보기 라우트 — 이 기기가 보낸 알림 기록(DataStore)을 최신순으로 보여준다.
+ * 시각 문구는 기기 로케일 기준으로 여기서 포맷해 화면은 순수하게 유지한다.
+ */
+@Composable
+private fun NotificationInboxRoute(container: AppContainer, backStack: BackStack) {
+    val entries: List<NotificationHistoryEntry> by produceState(
+        initialValue = emptyList(),
+        container,
+    ) {
+        container.notificationHistoryStore.historyFlow.collect { value = it }
+    }
+
+    NotificationInboxScreen(
+        entries = entries,
+        onBack = { backStack.pop() },
+        onOpenNotificationSettings = { backStack.push(Screen.NotificationSettings) },
+        formatTime = { millis ->
+            val formatter = java.text.SimpleDateFormat("M월 d일 a h:mm", java.util.Locale.KOREA)
+            formatter.format(java.util.Date(millis))
+        },
     )
 }
 

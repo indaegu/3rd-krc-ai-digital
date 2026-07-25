@@ -3,6 +3,7 @@ package com.mulsigye.app.app
 import android.content.Context
 import androidx.datastore.preferences.preferencesDataStore
 import com.mulsigye.app.core.network.ApiClient
+import com.mulsigye.app.core.storage.NotificationHistoryStore
 import com.mulsigye.app.core.storage.NotificationPrefsStore
 import com.mulsigye.app.core.storage.RegionStore
 import com.mulsigye.app.feature.coach.data.CoachCache
@@ -46,6 +47,10 @@ class AppContainer(
 
     val notificationPrefsStore: NotificationPrefsStore =
         NotificationPrefsStore(context.applicationContext.notificationDataStore)
+
+    // 알림 모아보기용 발송 기록(같은 DataStore 파일, 키 분리).
+    val notificationHistoryStore: NotificationHistoryStore =
+        NotificationHistoryStore(context.applicationContext.notificationDataStore)
 
     val regionRepository: RegionRepository =
         DefaultRegionRepository(retrofit.create(RegionApi::class.java), json)

@@ -46,9 +46,9 @@ import kotlin.math.sin
  *
  * - 좌: 대표 지역명(서버값) + 아래 chevron → 지역 설정/전환([onNavigateRegions]). 기준 시각은
  *   헤더 바로 아래 스탬프(MainScreen)가 소유한다.
- * - 우: 회색 pill 안에 [새로고침]·구분선·[설정] 두 중립 아이콘. **알림 유도 배지/도트는 두지 않는다.**
- *   시안의 벨 자리는 새로고침으로 둔다 — 메인 화면에 알림 넛지를 두지 않는 콘텐츠 가드(design-system)를
- *   지키고, 별도 알림 설정 진입 콜백을 추가하면 화면 계약이 바뀌기 때문이다(설정=지역 설정 진입).
+ * - 우: 회색 pill 안에 [알림 모아보기]·구분선·[앱 환경설정] 두 아이콘(시안 §3). 이미 받은 알림을
+ *   모아 보는 중립 진입이며 **알림 유도 배지/도트는 두지 않는다**(design-system 콘텐츠 가드).
+ *   새로고침은 헤더 아래 기준시각을 눌러서 한다(당겨서 새로고침도 그대로).
  * - 상단 브랜드 그라디언트가 헤더 뒤에 깔린다(위 연시안 → 아래 흰색).
  * - 아이콘은 코드베이스 관례대로 Canvas로 직접 그린다. 단독 버튼에는 접근 가능한 이름을 주고,
  *   터치 목표는 48dp 이상으로 둔다.
@@ -56,9 +56,9 @@ import kotlin.math.sin
 @Composable
 fun MainHeader(
     regionLabel: String?,
-    refreshing: Boolean,
-    onRefresh: () -> Unit,
     onNavigateRegions: () -> Unit,
+    onNavigateNotificationInbox: () -> Unit,
+    onNavigateAppSettings: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Row(
@@ -88,7 +88,7 @@ fun MainHeader(
             ChevronDown()
         }
 
-        // 우: [새로고침] · 구분선 · [설정] pill. 중립 아이콘만(알림 배지/도트 금지).
+        // 우: [알림 모아보기] · 구분선 · [앱 환경설정] pill. 배지·도트 없이 중립 아이콘만.
         Row(
             modifier = Modifier
                 .clip(RoundedCornerShape(15.dp))
@@ -96,14 +96,14 @@ fun MainHeader(
                 .padding(horizontal = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            HeaderIconButton(label = "새로고침", onClick = onRefresh) { drawRefresh(Ink2) }
+            HeaderIconButton(label = "알림 모아보기", onClick = onNavigateNotificationInbox) { drawBell(Ink2) }
             Box(
                 Modifier
                     .width(1.dp)
                     .height(18.dp)
                     .background(Gray200),
             )
-            HeaderIconButton(label = "지역 설정", onClick = onNavigateRegions) { drawGear(Ink2) }
+            HeaderIconButton(label = "앱 환경설정", onClick = onNavigateAppSettings) { drawGear(Ink2) }
         }
     }
 }
@@ -146,34 +146,31 @@ private fun ChevronDown() {
     }
 }
 
-/** 새로고침(원형 화살표) 아이콘. 위쪽에 틈을 두고 끝에 화살촉을 그린다. */
-private fun DrawScope.drawRefresh(color: Color) {
-    val cx = size.width / 2f
-    val cy = size.height / 2f
-    val r = min(size.width, size.height) / 2f * 0.66f
-    val stroke = r * 0.34f
-    // 원호(오른쪽 위에 틈).
-    drawArc(
-        color = color,
-        startAngle = 50f,
-        sweepAngle = 265f,
-        useCenter = false,
-        topLeft = Offset(cx - r, cy - r),
-        size = Size(2f * r, 2f * r),
-        style = Stroke(width = stroke, cap = StrokeCap.Round),
-    )
-    // 원호 끝(315°)에 화살촉 — 접선 바깥 방향을 가리키는 삼각형.
-    val endRad = Math.toRadians(315.0)
-    val ex = cx + (r * cos(endRad)).toFloat()
-    val ey = cy + (r * sin(endRad)).toFloat()
-    val a = r * 0.62f
-    val head = Path().apply {
-        moveTo(ex, ey - a)
-        lineTo(ex + a, ey)
-        lineTo(ex - a * 0.35f, ey + a * 0.45f)
+/** 알림 모아보기(벨) 아이콘. 배지·도트는 그리지 않는다(알림 유도 금지). */
+private fun DrawScope.drawBell(color: Color) {
+    val w = size.width
+    val h = size.height
+    val stroke = w * 0.1f
+    val body = Path().apply {
+        moveTo(w * 0.2f, h * 0.68f)
+        lineTo(w * 0.8f, h * 0.68f)
+        lineTo(w * 0.71f, h * 0.52f)
+        lineTo(w * 0.71f, h * 0.38f)
+        cubicTo(w * 0.71f, h * 0.15f, w * 0.29f, h * 0.15f, w * 0.29f, h * 0.38f)
+        lineTo(w * 0.29f, h * 0.52f)
         close()
     }
-    drawPath(path = head, color = color)
+    drawPath(path = body, color = color, style = Stroke(width = stroke))
+    // 종 아래 추(반원).
+    drawArc(
+        color = color,
+        startAngle = 0f,
+        sweepAngle = 180f,
+        useCenter = false,
+        topLeft = Offset(w * 0.4f, h * 0.64f),
+        size = Size(w * 0.2f, h * 0.2f),
+        style = Stroke(width = stroke, cap = StrokeCap.Round),
+    )
 }
 
 /** 설정(톱니) 아이콘. 방사형 톱니 8개 + 몸통 링(가운데 구멍). */

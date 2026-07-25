@@ -13,10 +13,11 @@
 }
 
 .input {
-  min-height: 56px;
-  padding: 0 16px;
-  border: 2px solid var(--gray200);
-  border-radius: 16px;
+  /* 시안(§10): 초점과 무관하게 파란 테두리 + 넉넉한 라운드. 안에는 입력 예시 플레이스홀더. */
+  min-height: 60px;
+  padding: 0 18px;
+  border: 2px solid var(--blue);
+  border-radius: 18px;
   background: var(--bg);
   color: var(--ink);
   font: inherit;
@@ -24,7 +25,7 @@
 }
 
 .input:focus {
-  border-color: var(--blue);
+  border-color: var(--blue-deep);
 }
 
 .hint {

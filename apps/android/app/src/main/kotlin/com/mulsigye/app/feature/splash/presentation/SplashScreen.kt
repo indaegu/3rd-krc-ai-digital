@@ -4,16 +4,13 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.EaseOutBack
 import androidx.compose.animation.core.EaseOutCubic
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -21,14 +18,12 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.dp
-import com.mulsigye.app.core.designsystem.theme.Blue
-import com.mulsigye.app.core.designsystem.theme.Ink
+import com.mulsigye.app.R
 import com.mulsigye.app.core.designsystem.theme.Ink2
 import com.mulsigye.app.core.designsystem.theme.brandGradientBrush
 import com.mulsigye.app.core.ui.rememberReducedMotion
@@ -36,21 +31,21 @@ import kotlinx.coroutines.delay
 
 private const val SPLASH_MS = 1500L
 
-// 등장 애니메이션 구간(합계 ≤ SPLASH_MS): 물방울이 스케일·페이드로 등장 → 잠깐 머무름 → 부드러운 페이드아웃.
+// 등장 애니메이션 구간(합계 ≤ SPLASH_MS): 로고가 스케일·페이드로 등장 → 잠깐 머무름 → 부드러운 페이드아웃.
 private const val ENTER_MS = 620
 private const val HOLD_MS = 520L
 private const val EXIT_MS = 340
 
 /**
- * 스플래시 — 메인 최초 진입 시 1.5s 오버레이(로고 등장). 게이팅과 별개로 동의·지역이 모두
- * 있는 메인 위에 잠깐 덮는다.
+ * 스플래시 / 화면 전환 — 메인을 처음 보여줄 때 1.5s 오버레이한다. 지역 설정에서 "시작하기"를
+ * 눌러 메인으로 넘어갈 때도 이 화면이 전환 연출을 맡는다.
  *
- * 콜드 재실행에서 돌아오는 사용자에게 보이므로 등장을 기분 좋게 다듬는다: 물방울 로고가 살짝
- * 커지며(가벼운 오버슈트) 페이드인하고, 그 뒤로 잔물결(ripple)이 한 번 퍼진 다음 메인으로
- * 부드럽게 페이드아웃한다. reduced-motion이면 최종 로고를 정적으로 보여주고 모션을 만들지 않으며,
- * 대기 없이 즉시 [onDone]으로 통과시킨다(design-system 접근성). onDone 타이밍/콜백은 유지한다.
+ * 외관은 디자인 시안 그대로: 전체 브랜드 그라디언트 배경 + 태그라인 + 로고(물방울 윤곽 +
+ * "수신호" 워드마크, `brand_logo` 에셋). 애니메이션은 태그라인이 살짝 위로 올라오며 페이드인하고,
+ * 로고가 가볍게 커지며(오버슈트) 나타난 뒤 전체가 부드럽게 페이드아웃해 메인으로 이어진다.
  *
- * 외관은 디자인 시안: 전체 브랜드 그라디언트 배경, 로고(물방울 + "수신호") 위에 태그라인.
+ * reduced-motion이면 최종 상태를 정적으로 보여주고 모션을 만들지 않으며, 대기 없이 즉시
+ * [onDone]으로 통과시킨다(design-system 접근성). onDone 타이밍/콜백 계약은 유지한다.
  */
 @Composable
 fun SplashScreen(
@@ -82,70 +77,47 @@ fun SplashScreen(
         }
     }
 
-    // enter는 EaseOutBack로 1을 잠깐 넘어설 수 있어(살짝 튀는 느낌) 스케일에 그대로 쓰고, 페이드는 0..1로 제한한다.
+    // enter는 EaseOutBack이라 1을 잠깐 넘어설 수 있어(살짝 튀는 느낌) 스케일에 그대로 쓰고,
+    // 페이드·이동량은 0..1로 제한해 계산한다.
     val entrance = enter.value
-    val dropScale = 0.72f + 0.28f * entrance
     val fadeIn = entrance.coerceIn(0f, 1f)
-    // 잔물결: 등장 진행에 맞춰 한 번 퍼지며 옅어진다.
-    val rippleProgress = fadeIn
+    val logoScale = 0.86f + 0.14f * entrance
 
     Column(
         modifier = modifier
             .fillMaxSize()
-            // 전체 브랜드 그라디언트 배경(디자인 시안: 스플래시·온보딩 전체 배경).
+            // 전체 브랜드 그라디언트 배경(시안: 스플래시·온보딩 전체 배경).
             .background(brandGradientBrush())
             // 전체 콘텐츠를 마지막에 부드럽게 페이드아웃해 메인으로 자연스럽게 넘어간다.
             .graphicsLayer { alpha = exit.value },
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        // 태그라인 — 로고 위. 브랜드 슬로건(서버값 아님, 고정 카피).
+        // 태그라인 — 로고 위(시안). 살짝 아래에서 올라오며 페이드인한다.
         Text(
             text = "물의 내일을 먼저 알리다",
             style = MaterialTheme.typography.bodyMedium,
             color = Ink2,
-            modifier = Modifier.graphicsLayer { alpha = fadeIn },
+            modifier = Modifier.graphicsLayer {
+                alpha = fadeIn
+                translationY = (1f - fadeIn) * 10.dp.toPx()
+            },
         )
-        Spacer(Modifier.height(20.dp))
-        // 로고 — 물방울(애니메이션 유지) + "수신호" 워드마크를 가로로 배치(시안).
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Canvas(
-                modifier = Modifier
-                    .size(44.dp)
-                    .clearAndSetSemantics {},
-            ) {
-                val w = size.width
-                val h = size.height
-
-                // 잔물결 링 — 물방울 뒤에서 바깥으로 한 번 퍼지며 옅어진다.
-                if (rippleProgress > 0f && rippleProgress < 1f) {
-                    val ringRadius = (w * 0.28f) + (w * 0.5f) * rippleProgress
-                    drawCircle(
-                        color = Blue,
-                        radius = ringRadius,
-                        alpha = (1f - rippleProgress) * 0.35f,
-                        style = Stroke(width = 2.dp.toPx()),
-                    )
-                }
-
-                // 물방울 — 중심 기준으로 스케일·페이드하며 등장한다(회전 없음).
-                scale(scale = dropScale, pivot = center) {
-                    val drop = Path().apply {
-                        moveTo(w * 0.5f, h * 0.08f)
-                        cubicTo(w * 0.9f, h * 0.45f, w * 0.82f, h * 0.9f, w * 0.5f, h * 0.9f)
-                        cubicTo(w * 0.18f, h * 0.9f, w * 0.1f, h * 0.45f, w * 0.5f, h * 0.08f)
-                        close()
-                    }
-                    drawPath(path = drop, color = Blue, alpha = fadeIn)
-                }
-            }
-            Spacer(Modifier.width(10.dp))
-            Text(
-                text = "수신호",
-                style = MaterialTheme.typography.displayLarge,
-                color = Ink,
-                modifier = Modifier.graphicsLayer { alpha = fadeIn },
-            )
-        }
+        Spacer(Modifier.height(18.dp))
+        // 로고(시안 에셋) — 물방울 윤곽 + "수신호" 워드마크. 회전 없이 스케일·페이드로만 등장한다.
+        Image(
+            painter = painterResource(R.drawable.brand_logo),
+            // 장식 브랜드 표식 — 의미는 위 태그라인·이후 화면이 전달한다.
+            contentDescription = null,
+            contentScale = ContentScale.Fit,
+            modifier = Modifier
+                .height(46.dp)
+                .clearAndSetSemantics {}
+                .graphicsLayer {
+                    alpha = fadeIn
+                    scaleX = logoScale
+                    scaleY = logoScale
+                },
+        )
     }
 }

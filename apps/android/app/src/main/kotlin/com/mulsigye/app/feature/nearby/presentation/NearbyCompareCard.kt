@@ -11,10 +11,16 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -47,6 +53,20 @@ private fun stageLabelFor(code: String): String = when (code) {
 private fun formatRatio(avgRatio: Double): String {
     val rounded = Math.round(avgRatio * 10.0) / 10.0
     return if (rounded % 1.0 == 0.0) rounded.toInt().toString() else rounded.toString()
+}
+
+/** 접힘 상태에서 보여줄 이웃 지역 수. 도 안에 지역이 많아도 스크롤이 길어지지 않게 한다. */
+private const val COLLAPSED_ROWS = 5
+
+/**
+ * 접힘 상태에서 보여줄 구간 — 우리 지역이 항상 보이도록 우리 지역을 중심으로 [visible]칸 창을 잡는다.
+ * 목록이 창보다 짧으면 전체를 돌려준다. 우리 지역을 못 찾으면(-1) 앞에서부터 보여준다.
+ */
+internal fun nearbyWindow(size: Int, currentIndex: Int, visible: Int): IntRange {
+    if (size <= visible) return 0 until size
+    val anchor = if (currentIndex < 0) 0 else currentIndex
+    val start = (anchor - visible / 2).coerceIn(0, size - visible)
+    return start until (start + visible)
 }
 
 /**
@@ -85,11 +105,35 @@ fun NearbyCompareCard(
             )
         }
         Spacer(Modifier.height(16.dp))
-        data.regions.forEachIndexed { index, region ->
-            if (index > 0) {
+
+        // 도 안 지역이 많으면(예: 경북 20곳 이상) 전부 펼치지 않고 우리 지역 주변 몇 곳만 보여준다.
+        // 카드 안에 또 스크롤을 만들지 않고 "더 보기"로 펼치게 해 메인 스크롤이 길어지지 않게 한다.
+        var expanded by rememberSaveable(data.sidoName) { mutableStateOf(false) }
+        val currentIndex = data.regions.indexOfFirst { it.current }
+        val window = if (expanded) data.regions.indices else nearbyWindow(data.regions.size, currentIndex, COLLAPSED_ROWS)
+        val hidden = data.regions.size - (window.last - window.first + 1)
+
+        window.forEachIndexed { offset, index ->
+            if (offset > 0) {
                 Spacer(Modifier.height(8.dp))
             }
-            NearbyRow(region)
+            NearbyRow(data.regions[index])
+        }
+
+        if (hidden > 0 || expanded) {
+            Spacer(Modifier.height(4.dp))
+            TextButton(
+                onClick = { expanded = !expanded },
+                modifier = Modifier.semantics {
+                    contentDescription = if (expanded) "주변 지역 접기" else "주변 지역 더 보기"
+                },
+            ) {
+                Text(
+                    text = if (expanded) "접기" else "${hidden}곳 더 보기",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = BlueDeep,
+                )
+            }
         }
     }
 }

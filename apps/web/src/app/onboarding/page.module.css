@@ -118,8 +118,8 @@
 }
 
 .art {
-  width: 185px;
-  height: auto;
+  width: min(62%, 240px);
+  height: 230px;
   margin-bottom: 12px;
   object-fit: contain;
 }
@@ -150,11 +150,12 @@
   width: 8px;
   height: 8px;
   border-radius: 999px;
-  background: var(--gray200);
+  /* 그라디언트 배경 위에서도 보이도록 --gray200 대신 --ink4를 쓴다(명도 대비 확보). */
+  background: var(--ink4);
 }
 
 .dotOn {
-  width: 20px;
+  width: 22px;
   background: var(--blue);
 }
 

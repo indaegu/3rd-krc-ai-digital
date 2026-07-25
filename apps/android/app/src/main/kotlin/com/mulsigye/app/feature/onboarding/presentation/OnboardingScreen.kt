@@ -11,8 +11,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -28,6 +28,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.style.TextAlign
@@ -36,10 +37,10 @@ import androidx.compose.ui.unit.dp
 import com.mulsigye.app.R
 import com.mulsigye.app.core.designsystem.component.CtaButton
 import com.mulsigye.app.core.designsystem.theme.Blue
-import com.mulsigye.app.core.designsystem.theme.Gray200
 import com.mulsigye.app.core.designsystem.theme.Ink
 import com.mulsigye.app.core.designsystem.theme.Ink2
 import com.mulsigye.app.core.designsystem.theme.Ink3
+import com.mulsigye.app.core.designsystem.theme.Ink4
 import com.mulsigye.app.core.designsystem.theme.brandGradientBrush
 
 /**
@@ -55,6 +56,9 @@ private data class OnboardingSlide(
 
 /** 페이저 좌우 끝 페이드 폭. 이 폭만큼 양 끝이 투명으로 사라져 슬라이드 경계가 부드럽게 이어진다. */
 private val EdgeFadeWidth = 28.dp
+
+/** 삽화 최대 높이(시안 기준 ≈230dp). 화면이 좁으면 이보다 작게 줄어든다. */
+private val ArtHeight = 230.dp
 
 private val SLIDES: List<OnboardingSlide> = listOf(
     OnboardingSlide(
@@ -160,9 +164,14 @@ fun OnboardingScreen(
                     painter = painterResource(slide.art),
                     // 장식 삽화 — 접근성 트리에서 제외(제목·본문이 의미를 전달).
                     contentDescription = null,
-                    // 세로 비율이 커서(≈186:231) 높이를 제약해 제목·본문이 한 화면에 들어오게 한다.
+                    // 시안 크기(약 화면 폭의 45%)로 크게 보여준다. 에셋 원본 픽셀 크기에 좌우되지 않도록
+                    // 폭·높이를 모두 지정하고 Fit으로 비율을 유지한다(가운데 정렬).
+                    contentScale = ContentScale.Fit,
+                    // 남는 높이에 맞춰 줄어들되(작은 화면에서 제목이 밀려나지 않게) 시안 크기를 넘지 않는다.
                     modifier = Modifier
-                        .height(180.dp)
+                        .fillMaxWidth()
+                        .weight(1f, fill = false)
+                        .heightIn(max = ArtHeight)
                         .clearAndSetSemantics {},
                 )
                 Spacer(Modifier.height(28.dp))
@@ -183,13 +192,20 @@ fun OnboardingScreen(
         }
 
         Spacer(Modifier.height(20.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        // 페이지 표시 점 — 그라디언트 배경 위에서도 보이도록 미선택 점을 Ink4(회청색)로 둔다
+        // (Gray200은 배경과 명도가 비슷해 보이지 않았다). 현재 점은 파랑 + 가로로 길게.
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             SLIDES.indices.forEach { index ->
+                val current = index == pagerState.currentPage
                 Box(
                     modifier = Modifier
-                        .size(if (index == pagerState.currentPage) 10.dp else 8.dp)
+                        .height(8.dp)
+                        .width(if (current) 22.dp else 8.dp)
                         .background(
-                            color = if (index == pagerState.currentPage) Blue else Gray200,
+                            color = if (current) Blue else Ink4,
                             shape = CircleShape,
                         ),
                 )
