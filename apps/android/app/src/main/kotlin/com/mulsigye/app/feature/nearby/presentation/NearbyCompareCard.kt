@@ -32,6 +32,7 @@ import com.mulsigye.app.core.designsystem.theme.Bg
 import com.mulsigye.app.core.designsystem.theme.Gray50
 import com.mulsigye.app.core.designsystem.theme.Ink
 import com.mulsigye.app.core.designsystem.theme.Ink2
+import com.mulsigye.app.core.designsystem.theme.Ink3
 import com.mulsigye.app.core.designsystem.theme.stageColorFor
 import com.mulsigye.app.feature.nearby.domain.NearbyRegion
 import com.mulsigye.app.feature.nearby.domain.NearbyResult
@@ -95,6 +96,14 @@ fun NearbyCompareCard(
             style = MaterialTheme.typography.titleMedium,
             color = Ink,
             modifier = Modifier.semantics { heading() },
+        )
+        // 비교는 모든 지역이 같은 날짜일 때만 뜻이 있다 — 오늘 추정으로 바꾸지 않고
+        // 공표 기준일을 그대로 쓰며, 그 날짜를 밝힌다(오늘 값과 숫자가 다를 수 있는 이유).
+        Spacer(Modifier.height(6.dp))
+        Text(
+            text = "${data.asOf} 공표 자료로 모든 지역을 같은 날 기준으로 비교했어요.",
+            style = MaterialTheme.typography.bodySmall,
+            color = Ink3,
         )
         if (rank != null) {
             Spacer(Modifier.height(8.dp))

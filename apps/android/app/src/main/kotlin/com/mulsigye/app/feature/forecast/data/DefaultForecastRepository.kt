@@ -42,6 +42,7 @@ class DefaultForecastRepository(
                             observedOn = body.basis.observedOn,
                             avgRatio = body.basis.avgRatio,
                             officialStage = body.basis.officialStage.toDomain(),
+                            isEstimate = body.basis.basis == "estimate",
                         ),
                         history = body.history.map { ForecastPoint(it.observedOn, it.avgRatio) },
                         forecast = body.forecast.map {
@@ -58,6 +59,7 @@ class DefaultForecastRepository(
                             version = body.model.version,
                             mae7 = body.model.mae7,
                             mae14 = body.model.mae14,
+                            mae30 = body.model.mae30,
                             bandMethod = body.model.bandMethod,
                         ),
                         officialOutlook = body.officialOutlook?.let {

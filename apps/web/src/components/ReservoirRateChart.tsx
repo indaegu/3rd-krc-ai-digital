@@ -7,6 +7,7 @@ import type { StatusResponse } from "@mulsigye/contracts";
 import styles from "./TrendChart.module.css";
 
 const WIDTH = 640;
+/** 기본 렌더 높이(px). 상세 화면은 height 프로퍼티로 키운다. */
 const HEIGHT = 200;
 const PAD_LEFT = 34;
 const PAD_RIGHT = 12;
@@ -28,9 +29,15 @@ function formatMonthDay(observedOn: string): string {
 interface ReservoirRateChartProps {
   history: StatusResponse["reservoir"]["rateHistory"];
   name?: string | undefined;
+  /** 렌더 높이(px). 상세 화면은 크게, 메인 카드는 기본값으로 그린다. */
+  height?: number;
 }
 
-export function ReservoirRateChart({ history, name }: ReservoirRateChartProps) {
+export function ReservoirRateChart({
+  history,
+  name,
+  height = HEIGHT,
+}: ReservoirRateChartProps) {
   const points = history ?? [];
   if (points.length < 2) {
     return null;
@@ -45,7 +52,7 @@ export function ReservoirRateChart({ history, name }: ReservoirRateChartProps) {
     PAD_LEFT +
     ((WIDTH - PAD_LEFT - PAD_RIGHT) * index) / Math.max(1, points.length - 1);
   const y = (value: number) =>
-    PAD_TOP + (HEIGHT - PAD_TOP - PAD_BOTTOM) * (1 - (value - lo) / span);
+    PAD_TOP + (height - PAD_TOP - PAD_BOTTOM) * (1 - (value - lo) / span);
 
   const line = points
     .map((point, index) => `${x(index).toFixed(1)},${y(point.rate).toFixed(1)}`)
@@ -58,13 +65,13 @@ export function ReservoirRateChart({ history, name }: ReservoirRateChartProps) {
   return (
     <svg
       className={styles.svg}
-      viewBox={`0 0 ${String(WIDTH)} ${String(HEIGHT)}`}
+      viewBox={`0 0 ${String(WIDTH)} ${String(height)}`}
       role="img"
       aria-label={label}
     >
       <polyline className={styles.actual} points={line} fill="none" />
       {first === undefined ? null : (
-        <text className={styles.axisTick} x={PAD_LEFT} y={HEIGHT - 9}>
+        <text className={styles.axisTick} x={PAD_LEFT} y={height - 9}>
           {formatMonthDay(first.observedOn)}
         </text>
       )}
@@ -72,7 +79,7 @@ export function ReservoirRateChart({ history, name }: ReservoirRateChartProps) {
         <text
           className={styles.axisTick}
           x={WIDTH - PAD_RIGHT}
-          y={HEIGHT - 9}
+          y={height - 9}
           textAnchor="end"
         >
           {formatMonthDay(last.observedOn)}

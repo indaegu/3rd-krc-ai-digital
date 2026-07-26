@@ -20,6 +20,7 @@
 | 지역 추정 모델 | `pnpm build:estimator` (`data/raw` 원CSV 필요 — gitignore 대상이라 개발 PC 수동 명령. `data/snapshots/region-estimator.json` 재생성, 보정계수·게이트·검증 수치 재현 확인) |
 | 지역 추정 게이트 | `pnpm --filter @mulsigye/web test test/region-estimator-gate.test.ts` (커밋된 산출물 스키마·불변식 + `docs/data-sources.md` 수치 드리프트 가드. CI에서 실행되며, 원CSV 재현은 위 `pnpm build:estimator`가 담당) |
 | 지역 추정 런타임 | `pnpm --filter @mulsigye/web test src/lib/data/region-estimate.test.ts src/lib/data/waterlevel-api.test.ts src/lib/data/status-service.test.ts` (산식·커버리지 80% 게이트·날짜 후퇴, `county` 페이지 이어받기와 중간 실패 시 전체 폐기, status의 공표 우선·`basis`/`estimate` 필드) |
+| 기준 일치·차트 토글 | `pnpm --filter @mulsigye/web test src/lib/prediction/forecast-service.test.ts src/app/trend/page.test.tsx src/components/TodayCard.test.tsx` + `.\apps\android\gradlew.bat -p .\apps\android :app:testDebugUnitTest --tests "*TrendScreenTest*" --tests "*TodayCardTest*"` (status·forecast가 같은 추정 시계열을 쓰는지, 상세 화면에도 지표 토글이 있는지, 추정 배지가 기준일에 따라 "오늘 추정"/"7월 N일 추정"으로 갈리는지) |
 | 단계 2 완료 게이트 | `pnpm --filter @mulsigye/web test test/stage2-gate.test.ts` |
 | 단계 3 완료 게이트 | `pnpm --filter @mulsigye/web test test/stage3-gate.test.ts` (리포트-문서 드리프트 + 5단계×3시군 정적 코치 + 도달일 예제. MAE 재현 자체는 `pnpm backtest` 재실행으로 확인) |
 | 단계 4 완료 게이트(자동화분) | `pnpm --filter @mulsigye/web test test/stage4-gate.test.ts` (계약 정합 데모 픽스처 4벌 + stale로 fetch만 스텁하고 메인 `/`·상세 `/trend` 실제 화면을 렌더: ① 4개 상태 전체 트리 product.md 정합 ② stale 지연 안내 + 200 유지 ③ 카피 감사 ④ 접근성 자동화분. **수동 QA는 이 명령으로 대체할 수 없다** — 아래 수동 QA 참조) |

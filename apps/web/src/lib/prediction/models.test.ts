@@ -27,7 +27,7 @@ const SES_SERIES = [...Array.from({ length: 13 }, () => 50), 60];
 
 describe("모델 상수 (플랜 확정값)", () => {
   it("이름 있는 상수와 버전이 플랜 값과 일치한다", () => {
-    expect(FORECAST_HORIZON_DAYS).toBe(14);
+    expect(FORECAST_HORIZON_DAYS).toBe(30);
     expect(LINEAR_WINDOW_DAYS).toBe(14);
     expect(SES_ALPHA).toBe(0.3);
     expect(MODEL_VERSION).toBe("pred-v1");
@@ -59,9 +59,9 @@ describe("predict — 공통 계약", () => {
   );
 
   it.each(["naive", "ma7", "linear", "ses"] as const)(
-    "%s: 출력은 항상 14개",
+    "%s: 출력은 항상 지평 일수(30개)",
     (model) => {
-      expect(predict(model, LINEAR_SERIES)).toHaveLength(14);
+      expect(predict(model, LINEAR_SERIES)).toHaveLength(FORECAST_HORIZON_DAYS);
     },
   );
 
@@ -86,10 +86,10 @@ describe("predict — 공통 계약", () => {
 });
 
 describe("naive — 마지막 값 유지", () => {
-  it("마지막 값 63.2를 14일 유지한다", () => {
+  it("마지막 값 63.2를 지평 끝까지 유지한다", () => {
     const series = [70, 69, 68, 67, 66, 65, 64, 63, 62, 61, 60, 61, 62, 63.2];
     expect(predict("naive", series)).toEqual(
-      Array.from({ length: 14 }, () => 63.2),
+      Array.from({ length: FORECAST_HORIZON_DAYS }, () => 63.2),
     );
   });
 });
@@ -120,26 +120,29 @@ describe("ses — 단순 지수평활(alpha=0.3)", () => {
   });
 });
 
-describe("dailyDelta — d = (forecast[13] - r0) / 14", () => {
+describe("dailyDelta — d = (forecast 마지막 - r0) / 지평일수", () => {
   it("naive는 자연히 0", () => {
     const series = [70, 69, 68, 67, 66, 65, 64, 63, 62, 61, 60, 61, 62, 63.2];
     expect(dailyDelta(63.2, predict("naive", series))).toBe(0);
   });
 
   it("linear 완전 선형 하강(-0.5/day)이면 d = -0.5", () => {
-    // r0 = 83.5, forecast[13] = 83.5 - 0.5*14 = 76.5 → (76.5-83.5)/14 = -0.5
+    // linear는 하루 -0.5로 외삽하므로 지평 끝까지 가도 d는 그대로 -0.5다.
     expect(dailyDelta(83.5, predict("linear", LINEAR_SERIES))).toBeCloseTo(
       -0.5,
       10,
     );
   });
 
-  it("ma7는 (평균 - 마지막 값)/14 — r0=76, 평균 73 → -3/14", () => {
-    expect(dailyDelta(76, predict("ma7", MA7_SERIES))).toBeCloseTo(-3 / 14, 10);
+  it("ma7는 (평균 - r0)/지평일수 — r0=76, 평균 73 → -3/30", () => {
+    expect(dailyDelta(76, predict("ma7", MA7_SERIES))).toBeCloseTo(
+      -3 / FORECAST_HORIZON_DAYS,
+      10,
+    );
   });
 
-  it("예측이 14개가 아니면 명시적 에러", () => {
-    expect(() => dailyDelta(70, [70, 70, 70])).toThrow(/14/);
+  it("예측이 지평 일수만큼이 아니면 명시적 에러", () => {
+    expect(() => dailyDelta(70, [70, 70, 70])).toThrow(/30/);
   });
 });
 

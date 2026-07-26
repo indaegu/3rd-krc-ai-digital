@@ -134,9 +134,9 @@ fun TrendChartCard(
     }
 }
 
-/** 지표 토글 알약 버튼. 선택된 쪽은 blue-tint 배경 + 파란 글자. */
+/** 지표 토글 알약 버튼. 선택된 쪽은 blue-tint 배경 + 파란 글자. 상세 화면도 이 버튼을 쓴다. */
 @Composable
-private fun MetricToggle(label: String, selected: Boolean, onClick: () -> Unit) {
+internal fun MetricToggle(label: String, selected: Boolean, onClick: () -> Unit) {
     Text(
         text = label,
         style = MaterialTheme.typography.labelLarge,

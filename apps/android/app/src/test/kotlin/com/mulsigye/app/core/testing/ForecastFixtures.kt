@@ -31,6 +31,7 @@ object ForecastFixtures {
                 observedOn = dto.basis.observedOn,
                 avgRatio = dto.basis.avgRatio,
                 officialStage = ForecastStage(dto.basis.officialStage.code, dto.basis.officialStage.label),
+                isEstimate = dto.basis.basis == "estimate",
             ),
             history = dto.history.map { ForecastPoint(it.observedOn, it.avgRatio) },
             forecast = dto.forecast.map { ForecastBandPoint(it.observedOn, it.avgRatio, it.low, it.high) },
@@ -45,6 +46,7 @@ object ForecastFixtures {
                 version = dto.model.version,
                 mae7 = dto.model.mae7,
                 mae14 = dto.model.mae14,
+                mae30 = dto.model.mae30,
                 bandMethod = dto.model.bandMethod,
             ),
             officialOutlook = dto.officialOutlook?.let {

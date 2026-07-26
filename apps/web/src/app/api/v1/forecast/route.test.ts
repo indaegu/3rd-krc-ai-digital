@@ -95,8 +95,8 @@ describe("GET /api/v1/forecast", () => {
     expect(body.sigunCode).toBe("44230");
     expect(body.sigunName).toBe("논산시");
     expect(body.basis.avgRatio).toBe(68);
-    expect(body.history).toHaveLength(30);
-    expect(body.forecast).toHaveLength(14);
+    expect(body.history).toHaveLength(60);
+    expect(body.forecast).toHaveLength(30);
     expect(body.trend.bucket).toBe("falling");
     expect(body.reach.days).toBe(18);
     expect(body.reach.bucket).toBe("within_30d");

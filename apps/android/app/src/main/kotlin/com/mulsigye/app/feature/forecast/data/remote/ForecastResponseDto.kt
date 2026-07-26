@@ -9,12 +9,23 @@ data class ForecastStageDto(
     val label: String,
 )
 
-/** openapi.yaml `ForecastResponse.basis`와 1:1. */
+/** openapi.yaml `ForecastResponse.basis`와 1:1. basis/estimate는 v1 additive다. */
 @Serializable
 data class ForecastBasisDto(
     val observedOn: String,
     val avgRatio: Double,
     val officialStage: ForecastStageDto,
+    /** "official" | "estimate". 없으면 공표값으로 본다(status.region.basis와 같은 뜻). */
+    val basis: String? = null,
+    val estimate: ForecastEstimateDto? = null,
+)
+
+/** openapi.yaml `ForecastResponse.basis.estimate`와 1:1. 추정 근거(표시 전용). */
+@Serializable
+data class ForecastEstimateDto(
+    val maePp: Double,
+    val reservoirCount: Int,
+    val capacityRatio: Double,
 )
 
 /** openapi.yaml `ForecastPoint`와 1:1. 실측 avgRatio 시계열 점. */
@@ -55,6 +66,8 @@ data class ForecastModelDto(
     val version: String,
     val mae7: Double,
     val mae14: Double,
+    /** v1 additive — 지평을 30일로 늘리며 추가. 구 서버 응답에는 없다. */
+    val mae30: Double? = null,
     val bandMethod: String,
 )
 

@@ -15,6 +15,7 @@ import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.mulsigye.app.core.designsystem.theme.Blue
 import com.mulsigye.app.core.designsystem.theme.Ink3
@@ -25,6 +26,9 @@ import kotlin.math.max
 
 /** y축 위아래 여유(%p) — 선이 테두리에 붙지 않게 한다. */
 private const val RANGE_PADDING = 3.0
+
+/** 기본 렌더 높이. 메인 카드용. */
+private val DefaultHeight = 180.dp
 
 /**
  * 대표 저수지 실측 저수율 선 그래프 — 예측·밴드 없이 관측만 그린다.
@@ -37,6 +41,8 @@ fun ReservoirRateChart(
     history: List<ReservoirRatePoint>,
     name: String?,
     modifier: Modifier = Modifier,
+    /** 렌더 높이. 상세 화면은 크게, 메인 카드는 기본값으로 그린다. */
+    height: Dp = DefaultHeight,
 ) {
     if (history.size < 2) return
 
@@ -49,7 +55,7 @@ fun ReservoirRateChart(
     Canvas(
         modifier = modifier
             .fillMaxWidth()
-            .height(180.dp)
+            .height(height)
             .semantics { contentDescription = label },
     ) {
         val padLeft = 8.dp.toPx()

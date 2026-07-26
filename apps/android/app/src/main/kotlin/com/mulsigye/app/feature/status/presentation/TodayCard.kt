@@ -55,9 +55,6 @@ private val HEADLINE_BY_STAGE: Map<String, String> = mapOf(
 /** 만수위 참고(서버 확정 highWaterNotice)일 때의 헤드라인. 웹과 동일. */
 private const val HIGH_WATER_HEADLINE = "비가 많아 물은 충분해요"
 
-/** 공표값이 아니라 서버가 실측으로 계산한 날에만 붙는 배지(웹 TodayCard와 같은 문구). */
-const val ESTIMATE_BADGE = "오늘 추정"
-
 /**
  * 올해 흐름 속 현재 위치 카피(서버 확정 yearlyPosition.bucket). 웹 TodayCard와 동일 문구(공통 SSOT).
  * 스냅샷에 없는 지역(yearlyPosition == null)은 렌더하지 않는다.
@@ -137,10 +134,11 @@ fun TodayCard(
                     )
                     .padding(horizontal = 14.dp, vertical = 6.dp),
             )
-            // 공표 자료가 없는 날짜를 실측으로 계산한 값이면 그 사실을 숨기지 않는다(규칙 5 예외).
+            // 공표 자료가 없는 날짜를 실측으로 계산한 값이면 그 사실도, 기준일도 숨기지 않는다.
+            // 추정 기준일은 커버리지를 채운 가장 최근 날짜라 오늘이 아닐 수 있다(규칙 5 예외).
             if (status.region.isEstimate) {
                 Text(
-                    text = ESTIMATE_BADGE,
+                    text = estimateBadgeLabel(status.region.observedOn, status.asOf),
                     style = MaterialTheme.typography.labelMedium,
                     color = Ink2,
                     modifier = Modifier

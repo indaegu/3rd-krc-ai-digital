@@ -5,6 +5,7 @@
 
 import type { StatusResponse } from "@mulsigye/contracts";
 
+import { koreanMonthDay } from "../lib/client/estimate-label";
 import { DROUGHT_STAGE_THRESHOLDS } from "../lib/data/drought-stage";
 import styles from "./SourcesCard.module.css";
 import { Card } from "./ui/Card";
@@ -22,9 +23,16 @@ interface SourcesCardProps {
   stale: boolean;
   /** 추정으로 계산한 날이면 서버가 준 근거(오차·저수지 수). 공표값이면 null. */
   estimate?: NonNullable<StatusResponse["region"]["estimate"]> | null;
+  /** 추정 기준일(서버 region.observedOn). 오늘이 아닐 수 있어 문구에 그대로 밝힌다. */
+  estimateObservedOn?: string;
 }
 
-export function SourcesCard({ sources, stale, estimate }: SourcesCardProps) {
+export function SourcesCard({
+  sources,
+  stale,
+  estimate,
+  estimateObservedOn,
+}: SourcesCardProps) {
   return (
     <Card className={styles.card}>
       <h2 className={styles.title}>이 정보는 어디서 왔나요</h2>
@@ -35,10 +43,14 @@ export function SourcesCard({ sources, stale, estimate }: SourcesCardProps) {
       </p>
       {estimate != null ? (
         <p className={styles.estimate}>
-          공표 자료가 아직 없는 날이라, 우리 지역 저수지{" "}
-          {estimate.reservoirCount}곳의 실제 측정값을 모아 계산한 추정값이에요.
-          지난해 자료로 맞춰 본 오차는 평균 {estimate.maePp.toFixed(1)}%p였고,
-          단계 기준({STAGE_THRESHOLD_TEXT}%)은 공인 기준 그대로예요.
+          공표 자료가 아직 없는 날이라,{" "}
+          {estimateObservedOn === undefined
+            ? ""
+            : `${koreanMonthDay(estimateObservedOn)} `}
+          우리 지역 저수지 {estimate.reservoirCount}곳의 실제 측정값을 모아
+          계산한 추정값이에요. 지난해 자료로 맞춰 본 오차는 평균{" "}
+          {estimate.maePp.toFixed(1)}%p였고, 단계 기준({STAGE_THRESHOLD_TEXT}
+          %)은 공인 기준 그대로예요.
         </p>
       ) : null}
       {stale ? (

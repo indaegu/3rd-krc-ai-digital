@@ -7,6 +7,7 @@
 import type { StatusResponse } from "@mulsigye/contracts";
 import { useEffect, useRef } from "react";
 
+import { estimateBadgeLabel } from "../lib/client/estimate-label";
 import { prefersReducedMotion } from "../lib/client/reduced-motion";
 import type { DroughtStageCode } from "../lib/data/drought-stage";
 import { ReservoirGauge } from "./ReservoirGauge";
@@ -103,9 +104,12 @@ export function TodayCard({ status }: TodayCardProps) {
     <Card className={styles.card}>
       <div className={styles.tabRow}>
         <span className={styles.tab}>{status.reservoir.name}</span>
-        {/* 공표 자료가 없는 날짜를 실측으로 계산한 값이면 그 사실을 숨기지 않는다. */}
+        {/* 공표 자료가 없는 날짜를 실측으로 계산한 값이면 그 사실도, 기준일도 숨기지 않는다.
+            추정 기준일은 커버리지를 채운 가장 최근 날짜라 오늘이 아닐 수 있다. */}
         {status.region.basis === "estimate" && (
-          <span className={styles.estimateBadge}>오늘 추정</span>
+          <span className={styles.estimateBadge}>
+            {estimateBadgeLabel(status.region.observedOn, status.asOf)}
+          </span>
         )}
       </div>
       <div className={styles.hero}>

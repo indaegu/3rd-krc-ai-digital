@@ -20,11 +20,16 @@ const DEFAULT_TIMEOUT_MS = 5_000;
 const PAGE_SIZE = 100;
 const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
 
-/** 시군 조회 기간(지역 조회는 최대 31일 제한 — docs/data-sources.md). */
+/**
+ * 시군 조회 한 번의 최대 기간(일). 이보다 길면 API가 returnReasonCode 15로 거절한다
+ * (실측: 31일 정상, 62일 거절 — docs/data-sources.md).
+ */
+export const COUNTY_MAX_RANGE_DAYS = 31;
+/** 기본 조회 기간. 더 긴 시계열은 호출자가 창을 나눠 여러 번 부른다. */
 export const COUNTY_LOOKBACK_DAYS = 7;
-/** 시군 조회 페이지 크기·최대 페이지. 최대 시군(나주 161곳)×7일=1,127행이 3페이지에 들어온다. */
-const COUNTY_PAGE_SIZE = 500;
-const COUNTY_MAX_PAGES = 6;
+/** 최대 시군(나주 161곳)×31일=4,991행이 한 페이지에 들어온다. 페이지는 안전망이다. */
+const COUNTY_PAGE_SIZE = 5_000;
+const COUNTY_MAX_PAGES = 4;
 /** 시군 조회는 응답이 커서 시설코드 조회보다 여유를 둔다. */
 const COUNTY_TIMEOUT_MS = 8_000;
 
@@ -56,6 +61,14 @@ export type WaterLevelFetchResult =
 
 export type CountyWaterLevelResult =
   { ok: true; observations: WaterLevelObservation[] } | { ok: false };
+
+/** 시군 조회 창. 31일 제한 때문에 긴 시계열은 창을 나눠 여러 번 부른다. */
+export type CountyWindow = {
+  /** 창의 길이(일). COUNTY_MAX_RANGE_DAYS를 넘기면 잘라낸다. */
+  days?: number;
+  /** 창의 끝을 오늘에서 며칠 과거로 밀지. 0이면 오늘까지. */
+  endOffsetDays?: number;
+};
 
 /** KST 달력일 `YYYYMMDD` — API date_s/date_e 형식. */
 function kstYmd(date: Date): string {
@@ -137,6 +150,7 @@ export async function fetchLatestWaterLevel(
 export async function fetchCountyWaterLevels(
   countyName: string,
   deps: WaterLevelApiDeps = {},
+  window: CountyWindow = {},
 ): Promise<CountyWaterLevelResult> {
   const fetchImpl: WaterLevelFetch = deps.fetchImpl ?? fetch;
   const apiKey = deps.apiKey ?? process.env["DATA_GO_KR_API_KEY"];
@@ -144,10 +158,18 @@ export async function fetchCountyWaterLevels(
     return { ok: false };
   }
 
+  const days = Math.min(
+    window.days ?? COUNTY_LOOKBACK_DAYS,
+    COUNTY_MAX_RANGE_DAYS,
+  );
   const now = (deps.now ?? (() => new Date()))();
-  const dateE = kstYmd(now);
+  // endOffsetDays만큼 과거로 창을 밀어 더 긴 시계열을 이어 붙인다(31일 제한 우회).
+  const end = new Date(
+    now.getTime() - (window.endOffsetDays ?? 0) * 24 * 60 * 60 * 1000,
+  );
+  const dateE = kstYmd(end);
   const dateS = kstYmd(
-    new Date(now.getTime() - (COUNTY_LOOKBACK_DAYS - 1) * 24 * 60 * 60 * 1000),
+    new Date(end.getTime() - (days - 1) * 24 * 60 * 60 * 1000),
   );
 
   const observations: WaterLevelObservation[] = [];

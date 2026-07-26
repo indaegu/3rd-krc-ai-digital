@@ -109,3 +109,11 @@
   font-weight: 700;
   cursor: pointer;
 }
+
+/* 비교 기준일 고지 — 오늘 추정값(TodayCard)과 숫자가 다를 수 있는 이유를 밝힌다. */
+.basisNote {
+  margin: 6px 0 0;
+  color: var(--ink3);
+  font-size: 0.8125rem;
+  font-weight: 500;
+}

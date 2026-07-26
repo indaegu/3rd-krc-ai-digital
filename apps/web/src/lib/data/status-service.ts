@@ -15,16 +15,11 @@ import {
   stageCodeFromLabel,
   type DroughtStageCode,
 } from "./drought-stage.ts";
-import {
-  estimateFromObservations,
-  isEstimatableRegion,
-  reservoirCapacitiesFor,
-  type RegionEstimate,
-} from "./region-estimate.ts";
+import type { RegionEstimate } from "./region-estimate.ts";
+import { fetchRegionEstimateSeries } from "./region-estimate-series.ts";
 import { resolveRegion, type RegionResolverDeps } from "./region-resolver.ts";
 import { createServiceRoleClient } from "./supabase-server.ts";
 import {
-  fetchCountyWaterLevels,
   fetchLatestWaterLevel,
   type WaterLevelApiDeps,
 } from "./waterlevel-api.ts";
@@ -489,25 +484,19 @@ export async function buildStatus(
   // 공표 논가뭄지도는 연 1회만 갱신돼 오늘 값이 없다. 게이트를 통과한 지역에 한해
   // 시군 저수지 실측을 통합저수율로 집계해 오늘 평년 대비를 계산한다(AGENTS.md 규칙 5 예외).
   // 실패·커버리지 미달·공표값이 더 최신이면 그대로 공표값을 쓴다.
+  // 시계열은 forecast와 **같은 함수**로 받는다 — 한쪽만 추정을 쓰면 같은 화면에서 기준이 어긋난다.
   const regionCode = resolution.sigunCode ?? sigunCode;
   let estimate: RegionEstimate | null = null;
-  if (isEstimatableRegion(regionCode)) {
-    const county = await fetchCountyWaterLevels(
-      resolution.sigunName,
-      deps.waterLevel ?? {},
-    );
-    if (county.ok) {
-      const candidate = estimateFromObservations({
-        sigunCode: regionCode,
-        reservoirs: reservoirCapacitiesFor(regionCode),
-        observations: county.observations,
-      });
-      // 공표값이 있는 날짜는 공표값이 우선 — 더 최근 날짜일 때만 추정으로 바꾼다.
-      if (candidate !== null && candidate.observedOn > region.observedOn) {
-        estimate = candidate;
-        sources.push(REGION_ESTIMATE_SOURCE);
-      }
-    }
+  const estimateSeries = await fetchRegionEstimateSeries(
+    regionCode,
+    resolution.sigunName,
+    { waterLevel: deps.waterLevel ?? {} },
+  );
+  const candidate = estimateSeries.at(-1) ?? null;
+  // 공표값이 있는 날짜는 공표값이 우선 — 더 최근 날짜일 때만 추정으로 바꾼다.
+  if (candidate !== null && candidate.observedOn > region.observedOn) {
+    estimate = candidate;
+    sources.push(REGION_ESTIMATE_SOURCE);
   }
 
   const effectiveRegion: RegionalView =

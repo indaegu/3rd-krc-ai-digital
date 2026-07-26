@@ -7,8 +7,10 @@ import { describe, expect, it } from "vitest";
 import type { RegionResolverDeps } from "../data/region-resolver";
 import { STAGE_LABEL_BY_CODE } from "../data/drought-stage.ts";
 import { backtestReportSchema } from "./backtest-report.ts";
+import { FORECAST_HORIZON_DAYS } from "./models.ts";
 import {
   DROUGHT_MAP_SOURCE,
+  HISTORY_DAYS,
   OFFICIAL_OUTLOOK_SOURCE,
   buildForecast,
   type ForecastServiceDeps,
@@ -151,15 +153,18 @@ describe("buildForecast — 정상 경로 (90일 하강 -0.45/day, 최신 68)", 
       observedOn: END_DATE,
       avgRatio: 68,
       officialStage: { code: "watch", label: "관심" },
+      // 공표 시계열을 그대로 쓴 경로 — status.region.basis와 같은 뜻이다.
+      basis: "official",
+      estimate: null,
     });
     expect(body.stale).toBe(false);
     expect(body.asOf).toBe(FIXED_NOW.toISOString());
   });
 
-  it("history는 최근 30일 실측(날짜 오름차순)", async () => {
+  it("history는 최근 60일 실측(날짜 오름차순)", async () => {
     const body = await okBody(deps);
-    expect(body.history).toHaveLength(30);
-    expect(body.history[0]?.observedOn).toBe(isoDaysBefore(29));
+    expect(body.history).toHaveLength(HISTORY_DAYS);
+    expect(body.history[0]?.observedOn).toBe(isoDaysBefore(HISTORY_DAYS - 1));
     expect(body.history.at(-1)).toEqual({
       observedOn: END_DATE,
       avgRatio: 68,
@@ -168,11 +173,11 @@ describe("buildForecast — 정상 경로 (90일 하강 -0.45/day, 최신 68)", 
     expect(dates).toEqual([...dates].sort());
   });
 
-  it("forecast는 naive 수평 14개 + 리포트 잔차 p25/p75×bandScale 밴드", async () => {
+  it("forecast는 naive 수평 30개 + 리포트 잔차 p25/p75×bandScale 밴드", async () => {
     const body = await okBody(deps);
-    expect(body.forecast).toHaveLength(14);
+    expect(body.forecast).toHaveLength(FORECAST_HORIZON_DAYS);
     expect(body.forecast[0]?.observedOn).toBe("2026-07-21");
-    expect(body.forecast.at(-1)?.observedOn).toBe("2026-08-03");
+    expect(body.forecast.at(-1)?.observedOn).toBe("2026-08-19");
     // 44230(논산) 지역 밴드 배율 — 리포트 채택 모델 byRegion에서 조회.
     const bandScale =
       REPORT.models[REPORT.selectedModel.name].byRegion["44230"]?.bandScale ??
@@ -213,6 +218,7 @@ describe("buildForecast — 정상 경로 (90일 하강 -0.45/day, 최신 68)", 
       version: REPORT.modelParams.modelVersion,
       mae7: REPORT.selectedModel.mae7,
       mae14: REPORT.selectedModel.mae14,
+      mae30: REPORT.selectedModel.mae30,
       bandMethod: "residual_quantile_p25_p75_regional",
     });
   });
@@ -358,7 +364,7 @@ describe("buildForecast — 폴백·오류 경로", () => {
       result.body.sources.some((s) => s.startsWith("커밋 스냅샷(기준 ")),
     ).toBe(true);
     expect(result.body.basis.avgRatio).toBe(68);
-    expect(result.body.forecast).toHaveLength(14);
+    expect(result.body.forecast).toHaveLength(FORECAST_HORIZON_DAYS);
     // 스냅샷 outlook 중 최신(2026-07-03) 1건을 병기한다.
     expect(result.body.officialOutlook?.publishedOn).toBe("2026-07-03");
     expect(result.body.officialOutlook?.outlook1m).toEqual({

@@ -342,10 +342,21 @@ export interface components {
         /** @description 평년 대비 저수율 %. 100 초과 가능 */
         avgRatio: number;
         officialStage: components["schemas"]["DroughtStage"];
+        /**
+         * @description `StatusResponse.region.basis`와 같은 뜻이다. 같은 화면에서 오늘 값과 그래프 기준이 어긋나지 않도록 두 응답이 같은 시계열을 쓴다. 필드가 없으면 `official`로 본다
+         * @enum {string}
+         */
+        basis?: "official" | "estimate";
+        /** @description `basis: estimate`일 때만 채워지는 근거 */
+        estimate?: {
+          maePp: number;
+          reservoirCount: number;
+          capacityRatio: number;
+        } | null;
       };
-      /** @description 최근 30일 실측(실선) */
+      /** @description 최근 60일 실측(실선) */
       history: components["schemas"]["ForecastPoint"][];
-      /** @description 14일 예측(점선)과 밴드 */
+      /** @description 30일 예측(점선)과 밴드 */
       forecast: components["schemas"]["ForecastBandPoint"][];
       trend: {
         /** @description 일일 변화량 %p/day. 최근 14일 실측 avgRatio의 관측 선형 기울기 (observedDailyDelta)로 계산한다. 예측선·밴드는 채택 모델과 잔차 분위수 기반이며 추세·도달일과 근거를 분리한다 */
@@ -373,8 +384,10 @@ export interface components {
         version: string;
         /** @description 백테스트 7일 macro MAE %p */
         mae7: number;
-        /** @description 백테스트 14일 macro MAE %p */
+        /** @description 백테스트 14일 macro MAE %p (horizon 1~14 잔차) */
         mae14: number;
+        /** @description 백테스트 30일 macro MAE %p (horizon 1~30 잔차). 예측 지평을 30일로 늘리며 추가한 v1 additive 필드다. 화면은 7·14·30일 오차를 함께 밝힌다 */
+        mae30?: number;
         /**
          * @description 밴드 산식. 잔차 충분 시 경험적 25~75 분위수(50% 구간)에 지역 bandScale을 곱한다. 부족 시 최근 14일 MAE. residual_quantile_p10_p90은 v1 하위호환 값
          * @enum {string}

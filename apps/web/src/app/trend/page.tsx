@@ -1,21 +1,24 @@
 "use client";
 
 // 흐름 상세(/trend) — 큰 차트 + 단계 기준 + 예측 방법 + 공식 전망.
-// forecast만 페치한다(제목 시군명·MAE·공식 전망 모두 forecast 응답에서 나온다).
+// forecast와 status를 함께 페치한다. status는 **대표 저수지 실측 시계열(rateHistory)** 때문에
+// 필요하다 — 메인 카드에만 토글이 있고 "자세히"로 들어오면 사라지던 문제를 없앤다.
+// status 실패는 차트 토글만 감추고 나머지 화면에는 영향을 주지 않는다.
 // 임계값·라벨의 단일 출처는 lib/data/drought-stage.ts다(규칙 5, UI 복제 금지).
 // 예측 카피는 참고 표현만 쓰고, 공식 가뭄 예·경보 우선 고지를 병기한다(규칙 3).
 
-import type { ForecastResponse } from "@mulsigye/contracts";
+import type { ForecastResponse, StatusResponse } from "@mulsigye/contracts";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { ReservoirRateChart } from "../../components/ReservoirRateChart";
 import { StageGuideCard } from "../../components/StageGuideCard";
 import { TrendChart } from "../../components/TrendChart";
 import { Card } from "../../components/ui/Card";
 import { CtaButton } from "../../components/ui/CtaButton";
 import { Skeleton } from "../../components/ui/Skeleton";
-import { getForecast } from "../../lib/client/api-client";
+import { getForecast, getStatus } from "../../lib/client/api-client";
 import { currentRegion, loadRegionStore } from "../../lib/client/region-store";
 import styles from "./page.module.css";
 
@@ -23,6 +26,14 @@ type ForecastState =
   | { kind: "loading" }
   | { kind: "ready"; data: ForecastResponse }
   | { kind: "error"; message: string; retryable: boolean };
+
+/** 실측 토글용 status — 실패는 조용히 감춘다(상세 화면을 막지 않는다). */
+type StatusState =
+  | { kind: "loading" }
+  | { kind: "ready"; data: StatusResponse }
+  | { kind: "hidden" };
+
+type ChartMode = "region" | "reservoir";
 
 /** MAE %p 표시 — model 메타 실값을 소수 1자리로(하드코딩 금지). */
 function formatMae(value: number): string {
@@ -44,6 +55,7 @@ export default function TrendPage() {
   const router = useRouter();
   const [ready, setReady] = useState(false);
   const [forecast, setForecast] = useState<ForecastState>({ kind: "loading" });
+  const [status, setStatus] = useState<StatusState>({ kind: "loading" });
   const mountedRef = useRef(true);
   const sigunRef = useRef<string | null>(null);
 
@@ -56,6 +68,18 @@ export default function TrendPage() {
 
   const load = useCallback((sigunCode: string) => {
     setForecast({ kind: "loading" });
+    setStatus({ kind: "loading" });
+    // 실측 토글 재료 — 실패하면 토글만 감춘다(오류 카드를 띄우지 않는다).
+    void getStatus(sigunCode).then((result) => {
+      if (!mountedRef.current) {
+        return;
+      }
+      setStatus(
+        result.kind === "ok"
+          ? { kind: "ready", data: result.data }
+          : { kind: "hidden" },
+      );
+    });
     void getForecast(sigunCode).then((result) => {
       if (!mountedRef.current) {
         return;
@@ -123,7 +147,12 @@ export default function TrendPage() {
         </Card>
       ) : null}
 
-      {forecast.kind === "ready" ? <TrendDetail data={forecast.data} /> : null}
+      {forecast.kind === "ready" ? (
+        <TrendDetail
+          data={forecast.data}
+          status={status.kind === "ready" ? status.data : null}
+        />
+      ) : null}
     </main>
   );
 }
@@ -135,37 +164,102 @@ function isForecastFlat(forecast: ForecastResponse["forecast"]): boolean {
   return Math.max(...ratios) - Math.min(...ratios) < 0.1;
 }
 
-function TrendDetail({ data }: { data: ForecastResponse }) {
+function TrendDetail({
+  data,
+  status,
+}: {
+  data: ForecastResponse;
+  status: StatusResponse | null;
+}) {
   const outlook = data.officialOutlook;
   // 예측선이 실제로 평평할 때만 "평평한 건 …" 설명을 보여준다(기우는 예측엔 부적합).
   const forecastFlat = isForecastFlat(data.forecast);
+  const [mode, setMode] = useState<ChartMode>("region");
+  // 예상 밖 페이로드(구 서버·중간 프록시)에도 상세 화면이 죽지 않도록 방어한다.
+  const rates = status?.reservoir?.rateHistory ?? [];
+  // 점이 2개는 있어야 선으로 의미가 있다(메인 카드 TrendChartCard와 같은 조건).
+  const canToggle = rates.length >= 2;
+  const showReservoir = canToggle && mode === "reservoir";
   return (
     <>
       <div className={styles.pagehead}>
-        <h1 className={styles.title}>{data.sigunName} 지역 평년 대비 저수율</h1>
+        <h1 className={styles.title}>
+          {showReservoir
+            ? `${status?.reservoir.name ?? "대표 저수지"} 실제 저수율`
+            : `${data.sigunName} 지역 평년 대비 저수율`}
+        </h1>
         <p className={styles.sub}>
-          지난 {data.history.length}일 실측과 앞으로 {data.forecast.length}일
-          예측이에요
+          {showReservoir
+            ? `최근 ${String(rates.length)}일 실측이에요`
+            : `지난 ${String(data.history.length)}일 실측과 앞으로 ${String(data.forecast.length)}일 예측이에요`}
         </p>
       </div>
 
       <Card>
-        <TrendChart forecast={data} height={300} showDates />
+        {/* 메인 카드에만 있던 토글을 상세에도 둔다 — "자세히"로 들어오면 실측 보기가
+            사라지던 문제(코드 리뷰 P1)를 없앤다. 두 지표는 축이 달라 겹쳐 그리지 않는다. */}
+        {canToggle ? (
+          <div
+            className={styles.toggle}
+            role="group"
+            aria-label="차트 지표 선택"
+          >
+            <button
+              type="button"
+              className={styles.toggleButton}
+              aria-pressed={mode === "region"}
+              onClick={() => {
+                setMode("region");
+              }}
+            >
+              지역 평년 대비
+            </button>
+            <button
+              type="button"
+              className={styles.toggleButton}
+              aria-pressed={mode === "reservoir"}
+              onClick={() => {
+                setMode("reservoir");
+              }}
+            >
+              저수지 실측
+            </button>
+          </div>
+        ) : null}
+
+        {showReservoir ? (
+          <ReservoirRateChart
+            history={rates}
+            name={status?.reservoir.name}
+            height={300}
+          />
+        ) : (
+          <TrendChart forecast={data} height={300} showDates />
+        )}
         <ul className={styles.legend} aria-label="차트 범례">
-          <li>
-            <i className={styles.legendSolid} aria-hidden="true" />
-            실측
-          </li>
-          <li>
-            <i className={styles.legendDash} aria-hidden="true" />
-            예측
-          </li>
-          <li>
-            <i className={styles.legendBand} aria-hidden="true" />
-            불확실 구간
-          </li>
+          {showReservoir ? (
+            <li>
+              <i className={styles.legendSolid} aria-hidden="true" />
+              실측 저수율
+            </li>
+          ) : (
+            <>
+              <li>
+                <i className={styles.legendSolid} aria-hidden="true" />
+                실측
+              </li>
+              <li>
+                <i className={styles.legendDash} aria-hidden="true" />
+                예측
+              </li>
+              <li>
+                <i className={styles.legendBand} aria-hidden="true" />
+                불확실 구간
+              </li>
+            </>
+          )}
         </ul>
-        {forecastFlat ? (
+        {forecastFlat && !showReservoir ? (
           <p className={styles.flatNote} data-testid="trend-flat-note">
             예측선이 평평한 건 지금 수준이 이어질 가능성이 가장 높다는 뜻이에요.
             실제 오르내림은 흐린 띠 범위로 봐요.
