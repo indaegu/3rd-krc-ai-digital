@@ -66,7 +66,8 @@ fun TrendChartCard(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "지역 평년 대비 저수율",
+                    // 제목·부제는 선택한 지표를 따라간다(웹 TrendChartCard와 동일).
+                    text = if (reservoirMode) "저수지 실제 저수율" else "지역 평년 대비 저수율",
                     style = MaterialTheme.typography.titleMedium,
                     color = Ink,
                     modifier = Modifier.semantics { heading() },
@@ -74,9 +75,13 @@ fun TrendChartCard(
                 Text(
                     // 공표 자료(논가뭄지도)는 연 1회 갱신이라 마지막 실측일이 오늘이 아닐 수 있다.
                     // 어느 날짜 기준인지 부제에 그대로 밝힌다(날짜는 서버 observedOn에서만 온다).
-                    text = forecast.history.lastOrNull()?.observedOn
-                        ?.let { "$it 기준 · 지난 ${forecast.history.size}일과 앞으로 ${forecast.forecast.size}일" }
-                        ?: "지난 ${forecast.history.size}일과 앞으로 ${forecast.forecast.size}일",
+                    text = if (reservoirMode) {
+                        "${reservoirName ?: "대표 저수지"} · 최근 ${reservoirHistory.size}일 실측"
+                    } else {
+                        forecast.history.lastOrNull()?.observedOn
+                            ?.let { "$it 기준 · 지난 ${forecast.history.size}일과 앞으로 ${forecast.forecast.size}일" }
+                            ?: "지난 ${forecast.history.size}일과 앞으로 ${forecast.forecast.size}일"
+                    },
                     style = MaterialTheme.typography.labelMedium,
                     color = Ink3,
                 )
