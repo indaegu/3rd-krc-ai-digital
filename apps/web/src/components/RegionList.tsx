@@ -36,8 +36,13 @@ export function RegionList({ onStoreChange }: RegionListProps) {
     onStoreChangeRef.current = onStoreChange;
   }, [onStoreChange]);
 
-  const loadName = useCallback(async (sigunCode: string) => {
-    const result = await getStatus(sigunCode);
+  // facCode: 저장된 선택 저수지. 넘기지 않으면 목록이 시군 기본 저수지 이름을 보여줘
+  // 메인 화면과 달라진다(사용자가 다른 저수지를 골랐을 때).
+  const loadName = useCallback(async (sigunCode: string, facCode?: string) => {
+    const result = await getStatus(
+      sigunCode,
+      facCode === undefined ? {} : { facCode },
+    );
     setNames((prev) => ({
       ...prev,
       [sigunCode]:
@@ -57,7 +62,7 @@ export function RegionList({ onStoreChange }: RegionListProps) {
     setStore(loaded);
     onStoreChangeRef.current?.(loaded);
     for (const region of loaded.regions) {
-      void loadName(region.sigunCode);
+      void loadName(region.sigunCode, region.facCode);
     }
   }, [loadName]);
 

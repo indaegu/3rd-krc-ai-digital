@@ -33,7 +33,14 @@ class DefaultRegionRepository(
                 } else {
                     RegionSearchResult.Success(
                         candidates = body.candidates.map {
-                            RegionCandidate(label = it.label, admCd = it.admCd, legalCode = it.legalCode)
+                            RegionCandidate(
+                                label = it.label,
+                                admCd = it.admCd,
+                                legalCode = it.legalCode,
+                                // 이 두 값이 빠지면 resolve가 시군 단위로만 좁혀 종전 문제로 돌아간다.
+                                emdNm = it.emdNm,
+                                liNm = it.liNm,
+                            )
                         },
                         asOf = Instant.parse(body.asOf),
                         sources = body.sources,

@@ -270,13 +270,16 @@ private fun MainRoute(container: AppContainer, store: RegionStoreState, backStac
         return
     }
 
+    // 사용자가 저수지 이름으로 고른 경우 그 저수지를 유지한다.
+    val regionFacCode = store.regions.getOrNull(store.currentIndex)?.facCode
     val statusVm: StatusViewModel = viewModel(
-        key = "status-$regionCode",
+        // **키에 시설코드까지 넣는다.** ViewModel은 Activity 스코프라, 같은 시군에서 저수지만
+        // 바꾸면 키가 그대로여서 이전 인스턴스가 재사용되고 새 facCode가 무시된다.
+        key = "status-$regionCode-${regionFacCode ?: "-"}",
         factory = StatusViewModel.Factory(
             container.statusRepository,
             regionCode,
-            // 사용자가 저수지 이름으로 고른 경우 그 저수지를 유지한다.
-            store.regions.getOrNull(store.currentIndex)?.facCode,
+            regionFacCode,
         ),
     )
     val forecastVm: ForecastViewModel = viewModel(
@@ -407,13 +410,14 @@ private fun TrendRoute(container: AppContainer, store: RegionStoreState, backSta
     )
     // 상세에도 "저수지 실측" 토글을 두려면 대표 저수지 시계열(status.reservoir.rateHistory)이
     // 필요하다. status 실패는 토글만 감추고 상세 화면 자체는 막지 않는다.
+    val regionFacCode = store.regions.getOrNull(store.currentIndex)?.facCode
     val statusVm: StatusViewModel = viewModel(
-        key = "trend-status-$regionCode",
+        // 메인과 같은 이유로 키에 시설코드를 포함한다(저수지만 바꿨을 때 재사용 방지).
+        key = "trend-status-$regionCode-${regionFacCode ?: "-"}",
         factory = StatusViewModel.Factory(
             container.statusRepository,
             regionCode,
-            // 사용자가 저수지 이름으로 고른 경우 그 저수지를 유지한다.
-            store.regions.getOrNull(store.currentIndex)?.facCode,
+            regionFacCode,
         ),
     )
     val state by forecastVm.uiState.collectAsStateWithLifecycle()

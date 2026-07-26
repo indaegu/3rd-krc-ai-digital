@@ -127,17 +127,24 @@ describe("AddressSearch 해피패스", () => {
     expect(screen.getAllByText(CANDIDATE.label)).toHaveLength(2);
     expect(screen.getByText(/우리 지역 대표 저수지/)).toHaveTextContent("탑정");
 
-    // resolve 요청 본문은 코드 2개만 담는다(주소 원문 미전송).
-    expect(fetchMock).toHaveBeenCalledWith(
-      "/api/v1/regions/resolve",
-      expect.objectContaining({
-        method: "POST",
-        body: JSON.stringify({
-          admCd: CANDIDATE.admCd,
-          legalCode: CANDIDATE.legalCode,
-        }),
-      }),
+    // resolve 요청 본문은 코드 2개 + 읍·면·동/리만 담는다. 도로명·번지 같은 주소 원문은
+    // 보내지 않으며, 읍·면·동/리는 시군 안에서 대표 저수지를 좁히는 데만 쓴다.
+    const resolveCall = fetchMock.mock.calls.find(
+      (call) => call[0] === "/api/v1/regions/resolve",
     );
+    expect(resolveCall).toBeDefined();
+    const sentBody = JSON.parse(
+      String((resolveCall?.[1] as { body?: string } | undefined)?.body ?? "{}"),
+    ) as Record<string, unknown>;
+    expect(sentBody).toEqual({
+      admCd: CANDIDATE.admCd,
+      legalCode: CANDIDATE.legalCode,
+      // 픽스처의 emdNm은 "송월동", liNm은 빈 문자열이라 빈 값은 실리지 않는다.
+      emdNm: CANDIDATE.emdNm,
+    });
+    expect(sentBody).not.toHaveProperty("liNm");
+    // 주소 원문(도로명·번지)이 본문에 섞이지 않는다.
+    expect(JSON.stringify(sentBody)).not.toContain("시청길");
 
     fireEvent.click(screen.getByRole("button", { name: "등록하기" }));
 

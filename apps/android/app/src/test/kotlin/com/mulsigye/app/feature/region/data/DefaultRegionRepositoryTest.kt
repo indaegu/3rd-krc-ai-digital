@@ -55,6 +55,41 @@ class DefaultRegionRepositoryTest {
         assertFalse(result.stale)
     }
 
+    // 이 매핑이 빠지면 resolve가 시군 단위로만 좁혀 "제주시 어디든 상대 저수지" 문제로 돌아간다.
+    @Test
+    fun searchCarriesEmdAndLiForNarrowing() = runTest {
+        enqueue(200, Fixtures.read("regions-search.ok.json"))
+        val result = repository.search("나주") as RegionSearchResult.Success
+        assertEquals("송월동", result.candidates[0].emdNm)
+        assertEquals("", result.candidates[0].liNm)
+    }
+
+    @Test
+    fun resolveSendsEmdLiAndFacCodeInBody() = runTest {
+        enqueue(200, Fixtures.read("regions-resolve.ok.json"))
+        repository.resolve(
+            admCd = "5011025924",
+            legalCode = "5011025924",
+            emdNm = "조천읍",
+            liNm = "함덕리",
+            facCode = "5011010007",
+        )
+        val body = server.takeRequest().body.readUtf8()
+        assertTrue(body.contains("조천읍"))
+        assertTrue(body.contains("함덕리"))
+        assertTrue(body.contains("5011010007"))
+    }
+
+    @Test
+    fun resolveOmitsBlankLocalityFromBody() = runTest {
+        enqueue(200, Fixtures.read("regions-resolve.ok.json"))
+        // 빈 문자열은 보내지 않는다 — 서버가 "없음"과 구분할 필요가 없다.
+        repository.resolve(admCd = "4617010200", legalCode = "4617010200", emdNm = "", liNm = "")
+        val body = server.takeRequest().body.readUtf8()
+        assertFalse(body.contains("emdNm"))
+        assertFalse(body.contains("liNm"))
+    }
+
     @Test
     fun searchMapsRetryable503() = runTest {
         enqueue(503, """{"code":"SERVICE_UNAVAILABLE","message":"주소 검색을 잠시 쉬어요.","retryable":true}""")

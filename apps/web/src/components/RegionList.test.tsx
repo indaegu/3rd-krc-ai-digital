@@ -137,6 +137,23 @@ describe("RegionList 선택·삭제", () => {
     expect(readStore().currentIndex).toBe(1);
   });
 
+  // 저장된 선택 저수지를 넘기지 않으면 목록이 시군 기본 저수지 이름을 보여줘 메인과 달라진다.
+  it("저장된 저수지(facCode)를 status 조회에 함께 보낸다", async () => {
+    seedStore([REGION_A, REGION_B], 0);
+    const fetchMock = stubStatusFetch();
+
+    render(<RegionList />);
+    await screen.findByRole("button", { name: /탑정/ });
+
+    const urls = fetchMock.mock.calls.map((call) => String(call[0]));
+    expect(
+      urls.some((url) => url.includes(`facCode=${REGION_A.facCode}`)),
+    ).toBe(true);
+    expect(
+      urls.some((url) => url.includes(`facCode=${REGION_B.facCode}`)),
+    ).toBe(true);
+  });
+
   it("삭제 버튼은 지역 이름이 든 접근 가능한 이름을 갖고 해당 지역만 지운다", async () => {
     seedStore([REGION_A, REGION_B], 0);
     stubStatusFetch();

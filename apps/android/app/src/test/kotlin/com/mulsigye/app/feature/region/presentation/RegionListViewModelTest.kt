@@ -98,6 +98,22 @@ class RegionListViewModelTest {
         assertEquals("나주호", name.reservoirName)
     }
 
+    // 저장된 선택 저수지를 넘기지 않으면 목록이 시군 기본 저수지 이름을 보여줘 메인과 달라진다.
+    @Test
+    fun passesStoredFacCodeToStatus() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val storeInstance = store()
+        storeInstance.addRegion(naju)
+        val statusRepo = FakeStatusRepository().apply {
+            put("46170", statusSuccess("46170", "나주시", "나주호"))
+        }
+        RegionListViewModel(storeInstance, statusRepo, dispatcher)
+
+        advanceUntilIdle()
+
+        assertEquals(naju.facCode, statusRepo.lastFacCode)
+    }
+
     @Test
     fun selectSwitchesCurrentIndex() = runTest {
         val dispatcher = StandardTestDispatcher(testScheduler)

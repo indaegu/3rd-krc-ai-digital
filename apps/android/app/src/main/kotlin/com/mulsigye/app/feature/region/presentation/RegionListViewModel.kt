@@ -101,15 +101,19 @@ class RegionListViewModel(
                 store.regions.forEach { region ->
                     // add()가 true면 최초 요청. 각 코드의 이름을 병렬로 불러온다.
                     if (requested.add(region.sigunCode)) {
-                        launch { loadName(region.sigunCode) }
+                        launch { loadName(region.sigunCode, region.facCode) }
                     }
                 }
             }
         }
     }
 
-    private suspend fun loadName(sigunCode: String) {
-        val state = when (val result = statusRepository.load(sigunCode)) {
+    /**
+     * [facCode]는 저장된 선택 저수지다. 넘기지 않으면 목록이 시군 기본 저수지 이름을 보여줘
+     * 메인 화면과 달라진다(사용자가 다른 저수지를 골랐을 때).
+     */
+    private suspend fun loadName(sigunCode: String, facCode: String?) {
+        val state = when (val result = statusRepository.load(sigunCode, facCode)) {
             is StatusResult.Success -> RegionNameState.Ready(
                 sigunName = result.sigunName,
                 reservoirName = result.reservoir.name,
