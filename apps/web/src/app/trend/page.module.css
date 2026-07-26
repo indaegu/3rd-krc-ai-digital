@@ -200,3 +200,13 @@
   background: var(--gray100);
   border-radius: var(--r-sm);
 }
+
+/* "함께 보기" 범례 — 오른쪽 축 참고선(저수지 원저수율). */
+.legendReservoir {
+  display: inline-block;
+  width: 16px;
+  height: 2px;
+  background: var(--ink3);
+  border-radius: 2px;
+  opacity: 0.75;
+}

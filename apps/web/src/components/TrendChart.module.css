@@ -124,3 +124,20 @@
   white-space: nowrap;
   border: 0;
 }
+
+/* "함께 보기" 참고선 — 대표 저수지 원저수율(오른쪽 축). 예측 점선과 헷갈리지 않게
+   가는 실선 + 다른 색을 쓰고, 색만으로 구분되지 않도록 범례·오른쪽 눈금을 함께 둔다. */
+.reservoirLine {
+  fill: none;
+  stroke: var(--ink3);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.75;
+}
+
+.reservoirTick {
+  font-size: 10px;
+  font-weight: 700;
+  fill: var(--ink3);
+}

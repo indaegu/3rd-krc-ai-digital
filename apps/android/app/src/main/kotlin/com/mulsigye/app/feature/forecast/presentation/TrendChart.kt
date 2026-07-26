@@ -35,6 +35,7 @@ import com.mulsigye.app.core.ui.rememberReducedMotion
 import com.mulsigye.app.feature.forecast.domain.ForecastBandPoint
 import com.mulsigye.app.feature.forecast.domain.ForecastPoint
 import com.mulsigye.app.feature.forecast.domain.ForecastResult
+import com.mulsigye.app.feature.status.domain.ReservoirRatePoint
 import kotlin.math.ceil
 import kotlin.math.floor
 import kotlin.math.max
@@ -162,8 +163,22 @@ fun TrendChart(
     modifier: Modifier = Modifier,
     height: Dp = 220.dp,
     showDates: Boolean = false,
+    /**
+     * "함께 보기" 모드에서만 넘긴다 — 대표 저수지 실측 저수율 시계열.
+     *
+     * 예측선·밴드는 **지역 평년 대비 그대로**이고 이 값은 오른쪽 축의 참고선이다.
+     * 두 값은 축·의미가 달라(원저수율 % vs 평년 대비 %) 같은 축에 겹치지 않는다.
+     * 인덱스가 아니라 **날짜로 맞춰** 그리므로 겹치는 날짜가 없으면 그리지 않는다.
+     */
+    reservoirHistory: List<ReservoirRatePoint> = emptyList(),
+    reservoirName: String? = null,
 ) {
-    val description = buildContentDescription(forecast, includeDates = showDates)
+    val description = buildContentDescription(
+        forecast,
+        includeDates = showDates,
+        reservoirHistory = reservoirHistory,
+        reservoirName = reservoirName,
+    )
     val reducedMotion = rememberReducedMotion()
 
     // 그려-들어오기 진행도 0→1. reduced-motion이면 즉시 1로 스냅(애니메이션 없음).
@@ -235,6 +250,15 @@ fun TrendChart(
                 drawCircle(color = BlueDeep, radius = 4.6.dp.toPx(), center = m)
             }
         }
+
+        // "함께 보기" 참고선 — 오른쪽 축(저수지 원저수율). 예측 점선과 다른 색·굵기의 실선.
+        drawReservoirReference(
+            geo = geo,
+            history = forecast.history,
+            forecast = forecast.forecast,
+            reservoirHistory = reservoirHistory,
+            reveal = reveal,
+        )
 
         // x축 날짜 라벨(상세 전용, 정적) — observedOn에서만 유도한다.
         if (showDates) {
@@ -363,6 +387,8 @@ private fun DrawScope.drawPolyline(
 private fun buildContentDescription(
     forecast: ForecastResult.Success,
     includeDates: Boolean = false,
+    reservoirHistory: List<ReservoirRatePoint> = emptyList(),
+    reservoirName: String? = null,
 ): String {
     val history = forecast.history
     val future = forecast.forecast
@@ -377,6 +403,12 @@ private fun buildContentDescription(
     if (lastFuture != null) {
         parts += "앞으로 ${future.size}일은 ${formatRatio(lastFuture.low)}%에서 ${formatRatio(lastFuture.high)}% 사이로 보여요."
     }
+    // "함께 보기"에서는 참고선의 의미를 읽어준다(왼쪽 축과 다른 값임을 분명히).
+    val lastRate = reservoirHistory.lastOrNull()
+    if (reservoirHistory.size >= 2 && lastRate != null) {
+        parts += "${reservoirName ?: "대표 저수지"} 실제 저수율은 오른쪽 눈금으로 함께 그렸고 " +
+            "마지막 값은 ${formatRatio(lastRate.rate)}%예요. 예측선과 띠는 지역 평년 대비 기준이에요."
+    }
     // 상세 차트는 날짜 축(observedOn)을 함께 읽어준다.
     if (includeDates && first != null && lastFuture != null) {
         parts += "기간은 ${formatMonthDay(first.observedOn)}부터 ${formatMonthDay(lastFuture.observedOn)}까지예요."
@@ -386,3 +418,72 @@ private fun buildContentDescription(
 
 private fun formatRatio(value: Double): String =
     if (value % 1.0 == 0.0) value.toLong().toString() else (Math.round(value * 10.0) / 10.0).toString()
+
+/**
+ * "함께 보기" 참고선 — 대표 저수지 원저수율을 **오른쪽 축**에 얹는다.
+ *
+ * 지역 평년 대비(왼쪽 축)와 값의 의미가 달라 축을 따로 둔다. 오른쪽 눈금(최소·최대 %)을
+ * 함께 그려 모양만 읽고 값을 오해하지 않게 한다. 예측은 여전히 지역 모델 하나뿐이다.
+ */
+private fun DrawScope.drawReservoirReference(
+    geo: TrendGeometry,
+    history: List<ForecastPoint>,
+    forecast: List<ForecastBandPoint>,
+    reservoirHistory: List<ReservoirRatePoint>,
+    reveal: Float,
+) {
+    if (reservoirHistory.size < 2) return
+
+    // 날짜 → x축 인덱스(실측 + 예측을 이은 순서, 기하 계산과 같다).
+    val dates = history.map { it.observedOn } + forecast.map { it.observedOn }
+    val indexByDate = dates.withIndex().associate { (index, date) -> date to index }
+    val onAxis = reservoirHistory.mapNotNull { point ->
+        indexByDate[point.observedOn]?.let { it to point.rate }
+    }
+    if (onAxis.size < 2) return
+
+    val total = dates.size
+    val rates = onAxis.map { it.second }
+    val lo = max(0.0, floor(rates.min() - RANGE_PADDING))
+    val hi = ceil(rates.max() + RANGE_PADDING)
+    val span = if (hi <= lo) 1.0 else hi - lo
+
+    fun xAt(index: Int): Float =
+        geo.plotLeft + (geo.plotRight - geo.plotLeft) * (index.toFloat() / max(1, total - 1))
+    fun yAt(value: Double): Float =
+        geo.plotTop + (geo.plotBottom - geo.plotTop) * (1f - ((value - lo) / span).toFloat())
+
+    val path = Path()
+    onAxis.forEachIndexed { i, (index, rate) ->
+        val x = xAt(index)
+        val y = yAt(rate)
+        if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
+    }
+    drawPath(
+        path = path,
+        color = Ink3,
+        alpha = 0.75f * reveal,
+        style = Stroke(width = 2.2.dp.toPx(), cap = StrokeCap.Round),
+    )
+
+    // 오른쪽 눈금 — 참고선의 값 범위를 밝힌다(클립 밖이라 항상 보인다).
+    val paint = Paint().apply {
+        color = Ink3.toArgb()
+        textSize = 11.dp.toPx()
+        isAntiAlias = true
+        textAlign = Paint.Align.RIGHT
+    }
+    val right = geo.plotRight
+    drawContext.canvas.nativeCanvas.drawText(
+        "${hi.toInt()}%",
+        right,
+        yAt(hi) + 10.dp.toPx(),
+        paint,
+    )
+    drawContext.canvas.nativeCanvas.drawText(
+        "${lo.toInt()}%",
+        right,
+        yAt(lo) - 3.dp.toPx(),
+        paint,
+    )
+}

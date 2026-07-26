@@ -145,4 +145,6 @@ x축 날짜 라벨 간격은 **'일' 수가 아니라 라벨 폭으로 정한다
 - 라벨 한 칸 폭(웹 46 뷰박스 단위 / Android `measureText("00/00") + 10dp`)에서 최소 간격을
   구하고, 보기 좋은 일수 사다리(1·2·3·7·14·21·28·35·42·56)에서 그 이상인 첫 값을 쓴다.
 - 양 끝(첫 실측일·마지막 예측일)과 '오늘' 라벨 자리는 항상 비워 둔다.
-- 웹 `TrendChart.dateTickIndices`/`labelMinGap`, Android `dateTickIndices`가 같은 규칙이다.
+- 웹은 `components/chart-axis.ts`가 좌표계(viewBox 640·여백)와 눈금 규칙의 단일 출처이며
+  `TrendChart`와 `ReservoirRateChart`가 함께 쓴다. Android `dateTickIndices`가 같은 규칙이다.
+- 저수지 실측 차트도 양 끝만이 아니라 **사이 날짜를 함께** 보여준다(30일 흐름을 읽을 수 있게).

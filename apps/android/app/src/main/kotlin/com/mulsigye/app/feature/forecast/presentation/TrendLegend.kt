@@ -2,6 +2,8 @@ package com.mulsigye.app.feature.forecast.presentation
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
@@ -22,26 +24,34 @@ import com.mulsigye.app.core.designsystem.theme.Blue
 import com.mulsigye.app.core.designsystem.theme.BlueDeep
 import com.mulsigye.app.core.designsystem.theme.BlueSoft
 import com.mulsigye.app.core.designsystem.theme.Ink2
+import com.mulsigye.app.core.designsystem.theme.Ink3
 
 /**
  * 차트 범례 — 실측(실선)·예측(점선)·불확실 구간(밴드). 색만으로 구분하지 않도록
  * 각 항목에 이름 텍스트를 함께 둔다. 표식 캔버스는 장식이라 접근성 트리에서 제외한다.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun TrendLegend(
     modifier: Modifier = Modifier,
     /** 실측만 그리는 차트(저수지 실측 토글)에서는 예측·밴드 항목을 감춘다. */
     observedOnly: Boolean = false,
+    /** "함께 보기"에서만 — 오른쪽 축 참고선 항목을 덧붙인다. */
+    withReservoirReference: Boolean = false,
 ) {
-    Row(
+    // 항목이 넷까지 늘어 큰 글꼴에서는 한 줄에 안 들어간다 — 줄바꿈되게 FlowRow를 쓴다.
+    FlowRow(
         modifier = modifier,
         horizontalArrangement = Arrangement.spacedBy(16.dp),
-        verticalAlignment = Alignment.CenterVertically,
+        verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         LegendItem(if (observedOnly) "실측 저수율" else "실측") { SolidSwatch(Blue) }
         if (!observedOnly) {
             LegendItem("예측") { DashSwatch(BlueDeep) }
             LegendItem("불확실 구간") { BandSwatch(BlueSoft) }
+            if (withReservoirReference) {
+                LegendItem("저수지 실측(오른쪽 눈금)") { SolidSwatch(Ink3) }
+            }
         }
     }
 }

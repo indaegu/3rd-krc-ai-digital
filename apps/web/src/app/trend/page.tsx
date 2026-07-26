@@ -34,7 +34,7 @@ type StatusState =
   | { kind: "ready"; data: StatusResponse }
   | { kind: "hidden" };
 
-type ChartMode = "region" | "reservoir";
+type ChartMode = "region" | "reservoir" | "both";
 
 /** MAE %p 표시 — model 메타 실값을 소수 1자리로(하드코딩 금지). */
 function formatMae(value: number): string {
@@ -198,18 +198,23 @@ function TrendDetail({
   // 점이 2개는 있어야 선으로 의미가 있다(메인 카드 TrendChartCard와 같은 조건).
   const canToggle = rates.length >= 2;
   const showReservoir = canToggle && mode === "reservoir";
+  const showBoth = canToggle && mode === "both";
   return (
     <>
       <div className={styles.pagehead}>
         <h1 className={styles.title}>
           {showReservoir
-            ? `${status?.reservoir.name ?? "대표 저수지"} 실제 저수율`
-            : `${data.sigunName} 지역 평년 대비 저수율`}
+            ? `${status?.reservoir?.name ?? "대표 저수지"} 실제 저수율`
+            : showBoth
+              ? `${data.sigunName} 지역 평년 대비 + 저수지 실측`
+              : `${data.sigunName} 지역 평년 대비 저수율`}
         </h1>
         <p className={styles.sub}>
           {showReservoir
             ? `최근 ${String(rates.length)}일 실측이에요`
-            : `지난 ${String(data.history.length)}일 실측과 앞으로 ${String(data.forecast.length)}일 예측이에요`}
+            : showBoth
+              ? `예측은 지역 평년 대비 기준이고, ${status?.reservoir?.name ?? "대표 저수지"} 실측은 오른쪽 눈금이에요`
+              : `지난 ${String(data.history.length)}일 실측과 앞으로 ${String(data.forecast.length)}일 예측이에요`}
         </p>
       </div>
 
@@ -242,17 +247,37 @@ function TrendDetail({
             >
               저수지 실측
             </button>
+            <button
+              type="button"
+              className={styles.toggleButton}
+              aria-pressed={mode === "both"}
+              onClick={() => {
+                setMode("both");
+              }}
+            >
+              함께 보기
+            </button>
           </div>
         ) : null}
 
         {showReservoir ? (
           <ReservoirRateChart
             history={rates}
-            name={status?.reservoir.name}
+            name={status?.reservoir?.name}
             height={300}
           />
         ) : (
-          <TrendChart forecast={data} height={300} showDates />
+          <TrendChart
+            forecast={data}
+            height={300}
+            showDates
+            {...(showBoth
+              ? {
+                  reservoirHistory: rates,
+                  reservoirName: status?.reservoir?.name,
+                }
+              : {})}
+          />
         )}
         <ul className={styles.legend} aria-label="차트 범례">
           {showReservoir ? (
@@ -274,6 +299,12 @@ function TrendDetail({
                 <i className={styles.legendBand} aria-hidden="true" />
                 불확실 구간
               </li>
+              {showBoth ? (
+                <li>
+                  <i className={styles.legendReservoir} aria-hidden="true" />
+                  저수지 실측(오른쪽 눈금)
+                </li>
+              ) : null}
             </>
           )}
         </ul>

@@ -4,6 +4,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -84,6 +86,7 @@ internal fun isForecastFlat(points: List<ForecastBandPoint>): Boolean {
  * 큰 흐름 차트 + 범례, 가뭄 단계 기준 표, "예측은 이렇게 계산해요"(model 실값 + 공식 우선
  * 고지), 공식 가뭄 전망(officialOutlook null이면 생략). 예측 산식·임계값은 두지 않는다.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun TrendScreen(
     data: ForecastResult.Success,
@@ -94,10 +97,12 @@ fun TrendScreen(
 ) {
     // 메인 카드에만 있던 토글을 상세에도 둔다 — "자세히"로 들어오면 실측 보기가 사라지던
     // 문제(코드 리뷰 P1)를 없앤다. 두 지표는 축이 달라 겹쳐 그리지 않는다.
-    var showReservoir by rememberSaveable { mutableStateOf(false) }
+    // 0=지역 평년 대비, 1=저수지 실측, 2=함께 보기(메인 카드와 같은 순서).
+    var modeIndex by rememberSaveable { mutableStateOf(0) }
     val rates = status?.reservoir?.rateHistory.orEmpty()
     val canToggle = rates.size >= 2
-    val reservoirMode = canToggle && showReservoir
+    val reservoirMode = canToggle && modeIndex == 1
+    val bothMode = canToggle && modeIndex == 2
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -113,20 +118,22 @@ fun TrendScreen(
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
-                    text = if (reservoirMode) {
-                        "${status?.reservoir?.name ?: "대표 저수지"} 실제 저수율"
-                    } else {
-                        "${data.sigunName} 지역 평년 대비 저수율"
+                    text = when {
+                        reservoirMode -> "${status?.reservoir?.name ?: "대표 저수지"} 실제 저수율"
+                        bothMode -> "${data.sigunName} 지역 평년 대비 + 저수지 실측"
+                        else -> "${data.sigunName} 지역 평년 대비 저수율"
                     },
                     style = MaterialTheme.typography.titleLarge,
                     color = Ink,
                     modifier = Modifier.semantics { heading() },
                 )
                 Text(
-                    text = if (reservoirMode) {
-                        "최근 ${rates.size}일 실측이에요"
-                    } else {
-                        "지난 ${data.history.size}일 실측과 앞으로 ${data.forecast.size}일 예측이에요"
+                    text = when {
+                        reservoirMode -> "최근 ${rates.size}일 실측이에요"
+                        bothMode ->
+                            "예측은 지역 평년 대비 기준이고, " +
+                                "${status?.reservoir?.name ?: "대표 저수지"} 실측은 오른쪽 눈금이에요"
+                        else -> "지난 ${data.history.size}일 실측과 앞으로 ${data.forecast.size}일 예측이에요"
                     },
                     style = MaterialTheme.typography.bodyLarge,
                     color = Ink2,
@@ -136,16 +143,25 @@ fun TrendScreen(
             // 큰 차트 + 범례 + (예측이 평평할 때만) 평평선 설명 캡션.
             MulsigyeCard {
                 if (canToggle) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    // 토글이 셋이라 큰 글꼴에서는 한 줄을 넘는다 — 줄바꿈되게 FlowRow를 쓴다.
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
                         MetricToggle(
                             label = "지역 평년 대비",
-                            selected = !reservoirMode,
-                            onClick = { showReservoir = false },
+                            selected = modeIndex == 0,
+                            onClick = { modeIndex = 0 },
                         )
                         MetricToggle(
                             label = "저수지 실측",
                             selected = reservoirMode,
-                            onClick = { showReservoir = true },
+                            onClick = { modeIndex = 1 },
+                        )
+                        MetricToggle(
+                            label = "함께 보기",
+                            selected = bothMode,
+                            onClick = { modeIndex = 2 },
                         )
                     }
                     Spacer(Modifier.height(12.dp))
@@ -159,9 +175,15 @@ fun TrendScreen(
                     Spacer(Modifier.height(12.dp))
                     TrendLegend(observedOnly = true)
                 } else {
-                    TrendChart(forecast = data, height = 300.dp, showDates = true)
+                    TrendChart(
+                        forecast = data,
+                        height = 300.dp,
+                        showDates = true,
+                        reservoirHistory = if (bothMode) rates else emptyList(),
+                        reservoirName = status?.reservoir?.name,
+                    )
                     Spacer(Modifier.height(12.dp))
-                    TrendLegend()
+                    TrendLegend(withReservoirReference = bothMode)
                     // linear/ma7/ses 등 기우는 예측에는 부적합하므로 실제로 평평할 때만 표시.
                     if (isForecastFlat(data.forecast)) {
                         Spacer(Modifier.height(12.dp))
