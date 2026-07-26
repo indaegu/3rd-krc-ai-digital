@@ -4,7 +4,7 @@
   width: min(100% - 32px, 560px);
   min-height: 100dvh;
   margin: 0 auto;
-  padding: 12px 0 40px;
+  padding: 28px 0 40px;
 }
 
 .header {
@@ -26,7 +26,7 @@
 
 .title {
   margin: 0;
-  font-size: 1.3125rem;
+  font-size: 1.1875rem;
   font-weight: 800;
   letter-spacing: -0.02em;
 }

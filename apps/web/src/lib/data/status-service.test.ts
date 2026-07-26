@@ -173,6 +173,7 @@ describe("buildStatus — ① 수위 API 성공 경로", () => {
       rate: 60.4,
       waterLevel: 27.48,
       observedOn: "2026-07-20",
+      rateHistory: expect.any(Array),
     });
     expect(body.region.observedOn).toBe("2026-07-20");
     expect(body.region.officialStage).toEqual({ code: "ok", label: "정상" });
@@ -280,6 +281,7 @@ describe("buildStatus — ② API 장애 시 Supabase 최신 관측 폴백", () 
         rate: 58.4,
         waterLevel: 27.32,
         observedOn: "2026-07-19",
+        rateHistory: expect.any(Array),
       });
       expect(result.body.stale).toBe(true);
       expect(result.body.sources).toContain(SUPABASE_SNAPSHOT_SOURCE);
@@ -309,6 +311,7 @@ describe("buildStatus — ③ Supabase도 장애면 커밋 스냅샷 폴백", ()
       rate: 91,
       waterLevel: null,
       observedOn: "2025-12-31",
+      rateHistory: expect.any(Array),
     });
     // 지역 단계도 스냅샷 폴백: 44230 최신 행 2025-12-31 avgRatio 112.7 정상.
     expect(result.body.region.observedOn).toBe("2025-12-31");

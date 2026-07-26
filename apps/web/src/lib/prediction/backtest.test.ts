@@ -182,12 +182,17 @@ describe("runBacktest — 제외 규칙", () => {
   });
 });
 
-describe("runBacktest — 동률 시 단순성 서열(naive < ma7 < ses < linear)", () => {
+describe("runBacktest — 동률 시 단순성 서열(naive < ma7 < ses < damped < linear)", () => {
   it("상수 지역(전 모델 MAE 0)이면 가장 단순한 naive를 고른다", () => {
     const core = runBacktest({ "10002": CONSTANT_REGION });
     expect(core.selectedModel.name).toBe("naive");
     expect(core.selectedModel.rule).toBe("simplicity_tiebreak");
-    expect(core.selectedModel.tiedWith).toEqual(["ma7", "ses", "linear"]);
+    expect(core.selectedModel.tiedWith).toEqual([
+      "ma7",
+      "ses",
+      "damped",
+      "linear",
+    ]);
   });
 
   it("차이 ≤ 0.05%p 근사 동률에서도 단순성 서열로 고른다", () => {

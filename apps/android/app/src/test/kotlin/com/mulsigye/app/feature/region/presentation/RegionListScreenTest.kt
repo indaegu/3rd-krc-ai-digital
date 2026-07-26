@@ -30,6 +30,7 @@ class RegionListScreenTest : RobolectricComposeTest() {
         onToggleManageMode: () -> Unit = {},
         onToggleSelection: (String) -> Unit = {},
         onDeleteSelected: () -> Unit = {},
+        onSetPrimary: (String) -> Unit = {},
         onNavigateAdd: () -> Unit = {},
         onNavigateNotifications: () -> Unit = {},
         onStart: () -> Unit = {},
@@ -44,6 +45,7 @@ class RegionListScreenTest : RobolectricComposeTest() {
                     onToggleManageMode = onToggleManageMode,
                     onToggleSelection = onToggleSelection,
                     onDeleteSelected = onDeleteSelected,
+                    onSetPrimary = onSetPrimary,
                     onNavigateAdd = onNavigateAdd,
                     onNavigateNotifications = onNavigateNotifications,
                     onStart = onStart,
@@ -62,9 +64,11 @@ class RegionListScreenTest : RobolectricComposeTest() {
         )
 
     @Test
-    fun showsEmptyStateCopy() {
+    fun showsOnlyAddRowWhenEmpty() {
         setContent(RegionListUiState(loading = false, items = emptyList(), currentIndex = 0))
-        composeTestRule.onNodeWithText("아직 등록한 지역이 없어요.").assertIsDisplayed()
+        // 빈 상태에는 별도 안내 카드를 두지 않는다 — "지역 추가하기"만 보인다.
+        composeTestRule.onNodeWithText("지역 추가하기").assertIsDisplayed()
+        composeTestRule.onAllNodesWithText("아직 등록한 지역이 없어요.").assertCountEquals(0)
     }
 
     @Test
@@ -130,12 +134,20 @@ class RegionListScreenTest : RobolectricComposeTest() {
     // ── 관리 모드 ────────────────────────────────────────────────────────────────
 
     @Test
-    fun manageToggleEntersManageMode() {
+    fun normalModeHasNoHeaderActions() {
+        setContent(twoRegions())
+        // 일반 모드 상단에는 액션 버튼을 두지 않는다(알림 설정은 앱 환경설정, 지역 관리는 길게 누르기).
+        composeTestRule.onAllNodesWithContentDescription("지역 관리 시작").assertCountEquals(0)
+        composeTestRule.onAllNodesWithContentDescription("알림 설정").assertCountEquals(0)
+    }
+
+    @Test
+    fun manageModeShowsDoneAction() {
         var toggled = false
-        setContent(twoRegions(), onToggleManageMode = { toggled = true })
-        // 일반 모드에서는 "지역 관리" 시작 버튼이 보인다(길게 누르기의 접근성 대체 수단).
-        composeTestRule.onNodeWithContentDescription("지역 관리 시작").assertIsDisplayed()
-        composeTestRule.onNodeWithContentDescription("지역 관리 시작").performClick()
+        setContent(twoRegions(manageMode = true), onToggleManageMode = { toggled = true })
+        // 관리 모드에서는 완료(체크) 아이콘으로 빠져나갈 수 있다.
+        composeTestRule.onNodeWithContentDescription("지역 관리 완료").assertIsDisplayed()
+        composeTestRule.onNodeWithContentDescription("지역 관리 완료").performClick()
         composeTestRule.runOnIdle { assertTrue(toggled) }
     }
 

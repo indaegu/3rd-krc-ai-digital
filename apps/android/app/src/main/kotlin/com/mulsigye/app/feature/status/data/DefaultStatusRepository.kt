@@ -6,6 +6,7 @@ import com.mulsigye.app.core.network.toApiFailure
 import com.mulsigye.app.feature.status.data.remote.StatusApi
 import com.mulsigye.app.feature.status.domain.DroughtStage
 import com.mulsigye.app.feature.status.domain.RegionStatus
+import com.mulsigye.app.feature.status.domain.ReservoirRatePoint
 import com.mulsigye.app.feature.status.domain.ReservoirStatus
 import com.mulsigye.app.feature.status.domain.StageBand
 import com.mulsigye.app.feature.status.domain.StatusRepository
@@ -40,6 +41,9 @@ class DefaultStatusRepository(
                             rate = body.reservoir.rate,
                             waterLevel = body.reservoir.waterLevel,
                             observedOn = body.reservoir.observedOn,
+                            rateHistory = body.reservoir.rateHistory.map {
+                                ReservoirRatePoint(observedOn = it.observedOn, rate = it.rate)
+                            },
                         ),
                         region = RegionStatus(
                             observedOn = body.region.observedOn,

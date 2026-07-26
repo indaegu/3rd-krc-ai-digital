@@ -18,6 +18,32 @@
   background: var(--gray100);
 }
 
+/* 물 색 = 현재 공인 단계 색. 색만으로 단계를 구분하지 않도록 우측 세로 라벨·단계 텍스트를 함께 둔다. */
+.gauge[data-stage="ok"] .water,
+.gauge[data-stage="ok"] .wave {
+  background: var(--ok-fg);
+}
+
+.gauge[data-stage="watch"] .water,
+.gauge[data-stage="watch"] .wave {
+  background: var(--watch-fg);
+}
+
+.gauge[data-stage="care"] .water,
+.gauge[data-stage="care"] .wave {
+  background: var(--care-fg);
+}
+
+.gauge[data-stage="alert"] .water,
+.gauge[data-stage="alert"] .wave {
+  background: var(--alert-fg);
+}
+
+.gauge[data-stage="crit"] .water,
+.gauge[data-stage="crit"] .wave {
+  background: var(--crit-fg);
+}
+
 .water {
   position: absolute;
   right: 0;
@@ -47,7 +73,33 @@
   opacity: 0.5;
 }
 
-.gauge[data-motion="flowing"] .water {
+.gauge[data-motion="flowing"] /* 물 색 = 현재 공인 단계 색. 색만으로 단계를 구분하지 않도록 우측 세로 라벨·단계 텍스트를 함께 둔다. */
+.gauge[data-stage="ok"] .water,
+.gauge[data-stage="ok"] .wave {
+  background: var(--ok-fg);
+}
+
+.gauge[data-stage="watch"] .water,
+.gauge[data-stage="watch"] .wave {
+  background: var(--watch-fg);
+}
+
+.gauge[data-stage="care"] .water,
+.gauge[data-stage="care"] .wave {
+  background: var(--care-fg);
+}
+
+.gauge[data-stage="alert"] .water,
+.gauge[data-stage="alert"] .wave {
+  background: var(--alert-fg);
+}
+
+.gauge[data-stage="crit"] .water,
+.gauge[data-stage="crit"] .wave {
+  background: var(--crit-fg);
+}
+
+.water {
   transition: height 1.6s cubic-bezier(0.25, 0.8, 0.3, 1);
 }
 

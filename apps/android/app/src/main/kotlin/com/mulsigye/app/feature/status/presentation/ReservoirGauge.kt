@@ -20,27 +20,32 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.clipPath
+import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.dp
-import com.mulsigye.app.core.designsystem.theme.Blue
 import com.mulsigye.app.core.designsystem.theme.Gray100
+import com.mulsigye.app.core.designsystem.theme.stageColorFor
 import com.mulsigye.app.core.designsystem.theme.Ink3
 import com.mulsigye.app.core.ui.rememberReducedMotion
 import com.mulsigye.app.feature.status.domain.StageBand
 import kotlin.math.sin
 
+/** 비이커의 캔버스 내 왼쪽 여백·폭 비율. 막대를 살짝 오른쪽으로 밀어 카드 균형을 맞춘다. */
+private const val BeakerLeftFraction = 0.10f
+private const val BeakerWidthFraction = 0.53f
+
 /**
  * 메인 게이지 — 지역 평년 대비 저수율(avgRatio)을 물 높이로 보여준다(디자인 시안 §4).
  *
- * - 물 색 = **브랜드 파랑(#2D83FF) 고정**. 단계는 색이 아니라 수위 위치 + 우측 세로 라벨
- *   (정상/관심/주의/경계/심각)로 전달한다(색만으로 단계를 구분하지 않는다 — 접근성 규칙).
+ * - 물 색 = **현재 공인 단계 색**(정상 파랑 → 관심 청록 → 주의 노랑 → 경계 주황 → 심각 빨강).
+ *   색만으로 단계를 구분하지 않도록 수위 위치 + 우측 세로 라벨(정상/관심/주의/경계/심각)과
+ *   TodayCard의 단계 텍스트를 함께 둔다(접근성 규칙).
  *   원저수율(rate)은 TodayCard의 작은 보조 줄이 소유한다(두 저수율 분리).
  * - 단계 눈금·라벨 = 서버 [stageBands](정상 70 / 관심 60 / 주의 50 / 경계 40). 각 경계에 옅은
  *   눈금선과, 각 단계 구간 중앙에 단계 라벨을 비이커 오른쪽 여백에 그린다. **임계값은 클라이언트에
  *   두지 않고 서버 값만 쓴다**(규칙 10). stageBands가 null(구 페이로드)이면 눈금·라벨 없이 채움만 그린다.
- * - stageCode는 게이지 색에 쓰지 않는다(파랑 고정). 축 정합을 위해 시그니처만 유지한다.
  * - 물 출렁임 = 사인 물결 2겹(7s / 11s reverse), 수위 0→목표 1.6s.
  * - OS "애니메이션 삭제"(reduced-motion)에서는 출렁임을 멈추고 수위를 즉시 목표로 둔다.
  * - 값·단계 텍스트는 TodayCard가 소유하므로 게이지는 장식이다: clearAndSetSemantics로 접근성
@@ -97,39 +102,43 @@ fun ReservoirGauge(
     ) {
         val w = size.width
         val h = size.height
-        // 비이커는 캔버스 왼쪽에, 단계 라벨은 오른쪽 여백에 둔다(시안 §4).
-        val beakerRight = w * 0.58f
-        val radius = beakerRight * 0.30f
+        // 비이커는 캔버스 안에서 살짝 오른쪽으로 밀어 두고(왼쪽 여백 [BeakerLeftFraction]),
+        // 단계 라벨은 그 오른쪽 여백에 둔다(시안 §4). 캔버스 폭 자체는 그대로라 카드 왼쪽
+        // 텍스트 칸이 좁아지지 않는다(문구가 줄바꿈되지 않게).
+        val beakerLeft = w * BeakerLeftFraction
+        val beakerRight = beakerLeft + w * BeakerWidthFraction
+        val beakerWidth = beakerRight - beakerLeft
+        val radius = beakerWidth * 0.30f
 
-        // 비이커 배경(빈 물통).
-        drawRoundedContainer(color = Gray100, radius = radius, right = beakerRight)
+        translate(left = beakerLeft) {
+            // 비이커 배경(빈 물통).
+            drawRoundedContainer(color = Gray100, radius = radius, right = beakerWidth)
 
-        val container = Path().apply {
-            addRoundRect(
-                androidx.compose.ui.geometry.RoundRect(
-                    left = 0f,
-                    top = 0f,
-                    right = beakerRight,
-                    bottom = h,
-                    radiusX = radius,
-                    radiusY = radius,
-                ),
-            )
-        }
+            val container = Path().apply {
+                addRoundRect(
+                    androidx.compose.ui.geometry.RoundRect(
+                        left = 0f,
+                        top = 0f,
+                        right = beakerWidth,
+                        bottom = h,
+                        radiusX = radius,
+                        radiusY = radius,
+                    ),
+                )
+            }
 
-        val fillFraction = (level.value / 100f).coerceIn(0f, 1f)
-        if (fillFraction > 0f) {
-            val amplitude = if (reducedMotion) 0f else h * 0.018f
-            // 물결이 통 위로 잘려 상단에 옅은 홈이 파여 보이지 않도록 수면을 진폭만큼 아래로 제한한다.
-            // (만수에 가까우면 수면이 통 맨 위여서 사인 골이 그대로 빈 공간으로 남았다.)
-            val surfaceY = (h * (1f - fillFraction)).coerceAtLeast(amplitude * 2f)
-            clipPath(container) {
-                // 물 색 = 브랜드 파랑 고정. 뒤 물결은 옅은 파랑, 앞 물결은 파랑으로 살짝 물결진다.
-                drawWave(surfaceY = surfaceY, phase = waveB, amplitude = amplitude, color = Blue.copy(alpha = 0.5f), width = beakerRight, height = h)
-                drawWave(surfaceY = surfaceY + amplitude, phase = waveA, amplitude = amplitude, color = Blue, width = beakerRight, height = h)
-                // 만수(수면이 제한선까지 올라온 경우)에는 수면 위 남은 띠를 파랑으로 메워 홈을 없앤다.
-                if (fillFraction > 0.995f) {
-                    drawRect(color = Blue, size = Size(beakerRight, surfaceY))
+            val fillFraction = (level.value / 100f).coerceIn(0f, 1f)
+            if (fillFraction > 0f) {
+                val waterColor = stageColorFor(stageCode).fg
+                val baseAmplitude = if (reducedMotion) 0f else h * 0.018f
+                val waterTop = h * (1f - fillFraction)
+                // 수면이 통 위쪽에 가까워질수록 물결 진폭을 0으로 줄인다. 만수에서 갑자기 물결이
+                // 사라지거나(끊김) 사인 골이 통 밖으로 잘려 흰 홈이 생기는 문제를 함께 없앤다.
+                val amplitude = baseAmplitude * (waterTop / (baseAmplitude * 3f)).coerceIn(0f, 1f)
+                clipPath(container) {
+                    // 뒤 물결은 옅게, 앞 물결은 단계 색 그대로.
+                    drawWave(surfaceY = waterTop, phase = waveB, amplitude = amplitude, color = waterColor.copy(alpha = 0.5f), width = beakerWidth, height = h)
+                    drawWave(surfaceY = waterTop + amplitude, phase = waveA, amplitude = amplitude, color = waterColor, width = beakerWidth, height = h)
                 }
             }
         }

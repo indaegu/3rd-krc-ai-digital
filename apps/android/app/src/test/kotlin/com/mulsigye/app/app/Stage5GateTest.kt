@@ -111,31 +111,33 @@ class Stage5GateTest : RobolectricComposeTest() {
         val highWater: Boolean,
         val reachDays: String?,
         val reachStageLabel: String?,
+        /** 관측 추세가 하락인지(픽스처 trend.bucket == "falling"). 도달 없음 문구를 가른다. */
+        val falling: Boolean,
     )
 
     private val normal = Scenario(
         label = "정상", statusFixture = "status.normal.json", forecastFixture = "forecast.normal.json",
         coachFixture = "coach.static.json", sigunCode = "44230", sigunName = "논산시", reservoirName = "탑정",
         rate = "84", avgRatio = "103", stageLabel = "정상", highWater = false,
-        reachDays = null, reachStageLabel = null,
+        reachDays = null, reachStageLabel = null, falling = true,
     )
     private val watch = Scenario(
         label = "관심", statusFixture = "status.watch.json", forecastFixture = "forecast.watch.json",
         coachFixture = "coach.static.json", sigunCode = "46170", sigunName = "나주시", reservoirName = "나주호",
         rate = "57", avgRatio = "68", stageLabel = "관심", highWater = false,
-        reachDays = "18", reachStageLabel = "주의",
+        reachDays = "18", reachStageLabel = "주의", falling = true,
     )
     private val severe = Scenario(
         label = "경계", statusFixture = "status.severe.json", forecastFixture = "forecast.severe.json",
         coachFixture = "coach.static.json", sigunCode = "50110", sigunName = "제주시", reservoirName = "상대",
         rate = "33", avgRatio = "46", stageLabel = "경계", highWater = false,
-        reachDays = "9", reachStageLabel = "심각",
+        reachDays = "9", reachStageLabel = "심각", falling = true,
     )
     private val flood = Scenario(
         label = "만수위", statusFixture = "status.flood.json", forecastFixture = "forecast.flood.json",
         coachFixture = "coach.static.json", sigunCode = "26710", sigunName = "기장군", reservoirName = "병산",
         rate = "96", avgRatio = "118", stageLabel = "정상", highWater = true,
-        reachDays = null, reachStageLabel = null,
+        reachDays = null, reachStageLabel = null, falling = false,
     )
 
     /**
@@ -217,7 +219,7 @@ class Stage5GateTest : RobolectricComposeTest() {
 
         // 실 네트워크(OkHttp 백그라운드) 완료 후 세 모듈이 Ready가 될 때까지 대기.
         composeTestRule.waitUntil(timeoutMillis = 10_000) {
-            hasText("저수지 실제 저수율은") && // status Ready(TodayCard 보조 줄 — 항상 렌더)
+            hasText("실제 저수율은") && // status Ready(TodayCard 보조 줄 — 항상 렌더)
                 hasText("이 추세라면") && // forecast Ready
                 hasText("지금 할 일을 하나씩 확인해요.") // coach Ready(headline)
         }
@@ -270,7 +272,7 @@ class Stage5GateTest : RobolectricComposeTest() {
         assertPresent(scenario.avgRatio, substring = true)
 
         // 원저수율(rate)은 작은 보조 줄로 내려간다.
-        assertPresent("저수지 실제 저수율은 ${scenario.rate}%예요", substring = true)
+        assertPresent("실제 저수율은 ${scenario.rate}%예요", substring = true)
 
         // 단계 라벨(시안 §4: 알약 대신 "평년 대비 {단계}" 인라인 색상 텍스트).
         assertPresent(scenario.stageLabel, substring = true)
@@ -281,7 +283,8 @@ class Stage5GateTest : RobolectricComposeTest() {
             assertPresent(days)
             assertPresent("‘${scenario.reachStageLabel}’ 단계에 들어설 가능성이 있어요", substring = true)
         } else {
-            assertPresent("안정")
+            // 도달 예정이 없으면 추세에 따라 갈린다: 하락 중이면 "천천히 감소", 아니면 "안정".
+            assertPresent(if (scenario.falling) "천천히 감소" else "안정")
         }
 
         // 만수위 참고 배너는 highWaterNotice=true(만수위)에서만.
@@ -349,17 +352,17 @@ class Stage5GateTest : RobolectricComposeTest() {
             }
         }
 
-        composeTestRule.waitUntil(timeoutMillis = 10_000) { hasText("저수지 실제 저수율은") }
+        composeTestRule.waitUntil(timeoutMillis = 10_000) { hasText("실제 저수율은") }
 
         // 기준시각 스탬프에 지연 안내(관측 기준일 + "지연된 정보예요").
         assertPresent("2026-07-14 기준 · 지연된 정보예요")
         // 근거 고지의 지연 안내.
         assertPresent("일부 공공데이터가 지연되어", substring = true)
         // 화면 구조 유지: 상태 모듈은 그대로 뜨고 오류 카드로 대체되지 않는다.
-        assertPresent("저수지 실제 저수율은", substring = true)
+        assertPresent("실제 저수율은", substring = true)
         assertAbsent("지금은 물 사정을 불러오지 못했어요")
         // rate가 null이라 원저수율 보조 줄에 폴백 문구를 보여준다(구조 불변).
-        assertPresent("저수지 실제 저수율은 아직 없어요")
+        assertPresent("실제 저수율은 아직 없어요")
     }
 
     // ─────────────────────────────────────────────────────────────────────────────

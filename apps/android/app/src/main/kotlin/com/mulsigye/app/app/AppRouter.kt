@@ -39,14 +39,6 @@ fun startScreen(store: RegionStoreState): Screen = when {
 }
 
 /**
- * #1 최초 사용자 여부. 동의를 마쳤고(consent set) 등록 이력이 없으며(hasEverRegistered=false)
- * 지역이 비어 있으면 true → 빈 상태 대신 지역 검색(RegionAdd)으로 곧바로 보낸다.
- * 지역을 모두 지운 재방문 사용자(hasEverRegistered=true)는 false → 기존 빈 상태를 유지한다.
- */
-fun shouldOpenFirstTimeSearch(store: RegionStoreState): Boolean =
-    store.consentVersion != null && store.regions.isEmpty() && !store.hasEverRegistered
-
-/**
  * #2 필수 동의 시트가 열려 있는 동안 뒤 콘텐츠를 실제 블러로 가릴지 결정한다. 조건은 동의 시트를
  * 자동으로 여는 [RegionsRoute]와 정확히 같다: 동의 미설정(consentVersion == null)이고 지역
  * 화면(Screen.Regions)일 때. 시트 자체는 별도 창(ModalBottomSheet)에 그려지므로 콘텐츠 Box에

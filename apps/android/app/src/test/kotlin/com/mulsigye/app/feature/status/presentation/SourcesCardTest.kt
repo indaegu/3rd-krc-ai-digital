@@ -33,7 +33,7 @@ class SourcesCardTest : RobolectricComposeTest() {
     @Test
     fun showsBasisTitleAndOfficialPriorityCopy() {
         setCard(sources = listOf("논가뭄지도"), stale = false)
-        composeTestRule.onNodeWithText("이 화면의 근거").assertIsDisplayed()
+        composeTestRule.onNodeWithText("이 정보는 어디서 왔나요").assertIsDisplayed()
         composeTestRule.onNodeWithText("공인 기준", substring = true).assertIsDisplayed()
         composeTestRule.onNodeWithText("공식 가뭄 예·경보가 항상 우선", substring = true).assertIsDisplayed()
     }

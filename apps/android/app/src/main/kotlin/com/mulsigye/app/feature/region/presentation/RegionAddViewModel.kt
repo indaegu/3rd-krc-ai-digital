@@ -16,7 +16,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -135,10 +134,9 @@ class RegionAddViewModel(
      * 등록. 확인 완료·prepared·코드 존재를 모두 만족할 때만 저장하고, 중복 입력은 잠근다.
      * 저장 후 [onRegistered] 콜백으로 목록으로 복귀한다(라우팅은 호출자 몫).
      *
-     * [setAsPrimary]("기본 주소지로 설정")가 켜지면 이 지역을 대표(current)로 둔다.
-     * 꺼지면 등록은 하되 **이전 대표 지역을 계속 대표로 유지**한다. [RegionStore.addRegion]은
-     * 항상 추가한 지역을 대표로 만들므로, 등록 전 대표를 기억했다가 [RegionStore.selectRegion]으로
-     * 되돌린다(저장 스키마·계약은 그대로 — 웹 region-store와 동일 의미).
+     * [setAsPrimary]("기본 주소지로 설정")가 켜지면 이 지역을 **목록 맨 위(대표)로 올린다**.
+     * 대표의 정의가 "목록 0번"이라(product.md #7) 선택 인덱스만 바꾸면 콜드 스타트에서
+     * 이전 지역으로 되돌아간다. 꺼지면 순서를 건드리지 않아 기존 대표가 그대로 유지된다.
      */
     fun register(setAsPrimary: Boolean, onRegistered: () -> Unit) {
         val state = _uiState.value
@@ -151,17 +149,11 @@ class RegionAddViewModel(
 
         _uiState.update { it.copy(registering = true) }
         viewModelScope.launch(dispatcher) {
-            // 등록 전 대표 지역(있으면)의 시군코드를 기억한다(끄면 되돌리기 위함).
-            val before = regionStore.regionStoreFlow.first()
-            val previousPrimary = before.regions.getOrNull(before.currentIndex)?.sigunCode
-
             regionStore.addRegion(StoredRegion(sigunCode = sigunCode, facCode = reservoir.facCode))
 
-            // "기본 주소지로 설정"을 끈 경우: 이전 대표가 이 지역과 다르면 그 지역을 다시 대표로 선택한다.
-            if (!setAsPrimary && previousPrimary != null && previousPrimary != sigunCode) {
-                val after = regionStore.regionStoreFlow.first()
-                val prevIndex = after.regions.indexOfFirst { it.sigunCode == previousPrimary }
-                if (prevIndex >= 0) regionStore.selectRegion(prevIndex)
+            // "기본 주소지로 설정"이면 목록 맨 위로 올린다(대표 = index 0).
+            if (setAsPrimary) {
+                regionStore.setPrimaryRegion(sigunCode)
             }
 
             // ViewModel은 Activity 스코프라 화면을 떠나도 인스턴스가 유지된다. 초기화하지 않으면

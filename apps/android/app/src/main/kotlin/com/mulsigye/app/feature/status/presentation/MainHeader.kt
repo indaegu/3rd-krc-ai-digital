@@ -36,7 +36,6 @@ import com.mulsigye.app.core.designsystem.theme.Gray100
 import com.mulsigye.app.core.designsystem.theme.Gray200
 import com.mulsigye.app.core.designsystem.theme.Ink
 import com.mulsigye.app.core.designsystem.theme.Ink2
-import com.mulsigye.app.core.designsystem.theme.headerGradientBrush
 import kotlin.math.cos
 import kotlin.math.min
 import kotlin.math.sin
@@ -49,7 +48,7 @@ import kotlin.math.sin
  * - 우: 회색 pill 안에 [알림 모아보기]·구분선·[앱 환경설정] 두 아이콘(시안 §3). 이미 받은 알림을
  *   모아 보는 중립 진입이며 **알림 유도 배지/도트는 두지 않는다**(design-system 콘텐츠 가드).
  *   새로고침은 헤더 아래 기준시각을 눌러서 한다(당겨서 새로고침도 그대로).
- * - 상단 브랜드 그라디언트가 헤더 뒤에 깔린다(위 연시안 → 아래 흰색).
+ * - 배경 그라디언트는 화면 전체(MainScreen)가 소유한다 — 헤더는 따로 칠하지 않는다.
  * - 아이콘은 코드베이스 관례대로 Canvas로 직접 그린다. 단독 버튼에는 접근 가능한 이름을 주고,
  *   터치 목표는 48dp 이상으로 둔다.
  */
@@ -64,8 +63,7 @@ fun MainHeader(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .background(headerGradientBrush())
-            .padding(horizontal = 20.dp, vertical = 10.dp),
+            .padding(start = 20.dp, end = 20.dp, top = 14.dp, bottom = 10.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {

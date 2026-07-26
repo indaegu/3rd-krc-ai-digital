@@ -13,7 +13,7 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.mulsigye.app.core.designsystem.component.MulsigyeCard
-import com.mulsigye.app.core.designsystem.theme.Blue
+import com.mulsigye.app.core.designsystem.theme.stageColorFor
 import com.mulsigye.app.core.designsystem.theme.Ink2
 import com.mulsigye.app.core.designsystem.theme.Ink3
 import com.mulsigye.app.feature.forecast.domain.ForecastResult
@@ -32,12 +32,20 @@ private fun formatMae(value: Double): String = String.format(Locale.US, "%.1f", 
 @Composable
 fun ReachCard(
     forecast: ForecastResult.Success,
+    /** 현재 공인 단계 코드(status). 도달 예정 단계가 없을 때 무엇을 보여줄지 가른다. */
+    currentStageCode: String?,
     modifier: Modifier = Modifier,
 ) {
     val reach = forecast.reach
     val model = forecast.model
     val days = reach.days
     val targetStage = reach.targetStage
+    val falling = forecast.trend.bucket == "falling"
+    // 이미 가장 낮은 단계(심각)면 '다음 단계'가 없어 reach가 비어 온다. 이때 "안정"이라고 하면
+    // 계속 낮아지는 지역을 안심시키는 오해가 생기므로 현재 단계·추세로 문구를 가른다.
+    val atWorstStage = currentStageCode == "crit"
+    // 큰 글자 색 = 도달 예정 단계 색. 도달 예정이 없으면 현재 단계 색을 쓴다.
+    val emphasisColor = stageColorFor(targetStage?.code ?: currentStageCode ?: "ok").fg
 
     MulsigyeCard(modifier = modifier) {
         Text(
@@ -52,7 +60,7 @@ fun ReachCard(
                 Text(
                     text = days.toString(),
                     style = MaterialTheme.typography.displayLarge,
-                    color = Blue,
+                    color = emphasisColor,
                 )
                 Text(
                     text = "일 뒤",
@@ -68,14 +76,24 @@ fun ReachCard(
                 color = Ink2,
             )
         } else {
+            val (headline, detail) = when {
+                atWorstStage && falling ->
+                    "심각 지속" to "이미 가장 낮은 단계이고, 최근 저수율이 계속 낮아지고 있어요"
+                atWorstStage ->
+                    "심각 유지" to "이미 가장 낮은 단계예요. 최근 큰 변화는 없어요"
+                falling ->
+                    "천천히 감소" to "낮아지는 중이지만 30일 안에 다음 단계까지 내려가지는 않을 것으로 보여요"
+                else ->
+                    "안정" to "당분간 물 사정이 안정적으로 유지될 것으로 보여요"
+            }
             Text(
-                text = "안정",
+                text = headline,
                 style = MaterialTheme.typography.displayLarge,
-                color = Blue,
+                color = emphasisColor,
             )
             Spacer(Modifier.height(4.dp))
             Text(
-                text = "당분간 물 사정이 안정적으로 유지될 것으로 보여요",
+                text = detail,
                 style = MaterialTheme.typography.bodyLarge,
                 color = Ink2,
             )

@@ -11,12 +11,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { resolveRegion, searchRegions } from "../lib/client/api-client";
-import {
-  addRegion,
-  currentRegion,
-  loadRegionStore,
-  selectRegion,
-} from "../lib/client/region-store";
+import { addRegion, setPrimaryRegion } from "../lib/client/region-store";
 import styles from "./AddressSearch.module.css";
 import { BottomSheet } from "./ui/BottomSheet";
 import { Card } from "./ui/Card";
@@ -49,7 +44,7 @@ export function AddressSearch() {
   });
   const [registering, setRegistering] = useState(false);
   // "기본 주소지로 설정" — 새 지역을 대표 지역으로 지정할지. 기존 대표 로직
-  // (addRegion/selectRegion, currentIndex)에 연결한다. 새 저장 필드는 만들지 않는다.
+  // (addRegion/setPrimaryRegion)에 연결한다. 새 저장 필드는 만들지 않는다.
   const [setAsDefault, setSetAsDefault] = useState(true);
 
   // 늦게 도착한 이전 요청 응답이 최신 상태를 덮지 않도록 요청마다 번호를 매긴다.
@@ -134,18 +129,11 @@ export function AddressSearch() {
     }
     // 등록 버튼 내부 스피너 + 중복 입력 잠금. 저장은 코드 2개만.
     setRegistering(true);
-    // 기존 대표 지역을 미리 잡아둔다("기본 주소지로 설정"을 끄면 유지하기 위함).
-    const previousRepresentative = currentRegion(loadRegionStore());
-    // addRegion은 추가한 지역을 곧 대표(currentIndex)로 만든다.
-    const nextStore = addRegion({ sigunCode, facCode: reservoir.facCode });
-    if (!setAsDefault && previousRepresentative !== null) {
-      // 기본 주소지로 두지 않기로 했다면 이전 대표 지역을 다시 선택해 유지한다.
-      const keepIndex = nextStore.regions.findIndex(
-        (item) => item.sigunCode === previousRepresentative.sigunCode,
-      );
-      if (keepIndex >= 0) {
-        selectRegion(keepIndex);
-      }
+    addRegion({ sigunCode, facCode: reservoir.facCode });
+    // "기본 주소지로 설정"이면 목록 맨 위로 올린다(대표 = index 0). 끄면 순서를 건드리지
+    // 않으므로 기존 기본 주소지가 그대로 유지된다.
+    if (setAsDefault) {
+      setPrimaryRegion(sigunCode);
     }
     router.replace("/regions");
   };

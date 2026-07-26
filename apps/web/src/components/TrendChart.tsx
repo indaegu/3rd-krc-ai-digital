@@ -44,6 +44,36 @@ const THRESHOLD_LINES: ReadonlyArray<{
 ];
 
 /** "YYYY-MM-DD" → "M/D"(앞자리 0 제거). 파싱 실패 시 원문 반환. */
+/** x축 날짜 눈금 간격(일). 44일 구간을 7일마다 끊어 6~7개 라벨이 붙는다. */
+const DATE_TICK_STEP_DAYS = 7;
+
+/** 라벨끼리 겹치지 않게 유지할 최소 간격(일). */
+const MIN_TICK_GAP = 2;
+
+/**
+ * 눈금으로 쓸 인덱스 목록 — 첫날·마지막날은 항상 넣고 사이를 7일마다 끊는다.
+ * '오늘' 라벨과 겹치는 자리(±2일)는 빼서 글자가 포개지지 않게 한다.
+ */
+export function dateTickIndices(
+  total: number,
+  todayIndex: number,
+  step = DATE_TICK_STEP_DAYS,
+): number[] {
+  if (total <= 0) return [];
+  if (total === 1) return [0];
+  const last = total - 1;
+  // 양 끝은 항상 두고, 사이를 step마다 끊는다. 끝·'오늘' 라벨과 가까운 눈금은 글자가
+  // 겹치므로 뺀다(최소 간격 MIN_TICK_GAP일).
+  const ticks = new Set<number>([0]);
+  for (let i = step; i < last; i += step) {
+    const farFromToday = Math.abs(i - todayIndex) > MIN_TICK_GAP;
+    const farFromEnds = i > MIN_TICK_GAP && last - i > MIN_TICK_GAP;
+    if (farFromToday && farFromEnds) ticks.add(i);
+  }
+  ticks.add(last);
+  return [...ticks].sort((a, b) => a - b);
+}
+
 function formatMonthDay(observedOn: string): string {
   const parts = observedOn.split("-");
   const m = parts[1];
@@ -112,6 +142,12 @@ export function TrendChart({
   hi = Math.ceil(hi + RANGE_PADDING);
 
   const total = history.length + future.length;
+  // 실측 + 예측 관측일을 한 줄로 이어 x축 눈금 인덱스와 맞춘다.
+  const axisDates = [
+    ...history.map((point) => point.observedOn),
+    ...future.map((point) => point.observedOn),
+  ];
+
   const x = (index: number) =>
     PAD_LEFT +
     (WIDTH - PAD_LEFT - PAD_RIGHT) * (index / Math.max(1, total - 1));
@@ -285,6 +321,29 @@ export function TrendChart({
             </text>
           </>
         ) : null}
+
+        {/* 사이 날짜 눈금(7일 간격) — 3개만 보여 날짜 감이 없던 문제를 보완한다. */}
+        {showDates
+          ? dateTickIndices(axisDates.length, history.length - 1)
+              .filter((index) => index !== 0 && index !== axisDates.length - 1)
+              .map((index) => ({ index, date: axisDates[index] }))
+              .filter(
+                (tick): tick is { index: number; date: string } =>
+                  tick.date !== undefined,
+              )
+              .map((tick) => (
+                <text
+                  key={`axis-tick-${tick.index}`}
+                  className={styles.axisTick}
+                  x={x(tick.index).toFixed(1)}
+                  y={height - 9}
+                  textAnchor="middle"
+                >
+                  {formatMonthDay(tick.date)}
+                </text>
+              ))
+          : null}
+
         {future.length > 0 ? (
           <text
             className={styles.axisTick}

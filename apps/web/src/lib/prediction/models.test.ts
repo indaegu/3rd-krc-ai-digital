@@ -33,8 +33,14 @@ describe("모델 상수 (플랜 확정값)", () => {
     expect(MODEL_VERSION).toBe("pred-v1");
   });
 
-  it("단순성 서열은 naive < ma7 < ses < linear", () => {
-    expect(MODEL_SIMPLICITY_ORDER).toEqual(["naive", "ma7", "ses", "linear"]);
+  it("단순성 서열은 naive < ma7 < ses < damped < linear", () => {
+    expect(MODEL_SIMPLICITY_ORDER).toEqual([
+      "naive",
+      "ma7",
+      "ses",
+      "damped",
+      "linear",
+    ]);
   });
 
   it("모델 4종 전부 최소 입력 길이 상수를 갖는다", () => {

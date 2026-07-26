@@ -124,6 +124,23 @@ class RegionStore(
         store.copy(regions = kept, currentIndex = clampIndex(index, kept.size))
     }
 
+    /**
+     * 기본 주소지(대표 지역) 지정 — 해당 시군을 목록 맨 위(index 0)로 옮기고 현재 선택도 거기로 둔다.
+     * 대표의 정의가 "목록 0번"이므로(product.md #7) 선택 인덱스만 바꾸면 콜드 스타트에서 되돌아간다.
+     * 목록에 없는 코드면 아무것도 하지 않는다.
+     */
+    suspend fun setPrimaryRegion(sigunCode: String) = update { store ->
+        val index = store.regions.indexOfFirst { it.sigunCode == sigunCode }
+        if (index < 0) {
+            store
+        } else {
+            val regions = store.regions.toMutableList()
+            val moved = regions.removeAt(index)
+            regions.add(0, moved)
+            store.copy(regions = regions, currentIndex = 0)
+        }
+    }
+
     suspend fun selectRegion(index: Int) = update { store ->
         store.copy(currentIndex = clampIndex(index, store.regions.size))
     }

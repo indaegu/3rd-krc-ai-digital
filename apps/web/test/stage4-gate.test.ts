@@ -253,7 +253,14 @@ describe("단계 4 게이트 ① — 4개 상태 메인 전체 트리", () => {
         const desc = screen.getByText(/단계에 들어설 가능성이 있어요/);
         expect(desc.textContent).toContain(reach.targetStage.label);
       } else {
-        expect(screen.getByText("안정")).toBeInTheDocument();
+        // 도달 예정이 없으면 추세에 따라 문구가 갈린다(falling이면 "천천히 감소").
+        expect(
+          screen.getByText(
+            scenario.forecast.trend.bucket === "falling"
+              ? "천천히 감소"
+              : "안정",
+          ),
+        ).toBeInTheDocument();
       }
 
       // 만수위 참고 배너는 flood(highWaterNotice=true)에서만.
@@ -296,7 +303,7 @@ describe("단계 4 게이트 ② — 지연 폴백(stale)", () => {
     expect(screen.getByText(/일부 공공데이터가 지연되어/)).toBeInTheDocument();
     // HTTP 200 경로 유지: 상태 모듈은 그대로 뜨고 오류 카드로 대체되지 않는다.
     // (TodayCard 항상 렌더되는 보조 줄을 앵커로 사용 — 정적 라벨은 시안대로 저수지명 탭으로 대체됨)
-    expect(screen.getByText(/저수지 실제 저수율은/)).toBeInTheDocument();
+    expect(screen.getByText(/실제 저수율은/)).toBeInTheDocument();
     expect(
       screen.queryByText("지금은 물 사정을 불러오지 못했어요"),
     ).not.toBeInTheDocument();
@@ -371,7 +378,7 @@ describe("단계 4 게이트 ④ — 접근성 자동화분", () => {
 
     // 모션 허용에서는 카운트업이 애니메이션하므로 rate 텍스트에 의존하지 않고,
     // 상태 모듈이 뜬 뒤 게이지의 data-motion만 확인한다.
-    await screen.findByText(/저수지 실제 저수율은/);
+    await screen.findByText(/실제 저수율은/);
     await waitFor(() => {
       const gauge = container.querySelector("[data-motion]");
       expect(gauge?.getAttribute("data-motion")).toBe("flowing");

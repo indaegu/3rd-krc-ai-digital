@@ -134,6 +134,11 @@ class RegionListViewModel(
     }
 
     /** 관리 모드 토글. 나갈 때는 골라 둔 선택을 비운다. */
+    /** 기본 주소지 지정 — 해당 지역을 목록 맨 위(대표)로 올린다. */
+    fun setPrimary(sigunCode: String) {
+        viewModelScope.launch { regionStore.setPrimaryRegion(sigunCode) }
+    }
+
     fun toggleManageMode() {
         val entering = !manageMode.value
         manageMode.value = entering

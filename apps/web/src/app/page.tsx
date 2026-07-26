@@ -304,8 +304,25 @@ export default function HomePage() {
 
         {forecast.kind === "ready" ? (
           <>
-            <ReachCard forecast={forecast.data} />
-            <TrendChartCard forecast={forecast.data} />
+            <ReachCard
+              forecast={forecast.data}
+              currentStageCode={
+                status.kind === "ready"
+                  ? status.data.region.officialStage.code
+                  : undefined
+              }
+            />
+            <TrendChartCard
+              forecast={forecast.data}
+              reservoirHistory={
+                status.kind === "ready"
+                  ? status.data.reservoir.rateHistory
+                  : undefined
+              }
+              reservoirName={
+                status.kind === "ready" ? status.data.reservoir.name : undefined
+              }
+            />
           </>
         ) : null}
 

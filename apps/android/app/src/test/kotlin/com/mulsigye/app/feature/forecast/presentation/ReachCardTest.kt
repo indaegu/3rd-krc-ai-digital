@@ -23,7 +23,7 @@ class ReachCardTest : RobolectricComposeTest() {
     private fun setCard(fixture: String) {
         composeTestRule.setContent {
             MulsigyeTheme {
-                ReachCard(forecast = ForecastFixtures.success(fixture))
+                ReachCard(forecast = ForecastFixtures.success(fixture), currentStageCode = null)
             }
         }
     }
@@ -56,9 +56,11 @@ class ReachCardTest : RobolectricComposeTest() {
     }
 
     @Test
-    fun normalForecastAlsoShowsStableCopy() {
+    fun normalForecastShowsFallingCopyInsteadOfStable() {
+        // forecast.normal.json은 trend=falling · days=null이다. 계속 낮아지는 지역을 "안정"이라
+        // 부르면 안심시키는 오해가 생기므로 추세를 반영한 문구를 쓴다.
         setCard("forecast.normal.json")
-        composeTestRule.onNodeWithText("안정").assertIsDisplayed()
+        composeTestRule.onNodeWithText("천천히 감소").assertIsDisplayed()
     }
 
     @Test
@@ -78,7 +80,7 @@ class ReachCardTest : RobolectricComposeTest() {
         )
         composeTestRule.setContent {
             MulsigyeTheme {
-                ReachCard(forecast = custom)
+                ReachCard(forecast = custom, currentStageCode = null)
             }
         }
         composeTestRule.onNodeWithText("7일 ±3.3%p", substring = true).assertIsDisplayed()

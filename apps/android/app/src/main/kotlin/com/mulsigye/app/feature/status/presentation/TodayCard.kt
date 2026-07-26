@@ -81,7 +81,7 @@ private fun formatRate(value: Double): String =
  *
  * - 게이지·큰 숫자 = 지역 평년 대비 avgRatio("평년 대비 …%"). 단계 칩·게이지 눈금과 같은 축이라
  *   함께 정합한다. 게이지 물 색은 현재 단계 색, 눈금은 서버 stageBands.
- * - 원저수율 reservoir.rate는 작은 보조 줄("저수지 실제 저수율은 …%예요")로 내려간다.
+ * - 원저수율 reservoir.rate는 작은 보조 줄("실제 저수율은 …%예요")로 내려간다.
  * - avgRatio 카운트업 0.6s, reduced-motion이면 즉시 목표값. rate가 null이면 보조 줄에 폴백 문구.
  * - 단계·임계값은 서버 값(code/label/stageBands)을 표시만 하고 계산하지 않는다(규칙 10).
  */
@@ -107,6 +107,8 @@ fun TodayCard(
     }
     val avgText =
         if (counter.value >= avgRatio.toFloat()) formatRate(avgRatio) else counter.value.roundToInt().toString()
+
+    val stageColor = stageColorFor(status.region.officialStage.code).fg
 
     val headline = if (status.highWaterNotice) {
         HIGH_WATER_HEADLINE
@@ -140,10 +142,7 @@ fun TodayCard(
                     text = buildAnnotatedString {
                         append("평년 대비 ")
                         withStyle(
-                            SpanStyle(
-                                color = stageColorFor(status.region.officialStage.code).fg,
-                                fontWeight = FontWeight.Bold,
-                            ),
+                            SpanStyle(color = stageColor, fontWeight = FontWeight.Bold),
                         ) {
                             append(status.region.officialStage.label)
                         }
@@ -153,10 +152,11 @@ fun TodayCard(
                 )
                 Row(verticalAlignment = Alignment.Bottom) {
                     Text(
+                        // 큰 값도 현재 공인 단계 색으로 칠한다(게이지 물 색과 같은 축).
                         text = avgText,
                         style = MaterialTheme.typography.displayLarge,
                         fontSize = 52.sp,
-                        color = Ink,
+                        color = stageColor,
                     )
                     Text(
                         text = "%",
@@ -172,10 +172,10 @@ fun TodayCard(
                 )
                 // 원저수율(rate) — 작은 보조 줄. null이면 폴백 문구.
                 val secondary = if (rate == null) {
-                    AnnotatedString("저수지 실제 저수율은 아직 없어요")
+                    AnnotatedString("실제 저수율은 아직 없어요")
                 } else {
                     buildAnnotatedString {
-                        append("저수지 실제 저수율은 ")
+                        append("실제 저수율은 ")
                         withStyle(SpanStyle(fontWeight = FontWeight.Bold, color = Ink2)) {
                             append(formatRate(rate))
                         }
@@ -183,9 +183,12 @@ fun TodayCard(
                     }
                 }
                 Text(
+                    // 한 줄로 유지한다(줄바꿈되면 숫자와 단위가 갈라져 읽기 어렵다).
                     text = secondary,
                     style = MaterialTheme.typography.bodyMedium,
                     color = Ink3,
+                    maxLines = 1,
+                    softWrap = false,
                 )
                 val yearly = status.yearlyPosition
                 if (yearly != null) {
@@ -201,8 +204,8 @@ fun TodayCard(
                     )
                 }
             }
-            Spacer(Modifier.width(16.dp))
-            // 우측 파랑 비이커 게이지 — 단계는 게이지 우측 세로 라벨로 전달한다(시안 §4).
+            Spacer(Modifier.width(12.dp))
+            // 우측 비이커 게이지 — 물 색은 단계 색, 단계는 우측 세로 라벨로도 전달한다(시안 §4).
             ReservoirGauge(
                 avgRatio = avgRatio,
                 stageCode = status.region.officialStage.code,

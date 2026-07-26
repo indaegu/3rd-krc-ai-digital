@@ -54,7 +54,7 @@ class TodayCardTest : RobolectricComposeTest() {
         // 큰 숫자 = 지역 평년 대비 avgRatio(103).
         composeTestRule.onNodeWithText("103", substring = true).assertIsDisplayed()
         // 원저수율(84%)은 작은 보조 줄로 내려간다.
-        composeTestRule.onNodeWithText("저수지 실제 저수율은 84%예요", substring = true).assertIsDisplayed()
+        composeTestRule.onNodeWithText("실제 저수율은 84%예요", substring = true).assertIsDisplayed()
         composeTestRule.onNodeWithText("정상", substring = true).assertIsDisplayed()
         composeTestRule.onNodeWithText("물 사정이 넉넉해요").assertIsDisplayed()
     }
@@ -63,7 +63,7 @@ class TodayCardTest : RobolectricComposeTest() {
     fun watchStateShowsWatchHeadline() {
         setCard("status.watch.json")
         composeTestRule.onNodeWithText("68", substring = true).assertIsDisplayed()
-        composeTestRule.onNodeWithText("저수지 실제 저수율은 57%예요", substring = true).assertIsDisplayed()
+        composeTestRule.onNodeWithText("실제 저수율은 57%예요", substring = true).assertIsDisplayed()
         composeTestRule.onNodeWithText("관심", substring = true).assertIsDisplayed()
         composeTestRule.onNodeWithText("물이 평소보다 조금 부족해요").assertIsDisplayed()
     }
@@ -72,7 +72,7 @@ class TodayCardTest : RobolectricComposeTest() {
     fun severeStateShowsAlertHeadline() {
         setCard("status.severe.json")
         composeTestRule.onNodeWithText("46", substring = true).assertIsDisplayed()
-        composeTestRule.onNodeWithText("저수지 실제 저수율은 33%예요", substring = true).assertIsDisplayed()
+        composeTestRule.onNodeWithText("실제 저수율은 33%예요", substring = true).assertIsDisplayed()
         composeTestRule.onNodeWithText("경계", substring = true).assertIsDisplayed()
         composeTestRule.onNodeWithText("물 부족이 빠르게 진행 중이에요").assertIsDisplayed()
     }
@@ -81,7 +81,7 @@ class TodayCardTest : RobolectricComposeTest() {
     fun floodStateShowsHighWaterHeadline() {
         setCard("status.flood.json")
         composeTestRule.onNodeWithText("118", substring = true).assertIsDisplayed()
-        composeTestRule.onNodeWithText("저수지 실제 저수율은 96%예요", substring = true).assertIsDisplayed()
+        composeTestRule.onNodeWithText("실제 저수율은 96%예요", substring = true).assertIsDisplayed()
         // 만수위여도 헤드라인은 만수위 참고 문구를 쓴다(단계 칩은 여전히 공식 단계).
         composeTestRule.onNodeWithText("비가 많아 물은 충분해요").assertIsDisplayed()
     }
@@ -105,7 +105,7 @@ class TodayCardTest : RobolectricComposeTest() {
     @Test
     fun nullRateShowsObservationFallback() {
         setCard("status.stale.json")
-        composeTestRule.onNodeWithText("저수지 실제 저수율은 아직 없어요").assertIsDisplayed()
+        composeTestRule.onNodeWithText("실제 저수율은 아직 없어요").assertIsDisplayed()
     }
 
     @Test

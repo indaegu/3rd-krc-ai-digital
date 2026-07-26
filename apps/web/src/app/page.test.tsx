@@ -252,8 +252,8 @@ describe("메인 예측 모듈", () => {
     render(<HomePage />);
 
     expect(await screen.findByText("이 추세라면")).toBeInTheDocument();
-    // normal 데모: reach.days null → 안정.
-    expect(screen.getByText("안정")).toBeInTheDocument();
+    // normal 데모: reach.days null + trend falling → "천천히 감소"(안정 아님).
+    expect(screen.getByText("천천히 감소")).toBeInTheDocument();
     expect(
       screen.getByRole("img", { name: /지역 평년 대비 저수율/ }),
     ).toBeInTheDocument();
@@ -299,7 +299,7 @@ describe("메인 코치·근거 모듈", () => {
     expect(await screen.findByText("수신호 코치")).toBeInTheDocument();
     expect(screen.getByText(COACH_STATIC.coach.headline)).toBeInTheDocument();
     // 근거 고지 모듈 + status ∪ forecast sources 칩(중복 제거).
-    expect(screen.getByText("이 화면의 근거")).toBeInTheDocument();
+    expect(screen.getByText("이 정보는 어디서 왔나요")).toBeInTheDocument();
     const [firstStatusSource = ""] = NORMAL.sources;
     expect(screen.getByText(firstStatusSource)).toBeInTheDocument();
     // "논가뭄지도"는 status·forecast 양쪽에 있지만 칩은 한 번만 렌더된다.
@@ -340,7 +340,7 @@ describe("메인 코치·근거 모듈", () => {
       screen.queryByText(COACH_STATIC.coach.headline),
     ).not.toBeInTheDocument();
     // 근거 고지 카드는 coach 실패와 무관하게 status가 로드되면 항상 뜬다.
-    expect(screen.getByText("이 화면의 근거")).toBeInTheDocument();
+    expect(screen.getByText("이 정보는 어디서 왔나요")).toBeInTheDocument();
     const [firstStatusSource = ""] = NORMAL.sources;
     expect(screen.getByText(firstStatusSource)).toBeInTheDocument();
     // 공식 우선 규정 준수 문구도 함께 보인다.

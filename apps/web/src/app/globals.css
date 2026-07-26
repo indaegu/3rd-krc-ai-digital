@@ -16,17 +16,18 @@
   --grad-top: #a6eef9;
   --grad-mid: #c1e8ff;
   --grad-bottom: #f6f6f6;
-  /* 공식 가뭄 단계 fg/bg — 임계값은 src/lib/data/drought-stage.ts에만 둔다 */
-  --ok-fg: #00986f;
-  --ok-bg: #e6f6f0;
-  --watch-fg: #9a6700;
-  --watch-bg: #fff3d6;
-  --care-fg: #d9510c;
-  --care-bg: #ffebde;
-  --alert-fg: #e5372f;
-  --alert-bg: #fdebea;
-  --crit-fg: #a11c1c;
-  --crit-bg: #f8e2e2;
+  /* 공식 가뭄 단계 fg/bg — 임계값은 src/lib/data/drought-stage.ts에만 둔다.
+     단계가 나빠질수록 파랑 → 청록 → 노랑 → 주황 → 빨강으로 넘어간다(디자인 지정). */
+  --ok-fg: #2d83ff;
+  --ok-bg: #e8f3ff;
+  --watch-fg: #009398;
+  --watch-bg: #e2f5f5;
+  --care-fg: #dea92e;
+  --care-bg: #fdf3de;
+  --alert-fg: #e36c22;
+  --alert-bg: #fdeee2;
+  --crit-fg: #e33922;
+  --crit-bg: #fdeae7;
   --r-lg: 24px;
   --r-md: 18px;
   --r-sm: 12px;

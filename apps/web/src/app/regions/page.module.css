@@ -8,12 +8,14 @@
 
 .header {
   display: grid;
-  gap: 8px;
+  /* 제목 · 보조문 · 아래 목록이 서로 붙어 보이지 않게 여유를 준다. */
+  gap: 12px;
+  margin-bottom: 8px;
 }
 
 .title {
   margin: 0;
-  font-size: 1.6rem;
+  font-size: 1.3rem;
   font-weight: 800;
   line-height: 1.35;
   letter-spacing: -0.02em;
@@ -43,6 +45,6 @@
 
 .addIcon {
   color: var(--ink3);
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   line-height: 1;
 }

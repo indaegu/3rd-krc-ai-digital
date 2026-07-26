@@ -14,12 +14,20 @@ data class DroughtStageDto(
 
 /** openapi.yaml `StatusResponse.reservoir`와 1:1. 원저수율은 avgRatio와 섞지 않는다. */
 @Serializable
+data class ReservoirRatePointDto(
+    val observedOn: String,
+    val rate: Double,
+)
+
+@Serializable
 data class StatusReservoirDto(
     val facCode: String,
     val name: String,
     val rate: Double? = null,
     val waterLevel: Double? = null,
     val observedOn: String? = null,
+    /** v1 additive — 대표 저수지 최근 실측(오래된 날짜부터). 차트 토글에서 쓴다. */
+    val rateHistory: List<ReservoirRatePointDto> = emptyList(),
 )
 
 /** openapi.yaml `StatusResponse.region`와 1:1. 논가뭄지도 기준 지역 공식 값. */

@@ -1,6 +1,8 @@
 package com.mulsigye.app.feature.region.presentation
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.Arrangement
@@ -64,6 +66,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import com.mulsigye.app.core.designsystem.component.CtaButton
 import com.mulsigye.app.core.designsystem.component.Shimmer
+import com.mulsigye.app.core.designsystem.theme.Bg
 import com.mulsigye.app.core.designsystem.theme.Blue
 import com.mulsigye.app.core.designsystem.theme.BlueTint
 import com.mulsigye.app.core.designsystem.theme.Gray50
@@ -74,6 +77,10 @@ import kotlin.math.roundToInt
 
 /** 목록 항목 사이 간격(dp). 드래그 목표 인덱스 계산 시 한 칸 높이에 이 간격을 더한다. */
 private const val ROW_SPACING_DP = 12
+
+/** 줄 끝 아이콘(삭제 X·추가 +)의 공통 터치 크기와 글리프 크기 — 두 줄의 아이콘을 같은 자리에 맞춘다. */
+private val RowActionTouchSize = 48.dp
+private val RowActionGlyphSize = 15.dp
 
 /**
  * 누적 드래그량으로 목표 인덱스를 계산하는 순수 함수(테스트 대상).
@@ -100,9 +107,11 @@ internal fun dragTargetIndex(
  * 순수 컴포저블(상태 + 콜백). 지역명·저수지명은 ViewModel이 status로 채운 [state]에서만
  * 읽고 저장소는 코드만 갖는다. 카피는 product.md·웹 RegionList와 동일 문구다.
  *
- * 순서 변경·다중 삭제는 관리 모드에서만 한다. 관리 모드는 한 줄을 길게 누르거나(제스처)
- * 헤더의 "지역 관리" 버튼(TalkBack 대체 수단)으로 켠다. 관리 모드에서 드래그가 어려운
- * 스크린리더 사용자를 위해 각 줄에 "위로/아래로 이동" 접근성 커스텀 액션을 함께 둔다.
+ * 순서 변경·다중 삭제·기본 주소지 지정은 관리 모드에서만 한다. 관리 모드는 한 줄을 길게 눌러
+ * 켜고(일반 모드 상단에는 액션 버튼을 두지 않는다), 스크린리더는 각 줄의 "지역 관리" 커스텀
+ * 액션으로 같은 진입을 한다. 드래그가 어려운 스크린리더 사용자를 위해 각 줄에 "위로/아래로
+ * 이동" 커스텀 액션도 함께 둔다. 기본 주소지(대표)는 목록 맨 위(index 0)이며 관리 모드의
+ * 별 아이콘으로 바꾼다.
  *
  * 레이아웃(#12): 헤더·상단 액션은 위에 고정, 지역 목록만 weight(1f)로 스크롤하고,
  * "시작하기" CTA는 하단에 고정한다(내비게이션 바 인셋 패딩 포함).
@@ -116,6 +125,7 @@ fun RegionListScreen(
     onToggleManageMode: () -> Unit,
     onToggleSelection: (String) -> Unit,
     onDeleteSelected: () -> Unit,
+    onSetPrimary: (String) -> Unit,
     onNavigateAdd: () -> Unit,
     onNavigateNotifications: () -> Unit,
     onStart: () -> Unit,
@@ -134,13 +144,14 @@ fun RegionListScreen(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = 20.dp, end = 20.dp, top = 20.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+                // 상단이 상태바에 붙어 보이지 않게 여백을 넉넉히 준다.
+                .padding(start = 20.dp, end = 20.dp, top = 32.dp, bottom = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(
                     modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     Text(
                         text = if (manage) "지역 관리" else "우리 지역을 등록하면\n수신호를 알려드려요.",
@@ -157,10 +168,11 @@ fun RegionListScreen(
                         color = Ink2,
                     )
                 }
-                // 상단 액션은 아이콘 버튼으로 둔다 — 좌측 제목·안내 문구의 폭을 잡아먹지 않게 한다.
-                // 아이콘만 있는 버튼이라 각각 접근 가능한 이름(contentDescription)을 반드시 준다.
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (manage) {
+                // 일반 모드에서는 상단 액션을 두지 않는다(화면을 비운다 — 알림 설정은 앱 환경설정에 있고,
+                // 지역 관리는 줄을 길게 누르거나 각 줄의 접근성 액션 "지역 관리"로 들어간다).
+                // 관리 모드에서만 삭제·완료 아이콘을 보여준다.
+                if (manage) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
                         val count = state.selected.size
                         HeaderIcon(
                             label = if (count > 0) "선택한 지역 삭제 ($count)" else "선택한 지역 삭제",
@@ -168,13 +180,6 @@ fun RegionListScreen(
                             onClick = { if (count > 0) showDeleteConfirm = true },
                         ) { drawTrash(if (count > 0) Ink2 else Ink4) }
                         HeaderIcon(label = "지역 관리 완료", onClick = onToggleManageMode) { drawCheck(Blue) }
-                    } else {
-                        // 옵트인 알림 설정 진입(중립적으로 — 유도 문구·배지 없음).
-                        HeaderIcon(label = "알림 설정", onClick = onNavigateNotifications) { drawBell(Ink2) }
-                        if (showManageToggle) {
-                            // 길게 누르기의 접근성 대체 수단. 제스처를 몰라도 여기로 관리 모드를 켠다.
-                            HeaderIcon(label = "지역 관리 시작", onClick = onToggleManageMode) { drawManage(Ink2) }
-                        }
                     }
                 }
             }
@@ -187,6 +192,7 @@ fun RegionListScreen(
             onRemoveRegion = onRemoveRegion,
             onMoveRegion = onMoveRegion,
             onToggleSelection = onToggleSelection,
+            onSetPrimary = onSetPrimary,
             onEnterManageMode = { if (!manage) onToggleManageMode() },
             onNavigateAdd = onNavigateAdd,
             modifier = Modifier
@@ -242,16 +248,16 @@ private fun RegionList(
     onRemoveRegion: (String) -> Unit,
     onMoveRegion: (Int, Int) -> Unit,
     onToggleSelection: (String) -> Unit,
+    onSetPrimary: (String) -> Unit,
     onEnterManageMode: () -> Unit,
     onNavigateAdd: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     if (state.items.isEmpty()) {
+        // 등록된 지역이 없으면 별도 안내 문구 없이 "지역 추가하기"만 보여준다(상단 안내가 이미 설명한다).
         Column(
             modifier = modifier.padding(horizontal = 20.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            EmptyRegions()
             AddRegionRow(onClick = onNavigateAdd)
         }
         return
@@ -288,6 +294,7 @@ private fun RegionList(
                 isLast = index == state.items.lastIndex,
                 onSelect = { onSelectRegion(index) },
                 onToggleSelection = { onToggleSelection(item.sigunCode) },
+                onSetPrimary = { onSetPrimary(item.sigunCode) },
                 onRemove = { onRemoveRegion(item.sigunCode) },
                 onLongPress = onEnterManageMode,
                 onMoveUp = { if (index > 0) onMoveRegion(index, index - 1) },
@@ -322,7 +329,18 @@ private fun RegionList(
                     )
                 },
                 modifier = Modifier
-                    .then(if (isDragging) Modifier.zIndex(1f) else Modifier.animateItem())
+                    // 재배치는 튕기는 스프링 대신 짧은 tween으로 부드럽게 흐르게 한다.
+                    .then(
+                        if (isDragging) {
+                            Modifier.zIndex(1f)
+                        } else {
+                            Modifier.animateItem(
+                                fadeInSpec = null,
+                                fadeOutSpec = null,
+                                placementSpec = tween(durationMillis = 260, easing = FastOutSlowInEasing),
+                            )
+                        },
+                    )
                     .graphicsLayer { if (isDragging) translationY = dragOffsetY }
                     .onSizeChanged { if (it.height > 0) rowHeightPx = it.height.toFloat() },
             )
@@ -349,7 +367,9 @@ private fun AddRegionRow(onClick: () -> Unit) {
         color = Gray50,
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 20.dp),
+            modifier = Modifier
+                .heightIn(min = 60.dp)
+                .padding(start = 16.dp, end = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
@@ -358,27 +378,18 @@ private fun AddRegionRow(onClick: () -> Unit) {
                 color = Ink3,
                 modifier = Modifier.weight(1f),
             )
-            Text(text = "+", style = MaterialTheme.typography.titleLarge, color = Ink3)
-        }
-    }
-}
-
-@Composable
-private fun EmptyRegions() {
-    Surface(shape = RoundedCornerShape(24.dp), color = Gray50, modifier = Modifier.fillMaxWidth()) {
-        Column(
-            modifier = Modifier.padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Text(
-                text = "아직 등록한 지역이 없어요.",
-                style = MaterialTheme.typography.titleLarge,
-            )
-            Text(
-                text = "주소를 검색해서 우리 지역을 등록해 주세요.",
-                style = MaterialTheme.typography.bodyLarge,
-                color = Ink2,
-            )
+            // 삭제 X와 같은 터치 크기·같은 오른쪽 위치에 두어 두 줄의 아이콘이 세로로 맞는다.
+            Box(
+                modifier = Modifier.size(RowActionTouchSize),
+                contentAlignment = Alignment.Center,
+            ) {
+                Canvas(modifier = Modifier.size(RowActionGlyphSize)) {
+                    val s = size.width
+                    val w = s * 0.16f
+                    drawLine(Ink3, Offset(0f, s / 2f), Offset(s, s / 2f), strokeWidth = w, cap = StrokeCap.Round)
+                    drawLine(Ink3, Offset(s / 2f, 0f), Offset(s / 2f, s), strokeWidth = w, cap = StrokeCap.Round)
+                }
+            }
         }
     }
 }
@@ -399,6 +410,7 @@ private fun RegionRow(
     isLast: Boolean,
     onSelect: () -> Unit,
     onToggleSelection: () -> Unit,
+    onSetPrimary: () -> Unit,
     onRemove: () -> Unit,
     onLongPress: () -> Unit,
     onMoveUp: () -> Unit,
@@ -441,6 +453,12 @@ private fun RegionRow(
                                 onDrag = { _, _ -> },
                             )
                         }
+                        // 길게 누르기를 쓰기 어려운 스크린리더 사용자를 위한 관리 모드 진입 수단.
+                        .semantics {
+                            customActions = listOf(
+                                CustomAccessibilityAction("지역 관리") { onLongPress(); true },
+                            )
+                        }
                 },
             ),
         shape = RoundedCornerShape(12.dp),
@@ -464,13 +482,28 @@ private fun RegionRow(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 RegionName(item)
-                if (isPrimary && !manage) {
+                if (isPrimary) {
                     Spacer(Modifier.width(8.dp))
                     PrimaryBadge()
                 }
             }
 
             if (manage) {
+                // 기본 주소지 지정 — 이 줄을 목록 맨 위(대표)로 올린다. 이미 대표면 채워진 별.
+                Box(
+                    modifier = Modifier
+                        .size(RowActionTouchSize)
+                        .clickable(enabled = !isPrimary, onClick = onSetPrimary)
+                        .semantics {
+                            contentDescription =
+                                if (isPrimary) "$displayName 기본 주소지" else "$displayName 기본 주소지로 지정"
+                        },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Canvas(modifier = Modifier.size(19.dp)) {
+                        drawStar(color = if (isPrimary) Blue else Ink4, filled = isPrimary)
+                    }
+                }
                 // 드래그 손잡이 — 길게 눌러 끌면 순서가 바뀐다. 스크린리더는 위 커스텀 액션을 쓴다.
                 Box(
                     modifier = Modifier
@@ -484,14 +517,15 @@ private fun RegionRow(
             } else {
                 Box(
                     modifier = Modifier
-                        .size(48.dp)
+                        .size(RowActionTouchSize)
                         .clickable(onClick = onRemove)
                         .semantics { contentDescription = "$displayName 삭제" },
                     contentAlignment = Alignment.Center,
                 ) {
-                    Canvas(modifier = Modifier.size(16.dp)) {
+                    // X와 아래 "+"는 같은 글리프 크기·같은 오른쪽 위치를 쓴다(줄 끝 정렬 통일).
+                    Canvas(modifier = Modifier.size(RowActionGlyphSize)) {
                         val s = size.width
-                        val w = s * 0.15f
+                        val w = s * 0.16f
                         drawLine(Ink2, Offset(0f, 0f), Offset(s, s), strokeWidth = w, cap = StrokeCap.Round)
                         drawLine(Ink2, Offset(s, 0f), Offset(0f, s), strokeWidth = w, cap = StrokeCap.Round)
                     }
@@ -523,49 +557,6 @@ private fun HeaderIcon(
     }
 }
 
-/** 알림(벨) — 중립 아이콘. 배지·도트는 두지 않는다(알림 유도 금지). */
-private fun DrawScope.drawBell(color: Color) {
-    val w = size.width
-    val h = size.height
-    val stroke = w * 0.1f
-    val path = Path().apply {
-        moveTo(w * 0.22f, h * 0.66f)
-        lineTo(w * 0.78f, h * 0.66f)
-        lineTo(w * 0.7f, h * 0.5f)
-        lineTo(w * 0.7f, h * 0.36f)
-        cubicTo(w * 0.7f, h * 0.16f, w * 0.3f, h * 0.16f, w * 0.3f, h * 0.36f)
-        lineTo(w * 0.3f, h * 0.5f)
-        close()
-    }
-    drawPath(path = path, color = color, style = Stroke(width = stroke))
-    drawArc(
-        color = color,
-        startAngle = 0f,
-        sweepAngle = 180f,
-        useCenter = false,
-        topLeft = Offset(w * 0.4f, h * 0.62f),
-        size = Size(w * 0.2f, h * 0.2f),
-        style = Stroke(width = stroke),
-    )
-}
-
-/** 지역 관리(줄 + 손잡이 점) 아이콘 — 순서 변경·정리를 뜻한다. */
-private fun DrawScope.drawManage(color: Color) {
-    val w = size.width
-    val h = size.height
-    val stroke = h * 0.1f
-    listOf(0.26f, 0.5f, 0.74f).forEachIndexed { i, fy ->
-        val right = if (i == 1) 0.7f else 0.86f
-        drawLine(
-            color = color,
-            start = Offset(w * 0.14f, h * fy),
-            end = Offset(w * right, h * fy),
-            strokeWidth = stroke,
-            cap = StrokeCap.Round,
-        )
-    }
-}
-
 /** 완료(체크) 아이콘. */
 private fun DrawScope.drawCheck(color: Color) {
     val w = size.width
@@ -573,6 +564,30 @@ private fun DrawScope.drawCheck(color: Color) {
     val stroke = w * 0.14f
     drawLine(color, Offset(w * 0.16f, h * 0.54f), Offset(w * 0.42f, h * 0.78f), strokeWidth = stroke, cap = StrokeCap.Round)
     drawLine(color, Offset(w * 0.42f, h * 0.78f), Offset(w * 0.86f, h * 0.24f), strokeWidth = stroke, cap = StrokeCap.Round)
+}
+
+/** 기본 주소지 별 아이콘. 채워진 별 = 현재 기본 주소지. */
+private fun DrawScope.drawStar(color: Color, filled: Boolean) {
+    val w = size.width
+    val h = size.height
+    val cx = w / 2f
+    val cy = h * 0.54f
+    val outer = w * 0.48f
+    val inner = outer * 0.42f
+    val path = Path()
+    for (i in 0 until 10) {
+        val r = if (i % 2 == 0) outer else inner
+        val angle = Math.toRadians((-90 + i * 36).toDouble())
+        val x = cx + (r * kotlin.math.cos(angle)).toFloat()
+        val y = cy + (r * kotlin.math.sin(angle)).toFloat()
+        if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
+    }
+    path.close()
+    if (filled) {
+        drawPath(path = path, color = color)
+    } else {
+        drawPath(path = path, color = color, style = Stroke(width = w * 0.1f))
+    }
 }
 
 /** 선택 삭제(휴지통) 아이콘. */
@@ -626,7 +641,8 @@ private fun RegionName(item: RegionListItem) {
  */
 @Composable
 private fun PrimaryBadge() {
-    Surface(shape = RoundedCornerShape(6.dp), color = BlueTint) {
+    // 배경은 흰색 — 선택된 행이 BlueTint라 같은 색이면 배지로 보이지 않는다(라벨 대비 확보).
+    Surface(shape = RoundedCornerShape(6.dp), color = Bg) {
         Text(
             // 이름보다 한 단계 작은 글자(시안) — 이름 오른쪽에 붙어 보조 라벨로 읽힌다.
             text = "기본 주소지",

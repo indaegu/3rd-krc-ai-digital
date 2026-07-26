@@ -13,7 +13,7 @@ describe("SourcesCard 근거 고지 모듈", () => {
       <SourcesCard sources={["논가뭄지도"]} stale={false} />,
     );
 
-    expect(screen.getByText("이 화면의 근거")).toBeInTheDocument();
+    expect(screen.getByText("이 정보는 어디서 왔나요")).toBeInTheDocument();
     const text = container.textContent ?? "";
     expect(text).toContain("70");
     expect(text).toContain("60");

@@ -355,8 +355,9 @@ describe("forecast contract type unions", () => {
     expectTypeOf<ForecastResponse["reach"]["bucket"]>().toEqualTypeOf<
       "none" | "within_7d" | "within_14d" | "within_30d"
     >();
+    // damped는 2026-07-26 재검증에서 후보로 추가한 감쇠 추세 모델이다(채택은 여전히 naive).
     expectTypeOf<ForecastResponse["model"]["name"]>().toEqualTypeOf<
-      "naive" | "ma7" | "linear" | "ses"
+      "naive" | "ma7" | "linear" | "ses" | "damped"
     >();
     expectTypeOf<ForecastResponse["model"]["bandMethod"]>().toEqualTypeOf<
       | "residual_quantile_p25_p75_regional"

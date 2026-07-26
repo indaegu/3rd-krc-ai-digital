@@ -20,13 +20,13 @@
   margin-left: -10px;
   border-radius: var(--r-sm);
   color: var(--ink);
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   text-decoration: none;
 }
 
 .title {
   margin: 0;
-  font-size: 1.6rem;
+  font-size: 1.3rem;
   font-weight: 800;
   line-height: 1.35;
   letter-spacing: -0.02em;

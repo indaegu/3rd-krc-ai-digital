@@ -7,6 +7,7 @@ export const PREDICTION_MODEL_NAMES = [
   "ma7",
   "linear",
   "ses",
+  "damped",
 ] as const;
 export type PredictionModelName = (typeof PREDICTION_MODEL_NAMES)[number];
 
@@ -22,6 +23,13 @@ export const MA_WINDOW_DAYS = 7;
 /** ses 평활 계수. */
 export const SES_ALPHA = 0.3;
 
+/**
+ * damped(감쇠 추세) 모델의 감쇠 계수 φ. 최근 기울기를 그대로 외삽하지 않고
+ * 하루마다 φ배로 줄여 더한다(Gardner–McKenzie damped trend). φ<1이라 지평이 길어져도
+ * 예측이 발산하지 않는다. 값의 근거는 백테스트(docs/prediction-model.md).
+ */
+export const DAMPED_PHI = 0.8;
+
 /** 모델 파라미터 묶음의 버전. 상수를 바꾸면 버전을 올리고 백테스트 리포트를 다시 만든다. */
 export const MODEL_VERSION = "pred-v1";
 
@@ -30,6 +38,7 @@ export const MODEL_SIMPLICITY_ORDER: readonly PredictionModelName[] = [
   "naive",
   "ma7",
   "ses",
+  "damped",
   "linear",
 ];
 
@@ -42,6 +51,7 @@ export const MODEL_MIN_INPUT_DAYS: Record<PredictionModelName, number> = {
   ma7: FORECAST_HORIZON_DAYS,
   linear: LINEAR_WINDOW_DAYS,
   ses: FORECAST_HORIZON_DAYS,
+  damped: LINEAR_WINDOW_DAYS,
 };
 
 /** 모델 이름으로 14일 예측을 낸다. 입력이 최소 길이(14일) 미만이면 에러. */
@@ -64,6 +74,8 @@ export function predict(
       return predictLinear(series);
     case "ses":
       return predictSes(series);
+    case "damped":
+      return predictDamped(series);
   }
 }
 
@@ -127,6 +139,24 @@ function predictLinear(series: readonly number[]): number[] {
     { length: FORECAST_HORIZON_DAYS },
     (_, i) => yMean + slope * (n - 1 + (i + 1) - xMean),
   );
+}
+
+/**
+ * 주력 후보 3: 감쇠 추세(damped trend). 마지막 관측에서 시작해 최근 기울기를
+ * 하루마다 [DAMPED_PHI]배로 줄여 누적한다: f(h) = last + slope * Σ φ^k (k=1..h).
+ * naive(수평)와 linear(무한 외삽) 사이를 메워, 추세가 이어지는 지역에서 naive보다
+ * 낫고 오래 끌고 가지 않는다.
+ */
+function predictDamped(series: readonly number[]): number[] {
+  const last = lastValue(series);
+  const slope = olsSlope(series.slice(-LINEAR_WINDOW_DAYS));
+  let cumulative = 0;
+  let factor = 1;
+  return Array.from({ length: FORECAST_HORIZON_DAYS }, () => {
+    factor *= DAMPED_PHI;
+    cumulative += factor;
+    return last + slope * cumulative;
+  });
 }
 
 /** x = 0..n-1 등간격 최소제곱(OLS) 기울기. linear 외삽과 observedDailyDelta가 공유한다. */
