@@ -299,7 +299,7 @@ describe("메인 코치·근거 모듈", () => {
     expect(await screen.findByText("수신호 코치")).toBeInTheDocument();
     expect(screen.getByText(COACH_STATIC.coach.headline)).toBeInTheDocument();
     // 근거 고지 모듈 + status ∪ forecast sources 칩(중복 제거).
-    expect(screen.getByText("이 화면의 근거")).toBeInTheDocument();
+    expect(screen.getByText("이 정보는 어디서 왔나요")).toBeInTheDocument();
     const [firstStatusSource = ""] = NORMAL.sources;
     expect(screen.getByText(firstStatusSource)).toBeInTheDocument();
     // "논가뭄지도"는 status·forecast 양쪽에 있지만 칩은 한 번만 렌더된다.
@@ -340,7 +340,7 @@ describe("메인 코치·근거 모듈", () => {
       screen.queryByText(COACH_STATIC.coach.headline),
     ).not.toBeInTheDocument();
     // 근거 고지 카드는 coach 실패와 무관하게 status가 로드되면 항상 뜬다.
-    expect(screen.getByText("이 화면의 근거")).toBeInTheDocument();
+    expect(screen.getByText("이 정보는 어디서 왔나요")).toBeInTheDocument();
     const [firstStatusSource = ""] = NORMAL.sources;
     expect(screen.getByText(firstStatusSource)).toBeInTheDocument();
     // 공식 우선 규정 준수 문구도 함께 보인다.

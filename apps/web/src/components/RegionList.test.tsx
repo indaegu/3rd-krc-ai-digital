@@ -102,14 +102,16 @@ afterEach(() => {
 });
 
 describe("RegionList 빈 상태", () => {
-  it("등록 지역이 없으면 빈 상태 카피를 보여주고 status를 호출하지 않는다", async () => {
+  it("등록 지역이 없으면 아무 것도 그리지 않고 status를 호출하지 않는다", async () => {
     const fetchMock = stubStatusFetch();
 
-    render(<RegionList />);
+    // 빈 상태 안내 카드는 두지 않는다(페이지의 "지역 추가하기"만 보이면 충분하다).
+    const { container } = render(<RegionList />);
 
-    expect(
-      await screen.findByText("아직 등록한 지역이 없어요."),
-    ).toBeInTheDocument();
+    await waitFor(() => {
+      expect(container).toBeEmptyDOMElement();
+    });
+    expect(screen.queryByText("아직 등록한 지역이 없어요.")).toBeNull();
     expect(fetchMock).not.toHaveBeenCalled();
   });
 });

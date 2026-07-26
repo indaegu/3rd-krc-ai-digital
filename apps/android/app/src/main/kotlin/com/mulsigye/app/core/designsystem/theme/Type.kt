@@ -26,13 +26,13 @@ val MulsigyeTypography = Typography(
     ),
     headlineLarge = TextStyle(
         fontFamily = Pretendard,
-        fontSize = 28.sp,
+        fontSize = 25.sp,
         lineHeight = 36.sp,
         fontWeight = FontWeight.Bold,
     ),
     titleLarge = TextStyle(
         fontFamily = Pretendard,
-        fontSize = 24.sp,
+        fontSize = 20.sp,
         lineHeight = 32.sp,
         fontWeight = FontWeight.Bold,
     ),

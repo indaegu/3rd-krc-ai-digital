@@ -243,9 +243,40 @@ fun TrendChart(
     }
 }
 
+/** x축 날짜 눈금 간격(일). 44일 구간을 7일마다 끊어 대략 6~7개 라벨이 붙는다. */
+private const val DATE_TICK_STEP_DAYS = 7
+
+/** 라벨끼리 겹치지 않게 유지할 최소 간격(일). 끝·'오늘' 라벨 주변 눈금을 솎아낸다. */
+private const val MIN_TICK_GAP = 2
+
 /**
- * x축 날짜 라벨 — 첫 실측 날짜(왼쪽), '오늘'(경계=마지막 실측/첫 예측), 마지막 예측 날짜(오른쪽).
- * 모든 문자열은 observedOn에서만 온다. 44개 점을 다 찍지 않고 3개만 둬 붐비지 않게 한다.
+ * 눈금으로 쓸 (x, 날짜문자열) 목록을 고른다 — 순수 함수(테스트 대상).
+ *
+ * 첫 실측일과 마지막 예측일은 항상 넣고, 그 사이를 [DATE_TICK_STEP_DAYS]마다 끊는다.
+ * '오늘' 라벨과 겹치는 눈금은 뺀다(같은 자리에 두 글자가 겹치지 않게).
+ */
+internal fun dateTickIndices(total: Int, todayIndex: Int, step: Int = DATE_TICK_STEP_DAYS): List<Int> {
+    if (total <= 0) return emptyList()
+    if (total == 1) return listOf(0)
+    val last = total - 1
+    // 양 끝(첫날·마지막날)은 항상 두고, 사이를 step마다 끊는다.
+    // 끝 라벨·'오늘' 라벨과 너무 가까운 눈금은 글자가 겹치므로 뺀다(최소 간격 MIN_TICK_GAP일).
+    val ticks = LinkedHashSet<Int>()
+    ticks += 0
+    var i = step
+    while (i < last) {
+        val farFromToday = kotlin.math.abs(i - todayIndex) > MIN_TICK_GAP
+        val farFromEnds = i > MIN_TICK_GAP && last - i > MIN_TICK_GAP
+        if (farFromToday && farFromEnds) ticks += i
+        i += step
+    }
+    ticks += last
+    return ticks.sorted()
+}
+
+/**
+ * x축 날짜 라벨 — 7일 간격 눈금 + '오늘'. 날짜 문자열은 observedOn에서만 온다.
+ * 양 끝은 안쪽으로 정렬해 잘리지 않게 하고, 가운데 눈금은 가운데 정렬한다.
  */
 private fun DrawScope.drawDateLabels(
     geo: TrendGeometry,
@@ -254,32 +285,42 @@ private fun DrawScope.drawDateLabels(
 ) {
     val paint = Paint().apply {
         color = Ink3.toArgb()
-        textSize = 12.dp.toPx()
+        textSize = 11.dp.toPx()
         isAntiAlias = true
     }
     val baselineY = size.height - 6.dp.toPx()
+    val tickTop = baselineY - 15.dp.toPx()
 
-    history.firstOrNull()?.let { first ->
-        paint.textAlign = Paint.Align.LEFT
-        drawContext.canvas.nativeCanvas.drawText(
-            formatMonthDay(first.observedOn),
-            geo.plotLeft,
-            baselineY,
-            paint,
+    // 실측 + 예측을 한 줄로 이어 인덱스를 매긴다(기하 계산과 같은 순서).
+    val dates = history.map { it.observedOn } + forecast.map { it.observedOn }
+    val total = dates.size
+    if (total == 0) return
+    val todayIndex = if (history.isEmpty()) -1 else history.size - 1
+
+    fun xAt(index: Int): Float =
+        geo.plotLeft + (geo.plotRight - geo.plotLeft) * (index.toFloat() / kotlin.math.max(1, total - 1))
+
+    // 옅은 세로 눈금선 — 날짜 라벨 위치를 그래프와 잇는다(과하지 않게 아주 옅게).
+    val tickColor = Color(0x14191F28)
+    for (index in dateTickIndices(total, todayIndex)) {
+        val x = xAt(index)
+        drawLine(
+            color = tickColor,
+            start = androidx.compose.ui.geometry.Offset(x, geo.plotTop),
+            end = androidx.compose.ui.geometry.Offset(x, tickTop),
+            strokeWidth = 1f,
         )
+        paint.textAlign = when (index) {
+            0 -> Paint.Align.LEFT
+            total - 1 -> Paint.Align.RIGHT
+            else -> Paint.Align.CENTER
+        }
+        drawContext.canvas.nativeCanvas.drawText(formatMonthDay(dates[index]), x, baselineY, paint)
     }
+
     geo.todayX?.let { tx ->
         paint.textAlign = Paint.Align.CENTER
         drawContext.canvas.nativeCanvas.drawText("오늘", tx, baselineY, paint)
-    }
-    forecast.lastOrNull()?.let { last ->
-        paint.textAlign = Paint.Align.RIGHT
-        drawContext.canvas.nativeCanvas.drawText(
-            formatMonthDay(last.observedOn),
-            geo.plotRight,
-            baselineY,
-            paint,
-        )
     }
 }
 

@@ -70,15 +70,10 @@ export function RegionList({ onStoreChange }: RegionListProps) {
     return null;
   }
 
+  // 등록된 지역이 없으면 별도 안내 카드를 두지 않는다(상단 안내가 이미 설명하고,
+  // 페이지의 "지역 추가하기"만 보이면 충분하다).
   if (store.regions.length === 0) {
-    return (
-      <div className={styles.empty}>
-        <p className={styles.emptyTitle}>아직 등록한 지역이 없어요.</p>
-        <p className={styles.emptyHint}>
-          주소를 검색해서 우리 지역을 등록해 주세요.
-        </p>
-      </div>
-    );
+    return null;
   }
 
   return (

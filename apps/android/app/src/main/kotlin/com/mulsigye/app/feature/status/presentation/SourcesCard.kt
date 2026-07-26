@@ -37,7 +37,7 @@ fun mergeSources(
 }
 
 /**
- * 근거·한계 고지 모듈 — "이 화면의 근거".
+ * 근거·한계 고지 모듈 — "이 정보는 어디서 왔나요".
  *
  * - 공인 단계 기준과 공식 우선 원칙을 **문구로만** 알린다. 임계 상수(70/60/50/40)는
  *   Android 어디에도 두지 않으므로 여기서도 복제하지 않는다(규칙 10).
@@ -55,7 +55,7 @@ fun SourcesCard(
 ) {
     MulsigyeCard(modifier = modifier) {
         Text(
-            text = "이 화면의 근거",
+            text = "이 정보는 어디서 왔나요",
             style = MaterialTheme.typography.titleMedium,
             color = Ink,
             modifier = Modifier.semantics { heading() },

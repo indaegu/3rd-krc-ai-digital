@@ -64,6 +64,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import com.mulsigye.app.core.designsystem.component.CtaButton
 import com.mulsigye.app.core.designsystem.component.Shimmer
+import com.mulsigye.app.core.designsystem.theme.Bg
 import com.mulsigye.app.core.designsystem.theme.Blue
 import com.mulsigye.app.core.designsystem.theme.BlueTint
 import com.mulsigye.app.core.designsystem.theme.Gray50
@@ -157,10 +158,11 @@ fun RegionListScreen(
                         color = Ink2,
                     )
                 }
-                // 상단 액션은 아이콘 버튼으로 둔다 — 좌측 제목·안내 문구의 폭을 잡아먹지 않게 한다.
-                // 아이콘만 있는 버튼이라 각각 접근 가능한 이름(contentDescription)을 반드시 준다.
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (manage) {
+                // 일반 모드에서는 상단 액션을 두지 않는다(화면을 비운다 — 알림 설정은 앱 환경설정에 있고,
+                // 지역 관리는 줄을 길게 누르거나 각 줄의 접근성 액션 "지역 관리"로 들어간다).
+                // 관리 모드에서만 삭제·완료 아이콘을 보여준다.
+                if (manage) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
                         val count = state.selected.size
                         HeaderIcon(
                             label = if (count > 0) "선택한 지역 삭제 ($count)" else "선택한 지역 삭제",
@@ -168,13 +170,6 @@ fun RegionListScreen(
                             onClick = { if (count > 0) showDeleteConfirm = true },
                         ) { drawTrash(if (count > 0) Ink2 else Ink4) }
                         HeaderIcon(label = "지역 관리 완료", onClick = onToggleManageMode) { drawCheck(Blue) }
-                    } else {
-                        // 옵트인 알림 설정 진입(중립적으로 — 유도 문구·배지 없음).
-                        HeaderIcon(label = "알림 설정", onClick = onNavigateNotifications) { drawBell(Ink2) }
-                        if (showManageToggle) {
-                            // 길게 누르기의 접근성 대체 수단. 제스처를 몰라도 여기로 관리 모드를 켠다.
-                            HeaderIcon(label = "지역 관리 시작", onClick = onToggleManageMode) { drawManage(Ink2) }
-                        }
                     }
                 }
             }
@@ -247,11 +242,10 @@ private fun RegionList(
     modifier: Modifier = Modifier,
 ) {
     if (state.items.isEmpty()) {
+        // 등록된 지역이 없으면 별도 안내 문구 없이 "지역 추가하기"만 보여준다(상단 안내가 이미 설명한다).
         Column(
             modifier = modifier.padding(horizontal = 20.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            EmptyRegions()
             AddRegionRow(onClick = onNavigateAdd)
         }
         return
@@ -363,26 +357,6 @@ private fun AddRegionRow(onClick: () -> Unit) {
     }
 }
 
-@Composable
-private fun EmptyRegions() {
-    Surface(shape = RoundedCornerShape(24.dp), color = Gray50, modifier = Modifier.fillMaxWidth()) {
-        Column(
-            modifier = Modifier.padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Text(
-                text = "아직 등록한 지역이 없어요.",
-                style = MaterialTheme.typography.titleLarge,
-            )
-            Text(
-                text = "주소를 검색해서 우리 지역을 등록해 주세요.",
-                style = MaterialTheme.typography.bodyLarge,
-                color = Ink2,
-            )
-        }
-    }
-}
-
 /** 저수지명이 이미 "저수지"로 끝나면 중복해서 붙이지 않는다(#10). */
 private fun reservoirTitle(sigunName: String, reservoirName: String): String {
     val suffixed = if (reservoirName.endsWith("저수지")) reservoirName else "$reservoirName 저수지"
@@ -441,6 +415,12 @@ private fun RegionRow(
                                 onDrag = { _, _ -> },
                             )
                         }
+                        // 길게 누르기를 쓰기 어려운 스크린리더 사용자를 위한 관리 모드 진입 수단.
+                        .semantics {
+                            customActions = listOf(
+                                CustomAccessibilityAction("지역 관리") { onLongPress(); true },
+                            )
+                        }
                 },
             ),
         shape = RoundedCornerShape(12.dp),
@@ -489,7 +469,7 @@ private fun RegionRow(
                         .semantics { contentDescription = "$displayName 삭제" },
                     contentAlignment = Alignment.Center,
                 ) {
-                    Canvas(modifier = Modifier.size(16.dp)) {
+                    Canvas(modifier = Modifier.size(13.dp)) {
                         val s = size.width
                         val w = s * 0.15f
                         drawLine(Ink2, Offset(0f, 0f), Offset(s, s), strokeWidth = w, cap = StrokeCap.Round)
@@ -520,49 +500,6 @@ private fun HeaderIcon(
         contentAlignment = Alignment.Center,
     ) {
         Canvas(modifier = Modifier.size(22.dp).clearAndSetSemantics {}) { icon() }
-    }
-}
-
-/** 알림(벨) — 중립 아이콘. 배지·도트는 두지 않는다(알림 유도 금지). */
-private fun DrawScope.drawBell(color: Color) {
-    val w = size.width
-    val h = size.height
-    val stroke = w * 0.1f
-    val path = Path().apply {
-        moveTo(w * 0.22f, h * 0.66f)
-        lineTo(w * 0.78f, h * 0.66f)
-        lineTo(w * 0.7f, h * 0.5f)
-        lineTo(w * 0.7f, h * 0.36f)
-        cubicTo(w * 0.7f, h * 0.16f, w * 0.3f, h * 0.16f, w * 0.3f, h * 0.36f)
-        lineTo(w * 0.3f, h * 0.5f)
-        close()
-    }
-    drawPath(path = path, color = color, style = Stroke(width = stroke))
-    drawArc(
-        color = color,
-        startAngle = 0f,
-        sweepAngle = 180f,
-        useCenter = false,
-        topLeft = Offset(w * 0.4f, h * 0.62f),
-        size = Size(w * 0.2f, h * 0.2f),
-        style = Stroke(width = stroke),
-    )
-}
-
-/** 지역 관리(줄 + 손잡이 점) 아이콘 — 순서 변경·정리를 뜻한다. */
-private fun DrawScope.drawManage(color: Color) {
-    val w = size.width
-    val h = size.height
-    val stroke = h * 0.1f
-    listOf(0.26f, 0.5f, 0.74f).forEachIndexed { i, fy ->
-        val right = if (i == 1) 0.7f else 0.86f
-        drawLine(
-            color = color,
-            start = Offset(w * 0.14f, h * fy),
-            end = Offset(w * right, h * fy),
-            strokeWidth = stroke,
-            cap = StrokeCap.Round,
-        )
     }
 }
 
@@ -626,7 +563,8 @@ private fun RegionName(item: RegionListItem) {
  */
 @Composable
 private fun PrimaryBadge() {
-    Surface(shape = RoundedCornerShape(6.dp), color = BlueTint) {
+    // 배경은 흰색 — 선택된 행이 BlueTint라 같은 색이면 배지로 보이지 않는다(라벨 대비 확보).
+    Surface(shape = RoundedCornerShape(6.dp), color = Bg) {
         Text(
             // 이름보다 한 단계 작은 글자(시안) — 이름 오른쪽에 붙어 보조 라벨로 읽힌다.
             text = "기본 주소지",

@@ -5,22 +5,19 @@
   padding: 12px 0 48px;
 }
 
-/* 상단 헤더 뒤 브랜드 그라디언트 — 위 시안색에서 아래로 흰 배경으로 사라진다.
-   좌우 16px 여백까지 덮어(모바일에서 화면 폭 꽉 채움) 본문 카드는 그 위에 얹힌다.
-   100vw 대신 여백만 넘겨 가로 스크롤을 만들지 않는다. */
+/* 브랜드 그라디언트 배경 — 온보딩·스플래시처럼 화면 전체에 깔린다.
+   fixed라 스크롤해도 배경이 이어지고, 본문 카드가 그 위에 얹힌다. */
 .main::before {
   content: "";
-  position: absolute;
-  top: 0;
-  right: -16px;
-  left: -16px;
+  position: fixed;
+  inset: 0;
   z-index: -1;
-  height: 280px;
   background: linear-gradient(
     180deg,
     var(--grad-top) 0%,
-    var(--grad-mid) 42%,
-    rgba(246, 246, 246, 0) 100%
+    var(--grad-mid) 30%,
+    var(--grad-bottom) 68%,
+    var(--grad-bottom) 100%
   );
   pointer-events: none;
 }

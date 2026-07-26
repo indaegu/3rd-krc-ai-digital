@@ -34,7 +34,7 @@ import androidx.compose.ui.unit.dp
 import com.mulsigye.app.core.designsystem.component.CtaButton
 import com.mulsigye.app.core.designsystem.component.MulsigyeCard
 import com.mulsigye.app.core.designsystem.component.Shimmer
-import com.mulsigye.app.core.designsystem.theme.Bg
+import com.mulsigye.app.core.designsystem.theme.brandGradientBrush
 import com.mulsigye.app.core.designsystem.theme.Ink
 import com.mulsigye.app.core.designsystem.theme.Ink2
 import com.mulsigye.app.core.ui.AsOfStamp
@@ -93,7 +93,8 @@ fun MainScreen(
         },
         modifier = modifier
             .fillMaxSize()
-            .background(Bg),
+            // 온보딩·스플래시와 같은 브랜드 그라디언트를 화면 전체에 깐다(시안).
+            .background(brandGradientBrush()),
     ) {
         Column(
             modifier = Modifier

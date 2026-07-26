@@ -118,19 +118,8 @@ fun AppRouter(container: AppContainer, store: RegionStoreState) {
         NotificationScheduler.reschedule(appContext, container.notificationPrefsStore.current())
     }
 
-    // #1 최초 사용자: 동의를 마쳤고 등록 이력이 없으며 지역이 비어 있으면 빈 상태 대신
-    // 곧바로 지역 검색(RegionAdd)으로 보낸다. 지역을 모두 지운 재방문 사용자
-    // (hasEverRegistered=true)는 대상이 아니라 기존 빈 상태를 유지한다. 한 세션에 1회만.
-    var firstTimeSearchOpened by rememberSaveable { mutableStateOf(false) }
-    LaunchedEffect(store.consentVersion, store.regions.isEmpty(), store.hasEverRegistered) {
-        if (!firstTimeSearchOpened &&
-            shouldOpenFirstTimeSearch(store) &&
-            backStack.current == Screen.Regions
-        ) {
-            firstTimeSearchOpened = true
-            backStack.push(Screen.RegionAdd)
-        }
-    }
+    // 동의를 마치면 지역 목록에 머문다. 예전에는 최초 사용자를 곧바로 주소 검색으로 보냈지만,
+    // 목록에서 "지역 추가하기"로 직접 들어가는 흐름이 덜 갑작스러워 그 자동 진입을 없앴다.
 
     BackHandler(enabled = true) {
         if (!backStack.pop()) {
