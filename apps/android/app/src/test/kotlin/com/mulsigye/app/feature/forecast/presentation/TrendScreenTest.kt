@@ -73,9 +73,30 @@ class TrendScreenTest : RobolectricComposeTest() {
     }
 
     @Test
+    fun showsThirdCombinedMode() {
+        setScreen(withRates())
+        composeTestRule.onNodeWithContentDescription("함께 보기").assertIsDisplayed()
+    }
+
+    @Test
+    fun combinedModeKeepsRegionForecastAndAddsReference() {
+        setScreen(withRates())
+        composeTestRule.onNodeWithContentDescription("함께 보기").performClick()
+        composeTestRule.onNodeWithContentDescription("함께 보기 선택됨").assertIsDisplayed()
+        // 예측은 여전히 지역 모델 하나뿐 — 예측·불확실 구간 범례가 남아 있어야 한다.
+        // (스크롤 아래라 화면에 안 보일 수 있어 존재 여부로 확인한다.)
+        composeTestRule.onNodeWithText("예측").assertExists()
+        composeTestRule.onNodeWithText("불확실 구간").assertExists()
+        // 오른쪽 눈금임을 범례·부제에서 밝힌다(같은 축으로 오해하지 않게).
+        composeTestRule.onAllNodesWithText("오른쪽 눈금", substring = true)
+            .assertCountEquals(2)
+    }
+
+    @Test
     fun hidesToggleWithoutStatus() {
         setScreen(null)
         composeTestRule.onAllNodesWithContentDescription("저수지 실측").assertCountEquals(0)
+        composeTestRule.onAllNodesWithContentDescription("함께 보기").assertCountEquals(0)
         // 토글이 없어도 기본(지역 평년 대비) 차트와 제목은 그대로 보인다.
         composeTestRule.onNodeWithText("나주시 지역 평년 대비 저수율").assertIsDisplayed()
     }

@@ -6,7 +6,7 @@
 // 단계 임계값·라벨의 단일 출처는 lib/data/drought-stage.ts다(규칙 5).
 // x축 날짜 라벨은 observedOn에서만 온다(showDates=상세 전용). 새 예측 수학은 없다.
 
-import type { ForecastResponse } from "@mulsigye/contracts";
+import type { ForecastResponse, StatusResponse } from "@mulsigye/contracts";
 import { useEffect, useState } from "react";
 
 import { prefersReducedMotion } from "../lib/client/reduced-motion";
@@ -15,14 +15,20 @@ import {
   STAGE_LABEL_BY_CODE,
   type DroughtStageCode,
 } from "../lib/data/drought-stage";
+import {
+  PAD_BOTTOM,
+  PAD_LEFT,
+  PAD_RIGHT,
+  PAD_TOP,
+  WIDTH,
+  dateTickIndices,
+  formatMonthDay,
+  labelMinGap,
+} from "./chart-axis";
 import styles from "./TrendChart.module.css";
 
-// viewBox 고정(너비 100% 반응형) 좌표계와 안쪽 여백.
-const WIDTH = 640;
-const PAD_LEFT = 34;
-const PAD_RIGHT = 12;
-const PAD_TOP = 14;
-const PAD_BOTTOM = 26;
+// 눈금 규칙의 단일 출처는 chart-axis다. 기존 테스트가 쓰던 이름을 그대로 재수출한다.
+export { dateTickIndices, labelMinGap } from "./chart-axis";
 
 /** y축 범위를 임계값 쪽으로 넓힐지 판단하는 근접 여유(%p). */
 const THRESHOLD_NEAR_MARGIN = 8;
@@ -43,59 +49,30 @@ const THRESHOLD_LINES: ReadonlyArray<{
   { code: "crit", value: DROUGHT_STAGE_THRESHOLDS.alert },
 ];
 
-/** "YYYY-MM-DD" → "M/D"(앞자리 0 제거). 파싱 실패 시 원문 반환. */
-/** x축 날짜 눈금 간격(일). 44일 구간을 7일마다 끊어 6~7개 라벨이 붙는다. */
-const DATE_TICK_STEP_DAYS = 7;
-
-/** 라벨끼리 겹치지 않게 유지할 최소 간격(일). */
-const MIN_TICK_GAP = 2;
-
-/**
- * 눈금으로 쓸 인덱스 목록 — 첫날·마지막날은 항상 넣고 사이를 7일마다 끊는다.
- * '오늘' 라벨과 겹치는 자리(±2일)는 빼서 글자가 포개지지 않게 한다.
- */
-export function dateTickIndices(
-  total: number,
-  todayIndex: number,
-  step = DATE_TICK_STEP_DAYS,
-): number[] {
-  if (total <= 0) return [];
-  if (total === 1) return [0];
-  const last = total - 1;
-  // 양 끝은 항상 두고, 사이를 step마다 끊는다. 끝·'오늘' 라벨과 가까운 눈금은 글자가
-  // 겹치므로 뺀다(최소 간격 MIN_TICK_GAP일).
-  const ticks = new Set<number>([0]);
-  for (let i = step; i < last; i += step) {
-    const farFromToday = Math.abs(i - todayIndex) > MIN_TICK_GAP;
-    const farFromEnds = i > MIN_TICK_GAP && last - i > MIN_TICK_GAP;
-    if (farFromToday && farFromEnds) ticks.add(i);
-  }
-  ticks.add(last);
-  return [...ticks].sort((a, b) => a - b);
-}
-
-function formatMonthDay(observedOn: string): string {
-  const parts = observedOn.split("-");
-  const m = parts[1];
-  const d = parts[2];
-  if (m === undefined || d === undefined) {
-    return observedOn;
-  }
-  return `${Number(m)}/${Number(d)}`;
-}
-
 interface TrendChartProps {
   forecast: ForecastResponse;
   /** viewBox 높이. 메인 250, 상세 300. */
   height?: number;
   /** 상세 차트에서만 x축 날짜 라벨(observedOn)을 표시한다. 미니는 false. */
   showDates?: boolean;
+  /**
+   * "함께 보기" 모드에서만 넘긴다 — 대표 저수지 실측 저수율 시계열.
+   *
+   * 예측선·밴드는 **지역 평년 대비 그대로**이고 이 값은 오른쪽 축의 참고선이다.
+   * 두 값은 축·의미가 달라(원저수율 % vs 평년 대비 %) 같은 축에 겹치지 않는다.
+   * 날짜로 맞춰 그리므로 겹치는 날짜가 없으면 아무것도 그리지 않는다.
+   */
+  reservoirHistory?: StatusResponse["reservoir"]["rateHistory"];
+  /** 참고선 접근성 설명에 쓰는 대표 저수지명. */
+  reservoirName?: string | undefined;
 }
 
 export function TrendChart({
   forecast: data,
   height = 250,
   showDates = false,
+  reservoirHistory,
+  reservoirName,
 }: TrendChartProps) {
   const history = data.history;
   const future = data.forecast;
@@ -196,6 +173,36 @@ export function TrendChart({
     bandPath = `${top}${bottom}Z`;
   }
 
+  // ── "함께 보기": 대표 저수지 실측을 **오른쪽 축**에 참고선으로 얹는다.
+  // 인덱스가 아니라 **날짜로 맞춘다** — 실측 30일과 지역 60일의 끝 날짜가 다를 수 있다.
+  const reservoirPoints = reservoirHistory ?? [];
+  const indexByDate = new Map(axisDates.map((date, index) => [date, index]));
+  const reservoirOnAxis = reservoirPoints.flatMap((point) => {
+    const index = indexByDate.get(point.observedOn);
+    return index === undefined ? [] : [{ index, rate: point.rate }];
+  });
+  const hasReservoirLine = reservoirOnAxis.length >= 2;
+
+  // 오른쪽 축 범위는 실측 값에서만 만든다(왼쪽 평년 대비 축과 독립).
+  const reservoirValues = reservoirOnAxis.map((point) => point.rate);
+  const rLo = hasReservoirLine
+    ? Math.max(0, Math.floor(Math.min(...reservoirValues) - RANGE_PADDING))
+    : 0;
+  const rHi = hasReservoirLine
+    ? Math.ceil(Math.max(...reservoirValues) + RANGE_PADDING)
+    : 100;
+  const rSpan = rHi <= rLo ? 1 : rHi - rLo;
+  const yRight = (value: number) =>
+    PAD_TOP + (height - PAD_TOP - PAD_BOTTOM) * (1 - (value - rLo) / rSpan);
+  const reservoirPath = hasReservoirLine
+    ? reservoirOnAxis
+        .map(
+          (point, i) =>
+            `${i === 0 ? "M" : "L"}${x(point.index).toFixed(1)},${yRight(point.rate).toFixed(1)}`,
+        )
+        .join("")
+    : "";
+
   // 임계선은 확정된 y 범위 안에 드는 것만 렌더한다.
   const visibleThresholds = THRESHOLD_LINES.filter(
     (line) => line.value >= lo && line.value <= hi,
@@ -216,6 +223,14 @@ export function TrendChart({
   if (lastFuture !== undefined) {
     summaryParts.push(
       `앞으로 ${future.length}일은 ${lastFuture.low}%에서 ${lastFuture.high}% 사이로 보여요.`,
+    );
+  }
+  // "함께 보기"에서는 참고선의 의미와 범위를 읽어준다(왼쪽 축과 다른 값임을 분명히).
+  if (hasReservoirLine) {
+    const lastReservoir = reservoirOnAxis[reservoirOnAxis.length - 1];
+    summaryParts.push(
+      `${reservoirName ?? "대표 저수지"} 실제 저수율은 오른쪽 눈금(${rLo}%에서 ${rHi}%)으로 함께 그렸고,` +
+        ` 마지막 값은 ${String(lastReservoir?.rate ?? 0)}%예요. 예측선과 띠는 지역 평년 대비 기준이에요.`,
     );
   }
   // 상세 차트는 날짜 축을 함께 읽어준다(observedOn에서만).
@@ -324,7 +339,11 @@ export function TrendChart({
 
         {/* 사이 날짜 눈금(7일 간격) — 3개만 보여 날짜 감이 없던 문제를 보완한다. */}
         {showDates
-          ? dateTickIndices(axisDates.length, history.length - 1)
+          ? dateTickIndices(
+              axisDates.length,
+              history.length - 1,
+              labelMinGap(axisDates.length),
+            )
               .filter((index) => index !== 0 && index !== axisDates.length - 1)
               .map((index) => ({ index, date: axisDates[index] }))
               .filter(
@@ -387,6 +406,15 @@ export function TrendChart({
             />
           ) : null}
 
+          {/* "함께 보기" 참고선 — 오른쪽 축(저수지 원저수율). 예측선과 구분되는 얇은 실선. */}
+          {reservoirPath !== "" ? (
+            <path
+              className={styles.reservoirLine}
+              data-testid="trend-reservoir"
+              d={reservoirPath}
+            />
+          ) : null}
+
           {/* 오늘 기준점 마커(basis.avgRatio) */}
           {todayX !== null ? (
             <circle
@@ -397,6 +425,28 @@ export function TrendChart({
             />
           ) : null}
         </g>
+
+        {/* 오른쪽 축 눈금 — "함께 보기"에서만. 참고선의 값 범위를 밝혀 모양만 읽지 않게 한다. */}
+        {hasReservoirLine ? (
+          <>
+            <text
+              className={styles.reservoirTick}
+              x={WIDTH - PAD_RIGHT}
+              y={yRight(rHi) + 4}
+              textAnchor="end"
+            >
+              {rHi}%
+            </text>
+            <text
+              className={styles.reservoirTick}
+              x={WIDTH - PAD_RIGHT}
+              y={yRight(rLo) - 2}
+              textAnchor="end"
+            >
+              {rLo}%
+            </text>
+          </>
+        ) : null}
       </svg>
       <p className={styles.srOnly} data-testid="trend-summary">
         {summaryParts.join(" ")}

@@ -38,8 +38,9 @@ export function SourcesCard({
       <h2 className={styles.title}>이 정보는 어디서 왔나요</h2>
       <p className={styles.body}>
         가뭄 단계는 농어촌공사 공인 기준(평년 대비 {STAGE_THRESHOLD_TEXT}%)을
-        그대로 써요. ‘며칠 뒤’ 예측은 참고용이며, 공식 가뭄 예·경보가 항상
-        우선이에요.
+        그대로 써요. 앞으로 <b>한 달(30일)</b> 흐름과 ‘다음 단계에 이를 수 있는
+        시점’은 참고용이고, 공식 가뭄 전망은 <b>월 단위 발표</b>예요. 공식 가뭄
+        예·경보가 항상 우선이에요.
       </p>
       {estimate != null ? (
         <p className={styles.estimate}>

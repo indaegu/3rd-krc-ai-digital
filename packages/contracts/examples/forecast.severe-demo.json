@@ -254,7 +254,9 @@
     "outlook3m": {
       "code": "alert",
       "label": "경계"
-    }
+    },
+    "targetMonths": ["2026-08", "2026-09", "2026-10"],
+    "monthsSincePublished": 0
   },
   "asOf": "2026-07-21T00:00:00.000Z",
   "sources": ["논가뭄지도", "가뭄예경보자료"],

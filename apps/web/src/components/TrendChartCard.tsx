@@ -3,9 +3,10 @@
 // '저수율 흐름' 모듈 — 메인용 차트 카드. 제목·범례 + "자세히" → /trend.
 // 그래프 제목·대체 텍스트에 "지역 평년 대비 저수율"을 명시한다(design-system.md).
 //
-// 두 지표를 토글로 함께 볼 수 있다. **주 지표는 지역 평년 대비**(기본 선택)이고,
-// "저수지 실측"은 대표 저수지의 원저수율 시계열이다. 두 값은 축과 의미가 달라
-// 한 그래프에 겹쳐 그리지 않고 토글로만 바꿔 보여준다(product.md 두 저수율 분리).
+// 지표 토글 3종(product.md): **① 지역 평년 대비 예측**(기본) · ② 저수지 실측 ·
+// ③ 함께 보기. ③은 ①의 예측선·밴드를 그대로 두고 저수지 실측을 **오른쪽 축**에 참고선으로
+// 얹는다 — 두 값은 축·의미가 달라(원저수율 % vs 평년 대비 %) 같은 축에 겹치지 않는다.
+// 새 예측 모델을 만들지 않는다: 예측은 백테스트로 채택한 지역 모델 하나뿐이다(규칙 3).
 
 import type { ForecastResponse, StatusResponse } from "@mulsigye/contracts";
 import Link from "next/link";
@@ -16,7 +17,7 @@ import { TrendChart } from "./TrendChart";
 import styles from "./TrendChartCard.module.css";
 import { Card } from "./ui/Card";
 
-type ChartMode = "region" | "reservoir";
+type ChartMode = "region" | "reservoir" | "both";
 
 interface TrendChartCardProps {
   forecast: ForecastResponse;
@@ -37,20 +38,27 @@ export function TrendChartCard({
   // 점이 2개는 있어야 선으로 의미가 있다.
   const canToggle = rates.length >= 2;
   const showReservoir = canToggle && mode === "reservoir";
+  const showBoth = canToggle && mode === "both";
 
   return (
     <Card>
       <div className={styles.head}>
         <div className={styles.titles}>
           <h2 className={styles.title}>
-            {showReservoir ? "저수지 실제 저수율" : "지역 평년 대비 저수율"}
+            {showReservoir
+              ? "저수지 실제 저수율"
+              : showBoth
+                ? "지역 평년 대비 + 저수지 실측"
+                : "지역 평년 대비 저수율"}
           </h2>
           <p className={styles.sub}>
             {showReservoir
               ? `${reservoirName ?? "대표 저수지"} · 최근 ${String(rates.length)}일 실측`
-              : /* 공표 자료(논가뭄지도)는 연 1회 갱신이라 마지막 실측일이 오늘이 아닐 수 있다.
-                   어느 날짜 기준인지 부제에 그대로 밝힌다(날짜는 서버 observedOn에서만 온다). */
-                `${lastObservedOn === undefined ? "" : `${lastObservedOn} 기준 · `}지난 ${String(forecast.history.length)}일과 앞으로 ${String(forecast.forecast.length)}일`}
+              : showBoth
+                ? `예측은 지역 평년 대비 기준 · ${reservoirName ?? "대표 저수지"} 실측은 오른쪽 눈금`
+                : /* 공표 자료(논가뭄지도)는 연 1회 갱신이라 마지막 실측일이 오늘이 아닐 수 있다.
+                     어느 날짜 기준인지 부제에 그대로 밝힌다(날짜는 서버 observedOn에서만 온다). */
+                  `${lastObservedOn === undefined ? "" : `${lastObservedOn} 기준 · `}지난 ${String(forecast.history.length)}일과 앞으로 ${String(forecast.forecast.length)}일`}
           </p>
         </div>
         <Link href="/trend" className={styles.moreLink}>
@@ -83,6 +91,14 @@ export function TrendChartCard({
           >
             저수지 실측
           </button>
+          <button
+            type="button"
+            className={styles.toggleButton}
+            aria-pressed={mode === "both"}
+            onClick={() => setMode("both")}
+          >
+            함께 보기
+          </button>
         </div>
       ) : null}
 
@@ -90,7 +106,13 @@ export function TrendChartCard({
         <ReservoirRateChart history={rates} name={reservoirName} />
       ) : (
         /* 미니 차트에도 x축 날짜를 보여준다(#11 — 상세와 동일 showDates 경로). */
-        <TrendChart forecast={forecast} showDates />
+        <TrendChart
+          forecast={forecast}
+          showDates
+          {...(showBoth
+            ? { reservoirHistory: rates, reservoirName: reservoirName }
+            : {})}
+        />
       )}
 
       <ul className={styles.legend} aria-label="차트 범례">
@@ -113,6 +135,12 @@ export function TrendChartCard({
               <i className={styles.legendBand} aria-hidden="true" />
               불확실 구간
             </li>
+            {showBoth ? (
+              <li>
+                <i className={styles.legendReservoir} aria-hidden="true" />
+                저수지 실측(오른쪽 눈금)
+              </li>
+            ) : null}
           </>
         )}
       </ul>

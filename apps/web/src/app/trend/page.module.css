@@ -188,3 +188,25 @@
   background: var(--blue-tint);
   color: var(--blue-deep);
 }
+
+/* 지난 전망 고지 — 발표가 오래되어 지금 상황과 다를 수 있음을 밝힌다. */
+.outlookStale {
+  margin: 10px 0 0;
+  padding: 10px 12px;
+  color: var(--ink2);
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.6;
+  background: var(--gray100);
+  border-radius: var(--r-sm);
+}
+
+/* "함께 보기" 범례 — 오른쪽 축 참고선(저수지 원저수율). */
+.legendReservoir {
+  display: inline-block;
+  width: 16px;
+  height: 2px;
+  background: var(--ink3);
+  border-radius: 2px;
+  opacity: 0.75;
+}

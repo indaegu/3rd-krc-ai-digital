@@ -183,6 +183,28 @@ function addDaysIso(date: string, days: number): string {
   return new Date(ms).toISOString().slice(0, 10);
 }
 
+/** `YYYY-MM-DD`에 months를 더한 `YYYY-MM`. 일(day)은 버린다(월 단위 전망이라). */
+function addMonthsYm(date: string, months: number): string {
+  const year = Number(date.slice(0, 4));
+  const month = Number(date.slice(5, 7));
+  if (!Number.isFinite(year) || !Number.isFinite(month))
+    return date.slice(0, 7);
+  const zeroBased = year * 12 + (month - 1) + months;
+  const outYear = Math.floor(zeroBased / 12);
+  const outMonth = (zeroBased % 12) + 1;
+  return `${String(outYear)}-${String(outMonth).padStart(2, "0")}`;
+}
+
+/** 발행 월부터 기준 시각(KST 달력월)까지 지난 개월 수. 음수는 0으로 본다. */
+function monthsBetween(publishedOn: string, now: Date): number {
+  const kst = new Date(now.getTime() + 9 * 60 * 60 * 1000);
+  const from =
+    Number(publishedOn.slice(0, 4)) * 12 + Number(publishedOn.slice(5, 7));
+  const to = kst.getUTCFullYear() * 12 + (kst.getUTCMonth() + 1);
+  if (!Number.isFinite(from)) return 0;
+  return Math.max(0, to - from);
+}
+
 async function seriesFromSupabase(
   client: ForecastSupabaseClient | null,
   sigunCode: string,
@@ -261,6 +283,13 @@ function toOfficialOutlook(row: {
     outlook1m,
     outlook2m,
     outlook3m,
+    // 화면이 "1개월 뒤"라고 쓰지 않도록 **대상 월을 서버가 확정한다.**
+    // 원천이 연 1회 갱신이라 이 월들은 이미 지난 달일 수 있다.
+    targetMonths: [
+      addMonthsYm(row.publishedOn, 1),
+      addMonthsYm(row.publishedOn, 2),
+      addMonthsYm(row.publishedOn, 3),
+    ],
   };
 }
 
@@ -447,6 +476,14 @@ export async function buildForecast(
   );
   if (officialOutlook !== null) {
     sources.push(OFFICIAL_OUTLOOK_SOURCE);
+    // 발행 후 얼마나 지났는지도 서버가 확정한다 — 화면은 이 값으로 "지난 전망"을 고지한다.
+    officialOutlook = {
+      ...officialOutlook,
+      monthsSincePublished: monthsBetween(
+        officialOutlook.publishedOn,
+        (deps.now ?? (() => new Date()))(),
+      ),
+    };
   }
 
   const body: ForecastResponse = {

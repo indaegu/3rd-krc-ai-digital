@@ -33,8 +33,11 @@ import observationsSnapshotJson from "../../../../../data/snapshots/reservoir-ob
 import regionalSnapshotJson from "../../../../../data/snapshots/regional-drought-daily.json" with { type: "json" };
 import yearlyPositionJson from "../../../../../data/yearly-position.json" with { type: "json" };
 
-/** 응답에 담는 실측 시계열 최대 길이(계약 maxItems와 같다). */
-const RATE_HISTORY_MAX = 60;
+/**
+ * 응답에 담는 대표 저수지 실측 시계열 길이(일). 계약 maxItems(60) 안이다.
+ * 차트 "저수지 실측"을 30일로 보여 달라는 요청 기준값이다.
+ */
+export const RESERVOIR_HISTORY_DAYS = 30;
 
 export const WATERLEVEL_API_SOURCE = "농촌용수 저수지 수위정보 조회";
 export const SUPABASE_SNAPSHOT_SOURCE = "Supabase 스냅샷";
@@ -162,8 +165,8 @@ function defaultCreateClient(): StatusSupabaseClient {
   return createServiceRoleClient() as unknown as StatusSupabaseClient;
 }
 
-/** Supabase 폴백에서 만수위 추세 판정까지 가능하도록 최근 14일치를 조회한다. */
-const SUPABASE_OBSERVATION_LIMIT = 14;
+/** Supabase 폴백도 차트와 같은 30일치를 조회한다(만수위 판정은 마지막 2점만 본다). */
+const SUPABASE_OBSERVATION_LIMIT = RESERVOIR_HISTORY_DAYS;
 
 async function latestObservationFromSupabase(
   client: StatusSupabaseClient | null,
@@ -521,8 +524,8 @@ export async function buildStatus(
       rate: observation.rate,
       waterLevel: observation.waterLevel,
       observedOn: observation.observedOn,
-      // 차트 토글용 실측 시계열(계약 상한 60개). 지역 평년 대비와 축이 달라 함께 그리지 않는다.
-      rateHistory: observation.rateHistory.slice(-RATE_HISTORY_MAX),
+      // 차트 토글용 실측 시계열(최근 30일). 지역 평년 대비와 축·의미가 다르다.
+      rateHistory: observation.rateHistory.slice(-RESERVOIR_HISTORY_DAYS),
     },
     region: {
       observedOn: effectiveRegion.observedOn,

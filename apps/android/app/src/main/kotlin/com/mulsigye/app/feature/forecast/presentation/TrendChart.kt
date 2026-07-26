@@ -35,6 +35,7 @@ import com.mulsigye.app.core.ui.rememberReducedMotion
 import com.mulsigye.app.feature.forecast.domain.ForecastBandPoint
 import com.mulsigye.app.feature.forecast.domain.ForecastPoint
 import com.mulsigye.app.feature.forecast.domain.ForecastResult
+import com.mulsigye.app.feature.status.domain.ReservoirRatePoint
 import kotlin.math.ceil
 import kotlin.math.floor
 import kotlin.math.max
@@ -162,8 +163,22 @@ fun TrendChart(
     modifier: Modifier = Modifier,
     height: Dp = 220.dp,
     showDates: Boolean = false,
+    /**
+     * "함께 보기" 모드에서만 넘긴다 — 대표 저수지 실측 저수율 시계열.
+     *
+     * 예측선·밴드는 **지역 평년 대비 그대로**이고 이 값은 오른쪽 축의 참고선이다.
+     * 두 값은 축·의미가 달라(원저수율 % vs 평년 대비 %) 같은 축에 겹치지 않는다.
+     * 인덱스가 아니라 **날짜로 맞춰** 그리므로 겹치는 날짜가 없으면 그리지 않는다.
+     */
+    reservoirHistory: List<ReservoirRatePoint> = emptyList(),
+    reservoirName: String? = null,
 ) {
-    val description = buildContentDescription(forecast, includeDates = showDates)
+    val description = buildContentDescription(
+        forecast,
+        includeDates = showDates,
+        reservoirHistory = reservoirHistory,
+        reservoirName = reservoirName,
+    )
     val reducedMotion = rememberReducedMotion()
 
     // 그려-들어오기 진행도 0→1. reduced-motion이면 즉시 1로 스냅(애니메이션 없음).
@@ -236,6 +251,15 @@ fun TrendChart(
             }
         }
 
+        // "함께 보기" 참고선 — 오른쪽 축(저수지 원저수율). 예측 점선과 다른 색·굵기의 실선.
+        drawReservoirReference(
+            geo = geo,
+            history = forecast.history,
+            forecast = forecast.forecast,
+            reservoirHistory = reservoirHistory,
+            reveal = reveal,
+        )
+
         // x축 날짜 라벨(상세 전용, 정적) — observedOn에서만 유도한다.
         if (showDates) {
             drawDateLabels(geo, forecast.history, forecast.forecast)
@@ -243,30 +267,30 @@ fun TrendChart(
     }
 }
 
-/** x축 날짜 눈금 간격(일). 44일 구간을 7일마다 끊어 대략 6~7개 라벨이 붙는다. */
-private const val DATE_TICK_STEP_DAYS = 7
-
-/** 라벨끼리 겹치지 않게 유지할 최소 간격(일). 끝·'오늘' 라벨 주변 눈금을 솎아낸다. */
-private const val MIN_TICK_GAP = 2
+/** 눈금 간격으로 쓸 '보기 좋은' 일수 사다리. 필요한 최소 간격 이상인 첫 값을 쓴다. */
+private val NICE_STEP_DAYS = listOf(1, 2, 3, 7, 14, 21, 28, 35, 42, 56)
 
 /**
- * 눈금으로 쓸 (x, 날짜문자열) 목록을 고른다 — 순수 함수(테스트 대상).
+ * 눈금으로 쓸 인덱스 목록을 고른다 — 순수 함수(테스트 대상).
  *
- * 첫 실측일과 마지막 예측일은 항상 넣고, 그 사이를 [DATE_TICK_STEP_DAYS]마다 끊는다.
- * '오늘' 라벨과 겹치는 눈금은 뺀다(같은 자리에 두 글자가 겹치지 않게).
+ * 첫 실측일과 마지막 예측일은 항상 넣고, 그 사이를 일정 간격으로 끊는다.
+ * [minGap]은 **라벨이 겹치지 않으려면 몇 칸 이상 떨어져야 하는지**이며, 호출자가 실제 글자
+ * 폭에서 계산해 넘긴다. '일' 수로 고정하면 구간이 44일 → 90일로 늘 때 화면 간격이 절반으로
+ * 좁아져 날짜가 겹친다(웹 TrendChart와 같은 규칙).
  */
-internal fun dateTickIndices(total: Int, todayIndex: Int, step: Int = DATE_TICK_STEP_DAYS): List<Int> {
+internal fun dateTickIndices(total: Int, todayIndex: Int, minGap: Int): List<Int> {
     if (total <= 0) return emptyList()
     if (total == 1) return listOf(0)
     val last = total - 1
-    // 양 끝(첫날·마지막날)은 항상 두고, 사이를 step마다 끊는다.
-    // 끝 라벨·'오늘' 라벨과 너무 가까운 눈금은 글자가 겹치므로 뺀다(최소 간격 MIN_TICK_GAP일).
+    val gap = kotlin.math.max(1, minGap)
+    val step = NICE_STEP_DAYS.firstOrNull { it >= gap } ?: gap
+
     val ticks = LinkedHashSet<Int>()
     ticks += 0
     var i = step
     while (i < last) {
-        val farFromToday = kotlin.math.abs(i - todayIndex) > MIN_TICK_GAP
-        val farFromEnds = i > MIN_TICK_GAP && last - i > MIN_TICK_GAP
+        val farFromToday = kotlin.math.abs(i - todayIndex) >= gap
+        val farFromEnds = i >= gap && last - i >= gap
         if (farFromToday && farFromEnds) ticks += i
         i += step
     }
@@ -300,9 +324,15 @@ private fun DrawScope.drawDateLabels(
     fun xAt(index: Int): Float =
         geo.plotLeft + (geo.plotRight - geo.plotLeft) * (index.toFloat() / kotlin.math.max(1, total - 1))
 
+    // 라벨이 실제로 차지하는 폭에서 최소 간격을 뽑는다("12/31" 다섯 자 + 숨 쉴 틈).
+    val slotPx = paint.measureText("00/00") + 10.dp.toPx()
+    val unitsPerIndex =
+        (geo.plotRight - geo.plotLeft) / kotlin.math.max(1, total - 1).toFloat()
+    val minGap = kotlin.math.ceil(slotPx / kotlin.math.max(1f, unitsPerIndex)).toInt()
+
     // 옅은 세로 눈금선 — 날짜 라벨 위치를 그래프와 잇는다(과하지 않게 아주 옅게).
     val tickColor = Color(0x14191F28)
-    for (index in dateTickIndices(total, todayIndex)) {
+    for (index in dateTickIndices(total, todayIndex, minGap)) {
         val x = xAt(index)
         drawLine(
             color = tickColor,
@@ -357,6 +387,8 @@ private fun DrawScope.drawPolyline(
 private fun buildContentDescription(
     forecast: ForecastResult.Success,
     includeDates: Boolean = false,
+    reservoirHistory: List<ReservoirRatePoint> = emptyList(),
+    reservoirName: String? = null,
 ): String {
     val history = forecast.history
     val future = forecast.forecast
@@ -371,6 +403,12 @@ private fun buildContentDescription(
     if (lastFuture != null) {
         parts += "앞으로 ${future.size}일은 ${formatRatio(lastFuture.low)}%에서 ${formatRatio(lastFuture.high)}% 사이로 보여요."
     }
+    // "함께 보기"에서는 참고선의 의미를 읽어준다(왼쪽 축과 다른 값임을 분명히).
+    val lastRate = reservoirHistory.lastOrNull()
+    if (reservoirHistory.size >= 2 && lastRate != null) {
+        parts += "${reservoirName ?: "대표 저수지"} 실제 저수율은 오른쪽 눈금으로 함께 그렸고 " +
+            "마지막 값은 ${formatRatio(lastRate.rate)}%예요. 예측선과 띠는 지역 평년 대비 기준이에요."
+    }
     // 상세 차트는 날짜 축(observedOn)을 함께 읽어준다.
     if (includeDates && first != null && lastFuture != null) {
         parts += "기간은 ${formatMonthDay(first.observedOn)}부터 ${formatMonthDay(lastFuture.observedOn)}까지예요."
@@ -380,3 +418,72 @@ private fun buildContentDescription(
 
 private fun formatRatio(value: Double): String =
     if (value % 1.0 == 0.0) value.toLong().toString() else (Math.round(value * 10.0) / 10.0).toString()
+
+/**
+ * "함께 보기" 참고선 — 대표 저수지 원저수율을 **오른쪽 축**에 얹는다.
+ *
+ * 지역 평년 대비(왼쪽 축)와 값의 의미가 달라 축을 따로 둔다. 오른쪽 눈금(최소·최대 %)을
+ * 함께 그려 모양만 읽고 값을 오해하지 않게 한다. 예측은 여전히 지역 모델 하나뿐이다.
+ */
+private fun DrawScope.drawReservoirReference(
+    geo: TrendGeometry,
+    history: List<ForecastPoint>,
+    forecast: List<ForecastBandPoint>,
+    reservoirHistory: List<ReservoirRatePoint>,
+    reveal: Float,
+) {
+    if (reservoirHistory.size < 2) return
+
+    // 날짜 → x축 인덱스(실측 + 예측을 이은 순서, 기하 계산과 같다).
+    val dates = history.map { it.observedOn } + forecast.map { it.observedOn }
+    val indexByDate = dates.withIndex().associate { (index, date) -> date to index }
+    val onAxis = reservoirHistory.mapNotNull { point ->
+        indexByDate[point.observedOn]?.let { it to point.rate }
+    }
+    if (onAxis.size < 2) return
+
+    val total = dates.size
+    val rates = onAxis.map { it.second }
+    val lo = max(0.0, floor(rates.min() - RANGE_PADDING))
+    val hi = ceil(rates.max() + RANGE_PADDING)
+    val span = if (hi <= lo) 1.0 else hi - lo
+
+    fun xAt(index: Int): Float =
+        geo.plotLeft + (geo.plotRight - geo.plotLeft) * (index.toFloat() / max(1, total - 1))
+    fun yAt(value: Double): Float =
+        geo.plotTop + (geo.plotBottom - geo.plotTop) * (1f - ((value - lo) / span).toFloat())
+
+    val path = Path()
+    onAxis.forEachIndexed { i, (index, rate) ->
+        val x = xAt(index)
+        val y = yAt(rate)
+        if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
+    }
+    drawPath(
+        path = path,
+        color = Ink3,
+        alpha = 0.75f * reveal,
+        style = Stroke(width = 2.2.dp.toPx(), cap = StrokeCap.Round),
+    )
+
+    // 오른쪽 눈금 — 참고선의 값 범위를 밝힌다(클립 밖이라 항상 보인다).
+    val paint = Paint().apply {
+        color = Ink3.toArgb()
+        textSize = 11.dp.toPx()
+        isAntiAlias = true
+        textAlign = Paint.Align.RIGHT
+    }
+    val right = geo.plotRight
+    drawContext.canvas.nativeCanvas.drawText(
+        "${hi.toInt()}%",
+        right,
+        yAt(hi) + 10.dp.toPx(),
+        paint,
+    )
+    drawContext.canvas.nativeCanvas.drawText(
+        "${lo.toInt()}%",
+        right,
+        yAt(lo) - 3.dp.toPx(),
+        paint,
+    )
+}

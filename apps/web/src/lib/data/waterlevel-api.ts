@@ -14,8 +14,11 @@ export const WATERLEVEL_ENDPOINT =
 /** 60분 캐시 — Next 데이터 캐시 revalidate 초. */
 export const WATERLEVEL_REVALIDATE_SECONDS = 3600;
 
-/** 최근 14일 조회(시설코드 조회 최대 365일 제한 내). */
-const LOOKBACK_DAYS = 14;
+/**
+ * 대표 저수지 조회 기간(일). 시설코드 조회는 최대 365일이라 여유가 있다.
+ * 차트의 "저수지 실측"을 30일로 보여 달라는 요청에 맞춰 14 → 30으로 늘렸다.
+ */
+const LOOKBACK_DAYS = 30;
 const DEFAULT_TIMEOUT_MS = 5_000;
 const PAGE_SIZE = 100;
 const KST_OFFSET_MS = 9 * 60 * 60 * 1000;

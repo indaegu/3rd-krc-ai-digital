@@ -448,9 +448,18 @@ describe("단계 4 게이트 — 흐름 상세 /trend", () => {
     const outlook = WATCH.forecast.officialOutlook;
     expect(outlook).toBeTruthy();
     if (outlook) {
+      // 발표일은 "2026년 7월 10일 발표분"처럼 한글 날짜로 쓴다(연도까지 밝힌다).
+      const [year, month, day] = outlook.publishedOn.split("-");
       expect(
-        screen.getByText(new RegExp(outlook.publishedOn)),
+        screen.getByText(
+          new RegExp(
+            `${String(year)}년 ${String(Number(month))}월 ${String(Number(day))}일`,
+          ),
+        ),
       ).toBeInTheDocument();
+      // 기간 라벨은 "1개월 뒤"가 아니라 서버가 준 대상 월이어야 한다.
+      expect(screen.queryByText("1개월 뒤")).not.toBeInTheDocument();
+      expect(screen.getByText("발표 당시")).toBeInTheDocument();
     }
 
     // 접근성·카피 감사.

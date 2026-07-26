@@ -18,7 +18,7 @@ const sampleXml = readFileSync(
 // 디코딩 키 형태(+·/·=·& 포함) — encodeURIComponent가 실제로 필요함을 검증한다.
 const RAW_KEY = "raw+key/with=special&chars";
 const ENCODED_KEY = encodeURIComponent(RAW_KEY);
-// KST 2026-07-21 12:00 — date_e=20260721, date_s=20260708(최근 14일).
+// KST 2026-07-21 12:00 — date_e=20260721, date_s=20260622(최근 30일).
 const FIXED_NOW = new Date("2026-07-21T03:00:00.000Z");
 
 const FAC_CODE = "4423010045";
@@ -80,7 +80,7 @@ describe("fetchLatestWaterLevel — 성공 경로", () => {
     expectKeyNeverLogged();
   });
 
-  it("URL에 serviceKey를 encodeURIComponent로 넣고 fac_code·최근 14일 date_s/date_e를 담는다", async () => {
+  it("URL에 serviceKey를 encodeURIComponent로 넣고 fac_code·최근 30일 date_s/date_e를 담는다", async () => {
     const fetchMock = vi.fn(async () => xmlResponse(sampleXml));
     await fetchLatestWaterLevel(FAC_CODE, makeDeps(fetchMock));
 
@@ -94,7 +94,8 @@ describe("fetchLatestWaterLevel — 성공 경로", () => {
     expect(url).toContain(`serviceKey=${ENCODED_KEY}`);
     expect(url).not.toContain(RAW_KEY);
     expect(url).toContain(`fac_code=${FAC_CODE}`);
-    expect(url).toContain("date_s=20260708");
+    // 차트 "저수지 실측"을 30일로 보여주므로 조회도 30일이다(시설코드 조회 최대 365일).
+    expect(url).toContain("date_s=20260622");
     expect(url).toContain("date_e=20260721");
   });
 

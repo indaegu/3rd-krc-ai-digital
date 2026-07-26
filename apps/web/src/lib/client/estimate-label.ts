@@ -28,3 +28,24 @@ export function estimateBadgeLabel(observedOn: string, asOf: string): string {
     ? "오늘 추정"
     : `${koreanMonthDay(observedOn)} 추정`;
 }
+
+/**
+ * 공표값 경로의 기준일 배지. 논가뭄지도는 연 1회 갱신이라 추정을 못 쓰는 지역
+ * (게이트 탈락 등)에서는 지역 값이 **몇 달 전 공표값**일 수 있다. 그런데도 화면 상단에는
+ * "오늘 …시 기준"만 떠서 오늘 값처럼 읽혔다 — 기준일이 오늘이 아니면 배지로 밝힌다.
+ * 오늘이면 배지가 필요 없어 null이다.
+ */
+export function officialBadgeLabel(
+  observedOn: string,
+  asOf: string,
+): string | null {
+  if (observedOn === kstDateOf(asOf)) return null;
+  return `${koreanYearMonthDay(observedOn)} 공표 기준`;
+}
+
+/** `YYYY-MM-DD` → "2025년 12월 31일". 해가 다르면 연도까지 밝혀야 오해가 없다. */
+export function koreanYearMonthDay(observedOn: string): string {
+  const year = Number(observedOn.slice(0, 4));
+  if (!Number.isFinite(year)) return observedOn;
+  return `${String(year)}년 ${koreanMonthDay(observedOn)}`;
+}

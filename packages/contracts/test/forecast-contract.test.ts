@@ -103,6 +103,9 @@ describe("forecast contract fixtures", () => {
         outlook1m: { code: "care", label: "주의" },
         outlook2m: { code: "care", label: "주의" },
         outlook3m: { code: "watch", label: "관심" },
+        // 대상 월은 서버가 확정한다 — 화면이 "1개월 뒤"라고 쓰지 않게 한다(v1 additive).
+        targetMonths: ["2026-08", "2026-09", "2026-10"],
+        monthsSincePublished: 0,
       },
       asOf: "2026-07-21T00:00:00.000Z",
       sources: ["논가뭄지도", "가뭄예경보자료"],

@@ -5,7 +5,7 @@ import type { ForecastResponse } from "@mulsigye/contracts";
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
-import { TrendChart } from "./TrendChart";
+import { TrendChart, dateTickIndices, labelMinGap } from "./TrendChart";
 
 // packages/contracts/examples의 계약 정합 데모 픽스처를 그대로 재사용한다.
 function loadExample<T>(name: string): T {
@@ -216,5 +216,54 @@ describe("TrendChart 결정성", () => {
 
     const second = render(<TrendChart forecast={WATCH} />);
     expect(second.container.innerHTML).toBe(firstHtml);
+  });
+});
+
+// 실측 60일 + 예측 30일(90칸)로 늘어나면서 날짜 라벨이 서로 겹쳤다. 간격을 '일' 수가 아니라
+// 라벨 폭으로 판단하는지 — 즉 구간이 길어져도 눈금 사이가 라벨 한 칸보다 넓은지 확인한다.
+describe("TrendChart 날짜 눈금 간격", () => {
+  /** viewBox 좌표계 상수 — 컴포넌트와 같은 값(라벨 폭 46, 그림 영역 594). */
+  const PLOT_WIDTH = 640 - 34 - 12;
+  const LABEL_SLOT = 46;
+
+  const xOf = (index: number, total: number) =>
+    34 + (PLOT_WIDTH * index) / (total - 1);
+
+  for (const [total, todayIndex] of [
+    [90, 59],
+    [74, 59],
+    [44, 29],
+    [15, 14],
+  ] as const) {
+    it(`${String(total)}칸에서도 눈금 사이가 라벨 한 칸보다 넓다`, () => {
+      const ticks = dateTickIndices(total, todayIndex, labelMinGap(total));
+      const xs = ticks.map((index) => xOf(index, total));
+      for (let i = 1; i < xs.length; i += 1) {
+        const gap = (xs[i] ?? 0) - (xs[i - 1] ?? 0);
+        expect(
+          gap,
+          `ticks=${ticks.join(",")} 사이 간격 ${gap.toFixed(1)}`,
+        ).toBeGreaterThanOrEqual(LABEL_SLOT);
+      }
+      // 양 끝은 항상 남는다(첫 실측일·마지막 예측일).
+      expect(ticks[0]).toBe(0);
+      expect(ticks.at(-1)).toBe(total - 1);
+    });
+
+    it(`${String(total)}칸에서 '오늘' 라벨 자리를 비워 둔다`, () => {
+      const ticks = dateTickIndices(total, todayIndex, labelMinGap(total));
+      const todayX = xOf(todayIndex, total);
+      for (const index of ticks.slice(1, -1)) {
+        expect(Math.abs(xOf(index, total) - todayX)).toBeGreaterThanOrEqual(
+          LABEL_SLOT,
+        );
+      }
+    });
+  }
+
+  it("칸이 1~2개뿐이어도 터지지 않는다", () => {
+    expect(dateTickIndices(0, -1, labelMinGap(0))).toEqual([]);
+    expect(dateTickIndices(1, 0, labelMinGap(1))).toEqual([0]);
+    expect(dateTickIndices(2, 0, labelMinGap(2))).toEqual([0, 1]);
   });
 });

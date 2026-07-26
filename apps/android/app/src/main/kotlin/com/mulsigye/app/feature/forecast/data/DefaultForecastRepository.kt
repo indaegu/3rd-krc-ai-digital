@@ -69,6 +69,8 @@ class DefaultForecastRepository(
                                 outlook1m = it.outlook1m.toDomain(),
                                 outlook2m = it.outlook2m.toDomain(),
                                 outlook3m = it.outlook3m.toDomain(),
+                                targetMonths = it.targetMonths ?: emptyList(),
+                                monthsSincePublished = it.monthsSincePublished ?: 0,
                             )
                         },
                         stageGuide = body.stageGuide?.map {
