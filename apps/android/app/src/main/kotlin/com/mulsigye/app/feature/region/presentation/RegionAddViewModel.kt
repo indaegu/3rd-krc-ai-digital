@@ -9,6 +9,8 @@ import com.mulsigye.app.feature.region.domain.RegionCandidate
 import com.mulsigye.app.feature.region.domain.RegionRepository
 import com.mulsigye.app.feature.region.domain.RegionResolveResult
 import com.mulsigye.app.feature.region.domain.RegionSearchResult
+import com.mulsigye.app.feature.region.domain.ReservoirHit
+import com.mulsigye.app.feature.region.domain.ReservoirSearchResult
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -35,12 +37,25 @@ sealed interface ResolvePhase {
     data class Error(val message: String, val retryable: Boolean) : ResolvePhase
 }
 
+/** 저수지 이름 검색 단계(주소 검색과 독립). */
+sealed interface ReservoirPhase {
+    data object Idle : ReservoirPhase
+    data object Loading : ReservoirPhase
+    data class Ready(val hits: List<ReservoirHit>) : ReservoirPhase
+    data class Error(val message: String, val retryable: Boolean) : ReservoirPhase
+}
+
 data class RegionAddUiState(
     val query: String = "",
     val search: SearchPhase = SearchPhase.Idle,
     val selected: RegionCandidate? = null,
     val resolve: ResolvePhase = ResolvePhase.Idle,
     val registering: Boolean = false,
+    /** 저수지 이름 검색어(주소 검색어와 별개로 둔다 — 탭을 옮겨도 각자 유지된다). */
+    val reservoirQuery: String = "",
+    val reservoirSearch: ReservoirPhase = ReservoirPhase.Idle,
+    /** 사용자가 고른 저수지. 등록 확인 시트를 여는 조건이다. */
+    val selectedReservoir: ReservoirHit? = null,
 )
 
 /**
@@ -63,6 +78,7 @@ class RegionAddViewModel(
 
     private var searchJob: Job? = null
     private var resolveJob: Job? = null
+    private var reservoirJob: Job? = null
 
     fun onQueryChange(value: String) {
         _uiState.update { it.copy(query = value) }
@@ -123,11 +139,83 @@ class RegionAddViewModel(
     }
 
     private suspend fun runResolve(candidate: RegionCandidate) {
-        val phase = when (val result = regionRepository.resolve(candidate.admCd, candidate.legalCode)) {
+        // 읍·면·동/리를 함께 보내 시군 안에서 대표 저수지를 좁힌다(없으면 시군 단위).
+        val result = regionRepository.resolve(
+            admCd = candidate.admCd,
+            legalCode = candidate.legalCode,
+            emdNm = candidate.emdNm,
+            liNm = candidate.liNm,
+        )
+        val phase = when (result) {
             is RegionResolveResult.Success -> ResolvePhase.Ready(result)
             is RegionResolveResult.Failure -> ResolvePhase.Error(result.message, result.retryable)
         }
         _uiState.update { it.copy(resolve = phase) }
+    }
+
+    fun onReservoirQueryChange(value: String) {
+        _uiState.update { it.copy(reservoirQuery = value) }
+        val term = value.trim()
+        reservoirJob?.cancel()
+        if (term.length < MIN_QUERY_LENGTH) {
+            _uiState.update {
+                it.copy(reservoirSearch = ReservoirPhase.Idle, selectedReservoir = null)
+            }
+            return
+        }
+        reservoirJob = viewModelScope.launch(dispatcher) {
+            delay(debounceMillis)
+            runReservoirSearch(term)
+        }
+    }
+
+    fun retryReservoirSearch() {
+        val term = _uiState.value.reservoirQuery.trim()
+        if (term.length < MIN_QUERY_LENGTH) return
+        reservoirJob?.cancel()
+        reservoirJob = viewModelScope.launch(dispatcher) { runReservoirSearch(term) }
+    }
+
+    /** 준비되지 않은 시군은 고를 수 없다 — 목록에서 감추지 않고 선택만 막는다. */
+    fun onReservoirSelect(hit: ReservoirHit) {
+        if (!hit.prepared) return
+        _uiState.update { it.copy(selectedReservoir = hit) }
+    }
+
+    fun dismissReservoir() {
+        _uiState.update { it.copy(selectedReservoir = null) }
+    }
+
+    private suspend fun runReservoirSearch(term: String) {
+        _uiState.update { it.copy(reservoirSearch = ReservoirPhase.Loading, selectedReservoir = null) }
+        val phase = when (val result = regionRepository.searchReservoirs(term)) {
+            is ReservoirSearchResult.Success -> ReservoirPhase.Ready(result.reservoirs)
+            is ReservoirSearchResult.Failure ->
+                ReservoirPhase.Error(result.message, result.retryable)
+        }
+        _uiState.update { it.copy(reservoirSearch = phase) }
+    }
+
+    /**
+     * 저수지 이름으로 고른 지역을 등록한다. 주소 경로와 달리 resolve를 거치지 않는다 —
+     * 검색 결과에 시군코드·시설코드·준비 여부가 이미 있다.
+     */
+    fun registerReservoir(setAsPrimary: Boolean, onRegistered: () -> Unit) {
+        val state = _uiState.value
+        val hit = state.selectedReservoir
+        if (state.registering || hit == null || !hit.prepared) return
+
+        _uiState.update { it.copy(registering = true) }
+        viewModelScope.launch(dispatcher) {
+            regionStore.addRegion(
+                StoredRegion(sigunCode = hit.sigunCode, facCode = hit.facCode),
+            )
+            if (setAsPrimary) {
+                regionStore.setPrimaryRegion(hit.sigunCode)
+            }
+            _uiState.value = RegionAddUiState()
+            onRegistered()
+        }
     }
 
     /**

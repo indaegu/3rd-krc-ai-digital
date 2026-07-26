@@ -7,6 +7,8 @@ import com.mulsigye.app.feature.region.domain.RegionCandidate
 import com.mulsigye.app.feature.region.domain.RegionResolveResult
 import com.mulsigye.app.feature.region.domain.RegionSearchResult
 import com.mulsigye.app.feature.region.domain.RepresentativeReservoir
+import com.mulsigye.app.feature.region.domain.ReservoirHit
+import com.mulsigye.app.feature.region.domain.ReservoirSearchResult
 import java.time.Instant
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -301,5 +303,105 @@ class RegionAddViewModelTest {
         assertEquals(2, state.regions.size)
         assertEquals("11110", state.regions[0].sigunCode)
         assertEquals(0, state.currentIndex)
+    }
+
+    // 넓은 시군에서 늘 같은 저수지가 뽑히던 문제(제주시 → 상대 고정)를 막는 경로.
+    @Test
+    fun passesEmdAndLiToResolveSoRepresentativeIsNarrowed() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val jeju = RegionCandidate(
+            label = "제주특별자치도 제주시 조천읍 일주동로 1282",
+            admCd = "5011025924",
+            legalCode = "5011025924",
+            emdNm = "조천읍",
+            liNm = "함덕리",
+        )
+        val repo = FakeRegionRepository().apply {
+            searchDefault = searchSuccess(jeju)
+            resolveDefault = resolveSuccess(
+                prepared = true,
+                reservoir = RepresentativeReservoir(facCode = "5011010007", name = "함덕"),
+                sigunCode = "50110",
+                sigunName = "제주시",
+            )
+        }
+        val vm = RegionAddViewModel(repo, store(), dispatcher, debounceMillis = 0)
+
+        vm.onQueryChange("일주동로 1282")
+        advanceUntilIdle()
+        vm.onCandidateSelect(jeju)
+        advanceUntilIdle()
+
+        assertEquals("조천읍", repo.lastResolveEmdNm)
+        assertEquals("함덕리", repo.lastResolveLiNm)
+    }
+
+    @Test
+    fun registersByReservoirNameWithoutResolve() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val repo = FakeRegionRepository().apply {
+            reservoirDefault = ReservoirSearchResult.Success(
+                reservoirs = listOf(
+                    ReservoirHit(
+                        facCode = "5011010007",
+                        name = "함덕",
+                        address = "제주특별자치도 제주시 조천읍 함덕리",
+                        sigunCode = "50110",
+                        sigunName = "제주시",
+                        prepared = true,
+                    ),
+                ),
+            )
+        }
+        val storeInstance = store()
+        val vm = RegionAddViewModel(repo, storeInstance, dispatcher, debounceMillis = 0)
+
+        vm.onReservoirQueryChange("함덕")
+        advanceUntilIdle()
+        val phase = vm.uiState.value.reservoirSearch
+        assertTrue(phase is ReservoirPhase.Ready)
+        val hit = (phase as ReservoirPhase.Ready).hits.first()
+
+        vm.onReservoirSelect(hit)
+        assertEquals("함덕", vm.uiState.value.selectedReservoir?.name)
+
+        var registered = false
+        vm.registerReservoir(setAsPrimary = true) { registered = true }
+        advanceUntilIdle()
+
+        assertTrue(registered)
+        // 주소 경로와 달리 resolve를 부르지 않는다 — 검색 결과에 코드가 이미 있다.
+        assertEquals(0, repo.resolveCount)
+        val regions = storeInstance.regionStoreFlow.first().regions
+        assertEquals("50110", regions.first().sigunCode)
+        assertEquals("5011010007", regions.first().facCode)
+    }
+
+    @Test
+    fun unpreparedReservoirCannotBeSelected() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val repo = FakeRegionRepository().apply {
+            reservoirDefault = ReservoirSearchResult.Success(
+                reservoirs = listOf(
+                    ReservoirHit(
+                        facCode = "4971010001",
+                        name = "광령",
+                        address = "제주특별자치도 제주시 애월읍 광령리",
+                        sigunCode = "49710",
+                        sigunName = null,
+                        prepared = false,
+                    ),
+                ),
+            )
+        }
+        val vm = RegionAddViewModel(repo, store(), dispatcher, debounceMillis = 0)
+
+        vm.onReservoirQueryChange("광령")
+        advanceUntilIdle()
+        val hit = (vm.uiState.value.reservoirSearch as ReservoirPhase.Ready).hits.first()
+
+        vm.onReservoirSelect(hit)
+        // 선택이 무시돼 확인 시트가 열리지 않는다(목록에서 감추지는 않는다).
+        assertEquals(null, vm.uiState.value.selectedReservoir)
     }
 }

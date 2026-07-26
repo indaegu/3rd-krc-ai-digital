@@ -17,6 +17,20 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import com.mulsigye.app.feature.region.domain.ReservoirHit
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.sizeIn
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import com.mulsigye.app.core.designsystem.theme.BlueDeep
+import com.mulsigye.app.core.designsystem.theme.BlueTint
+import com.mulsigye.app.core.designsystem.theme.Gray100
+import com.mulsigye.app.core.designsystem.theme.Ink3
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
@@ -25,7 +39,10 @@ import androidx.compose.ui.unit.dp
 import com.mulsigye.app.feature.region.domain.RegionCandidate
 
 /**
- * 지역 추가 화면 — 상단 뒤로가기 + 제목, 본문은 [AddressSearch].
+ * 지역 추가 화면 — 상단 뒤로가기 + 제목, 본문은 검색 방식 두 가지다.
+ *   ① 주소로 찾기([AddressSearch]) — 도로명주소 → 시군 확정 → 대표 저수지 확인
+ *   ② 저수지 이름으로 찾기([ReservoirSearch]) — 아는 이름으로 바로 등록
+ * 넓은 시군에서는 주소만으로 원하는 저수지가 잡히지 않아(실측: 제주시 5곳) ②가 필요하다.
  *
  * 순수 컴포저블(상태 + 콜백)이라 Robolectric 단위 렌더가 가능하다. 네비게이션은
  * [onBack]·[onRegister] 콜백으로 위임한다(라우터는 Task 7).
@@ -41,7 +58,14 @@ fun RegionAddScreen(
     onRegister: (setAsPrimary: Boolean) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    onReservoirQueryChange: (String) -> Unit = {},
+    onReservoirSelect: (ReservoirHit) -> Unit = {},
+    onRetryReservoirSearch: () -> Unit = {},
+    onDismissReservoir: () -> Unit = {},
+    onRegisterReservoir: (setAsPrimary: Boolean) -> Unit = {},
 ) {
+    // 검색 방식 전환. 각 탭의 검색어·결과는 ViewModel에서 따로 들고 있어 옮겨도 유지된다.
+    var byReservoir by rememberSaveable { mutableStateOf(false) }
     Box(modifier = modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
@@ -67,11 +91,44 @@ fun RegionAddScreen(
                 )
             }
 
-            AddressSearch(
-                state = state,
-                onQueryChange = onQueryChange,
-                onCandidateSelect = onCandidateSelect,
-                onRetrySearch = onRetrySearch,
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                SearchModeToggle(
+                    label = "주소로 찾기",
+                    selected = !byReservoir,
+                    onClick = { byReservoir = false },
+                )
+                SearchModeToggle(
+                    label = "저수지 이름으로 찾기",
+                    selected = byReservoir,
+                    onClick = { byReservoir = true },
+                )
+            }
+
+            if (byReservoir) {
+                ReservoirSearch(
+                    state = state,
+                    onQueryChange = onReservoirQueryChange,
+                    onReservoirSelect = onReservoirSelect,
+                    onRetrySearch = onRetryReservoirSearch,
+                )
+            } else {
+                AddressSearch(
+                    state = state,
+                    onQueryChange = onQueryChange,
+                    onCandidateSelect = onCandidateSelect,
+                    onRetrySearch = onRetrySearch,
+                )
+            }
+        }
+
+        // 저수지 이름으로 고른 경우의 확인 팝업(resolve 없이 바로 등록).
+        state.selectedReservoir?.let { hit ->
+            BackHandler(enabled = true, onBack = onDismissReservoir)
+            ReservoirConfirmOverlay(
+                hit = hit,
+                registering = state.registering,
+                onRegister = onRegisterReservoir,
+                onDismiss = onDismissReservoir,
             )
         }
 
@@ -88,4 +145,21 @@ fun RegionAddScreen(
             )
         }
     }
+}
+
+/** 검색 방식 알약 버튼(주소 ↔ 저수지 이름). 선택된 쪽만 blue-tint로 강조한다. */
+@Composable
+private fun SearchModeToggle(label: String, selected: Boolean, onClick: () -> Unit) {
+    Text(
+        text = label,
+        style = MaterialTheme.typography.labelLarge,
+        color = if (selected) BlueDeep else Ink3,
+        modifier = Modifier
+            .clip(RoundedCornerShape(999.dp))
+            .background(if (selected) BlueTint else Gray100)
+            .clickable(onClick = onClick)
+            .semantics { contentDescription = if (selected) "$label 선택됨" else label }
+            .sizeIn(minHeight = 48.dp)
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+    )
 }

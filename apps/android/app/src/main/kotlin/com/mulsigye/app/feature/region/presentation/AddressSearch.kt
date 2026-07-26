@@ -63,7 +63,8 @@ import com.mulsigye.app.core.designsystem.theme.Ink3
 import com.mulsigye.app.feature.region.domain.RegionCandidate
 
 // 확인 팝업 딤: 동의 시트와 동일 규정 딤(design-system) rgba(25,31,40,.45).
-private val Scrim = Color(0x73191F28)
+// 저수지 이름 등록 팝업(ReservoirConfirmOverlay)도 같은 딤을 쓴다.
+internal val ConfirmScrim = Color(0x73191F28)
 
 /**
  * 주소 검색 → 시군구 확정 → 후보 목록 표시까지의 인라인 UI.
@@ -181,7 +182,7 @@ fun ResolveConfirmOverlay(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Scrim)
+                .background(ConfirmScrim)
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null,
@@ -239,7 +240,7 @@ fun ResolveConfirmOverlay(
                             )
                             // 기본 주소지(대표 지역) 설정 체크 — 시안 §10. 체크 상태를 등록에 전달한다:
                             // 켜짐이면 이 지역을 대표로, 끄면 이전 대표 지역을 유지한다(ViewModel.register).
-                            PrimaryAddressCheck(checked = primaryChecked, onToggle = { primaryChecked = !primaryChecked })
+                            PrimaryAddressCheckRow(checked = primaryChecked, onToggle = { primaryChecked = !primaryChecked })
                             CtaButton(
                                 text = "등록하기",
                                 onClick = { onRegister(primaryChecked) },
@@ -275,7 +276,7 @@ fun ResolveConfirmOverlay(
  * "기본 주소지로 설정" 체크 행(시안 §10). 파란 체크 + 라벨. 터치 타깃 48dp, 상태를 접근성으로 알린다.
  */
 @Composable
-private fun PrimaryAddressCheck(checked: Boolean, onToggle: () -> Unit) {
+internal fun PrimaryAddressCheckRow(checked: Boolean, onToggle: () -> Unit) {
     Row(
         modifier = Modifier
             .clip(RoundedCornerShape(12.dp))
@@ -330,7 +331,7 @@ private fun PrimaryAddressCheck(checked: Boolean, onToggle: () -> Unit) {
 
 /** 인라인 스피너 + 안내 문구(풀스크린 스피너 대신 쓰는 로딩 패턴). */
 @Composable
-private fun InlineSpinnerRow(text: String) {
+internal fun InlineSpinnerRow(text: String) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
         Spacer(Modifier.width(10.dp))
@@ -340,7 +341,7 @@ private fun InlineSpinnerRow(text: String) {
 
 /** 오류 문구 + (재시도 가능하면) 다시 시도 버튼. */
 @Composable
-private fun RetryBox(message: String, retryable: Boolean, onRetry: () -> Unit) {
+internal fun RetryBox(message: String, retryable: Boolean, onRetry: () -> Unit) {
     Surface(shape = RoundedCornerShape(12.dp), color = BlueTint, modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(text = message, style = MaterialTheme.typography.bodyLarge)

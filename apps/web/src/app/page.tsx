@@ -155,6 +155,9 @@ export default function HomePage() {
   const [nearby, setNearby] = useState<NearbyState>({ kind: "loading" });
   const [splashDone, setSplashDone] = useState(false);
   const mountedRef = useRef(true);
+  // 사용자가 저수지 이름으로 직접 고른 시설코드(기기 저장값). status 조회에만 실어 보내
+  // 그 저수지를 유지한다 — 없으면 서버가 규칙대로 대표지를 고른다.
+  const facCodeRef = useRef<string | undefined>(undefined);
 
   const finishSplash = useCallback(() => {
     setSplashDone(true);
@@ -179,6 +182,7 @@ export default function HomePage() {
       router.replace("/regions");
       return;
     }
+    facCodeRef.current = current.facCode;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- localStorage는 클라이언트 마운트 후에만 읽을 수 있다
     setRegion(current);
   }, [router]);
@@ -190,20 +194,23 @@ export default function HomePage() {
     setForecast({ kind: "loading" });
     setCoach({ kind: "loading" });
     setNearby({ kind: "loading" });
-    void getStatus(sigunCode).then((result) => {
-      if (!mountedRef.current) {
-        return;
-      }
-      if (result.kind === "ok") {
-        setStatus({ kind: "ready", data: result.data });
-      } else {
-        setStatus({
-          kind: "error",
-          message: result.message,
-          retryable: result.retryable,
-        });
-      }
-    });
+    const facCode = facCodeRef.current;
+    void getStatus(sigunCode, facCode === undefined ? {} : { facCode }).then(
+      (result) => {
+        if (!mountedRef.current) {
+          return;
+        }
+        if (result.kind === "ok") {
+          setStatus({ kind: "ready", data: result.data });
+        } else {
+          setStatus({
+            kind: "error",
+            message: result.message,
+            retryable: result.retryable,
+          });
+        }
+      },
+    );
     void getForecast(sigunCode).then((result) => {
       if (!mountedRef.current) {
         return;

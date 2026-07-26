@@ -24,6 +24,9 @@ const jusoResponseSchema = z.object({
           roadAddr: z.string(),
           admCd: z.string(),
           bdMgtSn: z.string(),
+          // 대표 저수지를 읍·면·동/리 단위로 좁히는 데 쓴다(좌표가 없어 거리 대신 행정구역).
+          emdNm: z.string().nullish(),
+          liNm: z.string().nullish(),
         }),
       )
       .nullish(),
@@ -37,6 +40,13 @@ export type JusoCandidate = {
   admCd: string;
   /** bdMgtSn 앞 10자리 법정동코드 — admCd 불일치 대비 폴백. */
   legalCode: string;
+  /**
+   * 읍·면·동 이름. 시군 안에서 대표 저수지를 좁히는 데만 쓰고 저장하지 않는다.
+   * 도심 주소 등에서 비어 올 수 있어 없으면 빈 문자열이다.
+   */
+  emdNm: string;
+  /** 리 이름. 위와 같다. */
+  liNm: string;
 };
 
 /**
@@ -152,6 +162,8 @@ export async function searchJusoAddresses(
       const label = entry.roadAddr.trim();
       const admCd = entry.admCd.trim();
       const legalCode = entry.bdMgtSn.trim().slice(0, 10);
+      const emdNm = (entry.emdNm ?? "").trim();
+      const liNm = (entry.liNm ?? "").trim();
       if (
         label === "" ||
         !CODE_PATTERN.test(admCd) ||
@@ -159,7 +171,7 @@ export async function searchJusoAddresses(
       ) {
         continue; // 코드 형식이 깨진 후보는 조용히 제외 — 주소 원문을 로그로 남기지 않는다.
       }
-      candidates.push({ label, admCd, legalCode });
+      candidates.push({ label, admCd, legalCode, emdNm, liNm });
     }
     return { ok: true, candidates };
   } catch {

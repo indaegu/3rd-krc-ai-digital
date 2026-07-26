@@ -101,9 +101,16 @@ export function AddressSearch() {
     setSelected(candidate);
     setResolveState({ kind: "loading" });
 
+    // 읍·면·동/리를 함께 보내 시군 안에서 대표 저수지를 좁힌다. 없으면 시군 단위로만 좁혀진다.
     const result = await resolveRegion({
       admCd: candidate.admCd,
       legalCode: candidate.legalCode,
+      ...(candidate.emdNm === undefined || candidate.emdNm === ""
+        ? {}
+        : { emdNm: candidate.emdNm }),
+      ...(candidate.liNm === undefined || candidate.liNm === ""
+        ? {}
+        : { liNm: candidate.liNm }),
     });
     if (requestId !== resolveIdRef.current) {
       return;

@@ -12,4 +12,8 @@ interface RegionApi {
 
     @POST("api/v1/regions/resolve")
     suspend fun resolveRegion(@Body body: RegionResolveRequestDto): Response<RegionResolveResponseDto>
+
+    /** 저수지 이름 검색 — 주소를 몰라도 아는 이름으로 지역을 등록하는 길. */
+    @GET("api/v1/reservoirs/search")
+    suspend fun searchReservoirs(@Query("q") query: String): Response<ReservoirSearchResponseDto>
 }

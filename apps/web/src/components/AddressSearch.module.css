@@ -182,3 +182,43 @@
   margin: 0 0 8px;
   color: var(--ink2);
 }
+
+/* 저수지 이름 검색 후보의 보조 줄(소재지·준비 중 안내). 같은 목록 스타일을 공유한다. */
+.candidateSub {
+  display: block;
+  margin-top: 4px;
+  color: var(--ink3);
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+.candidateButton:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+/* 검색 방식 전환(주소 ↔ 저수지 이름). 알약 두 개로 두고 선택된 쪽만 강조한다. */
+.modeToggle {
+  display: flex;
+  gap: 6px;
+  margin: 0 0 14px;
+}
+
+.modeButton {
+  flex: 1;
+  min-height: 48px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--gray100);
+  color: var(--ink2);
+  font: inherit;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.modeButton[aria-pressed="true"] {
+  background: var(--blue-tint);
+  color: var(--blue-deep);
+}

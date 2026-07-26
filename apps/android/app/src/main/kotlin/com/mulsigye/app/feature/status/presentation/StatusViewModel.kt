@@ -30,6 +30,8 @@ class StatusViewModel(
     private val repository: StatusRepository,
     private val sigunCode: String,
     private val dispatcher: CoroutineDispatcher = Dispatchers.IO,
+    /** 사용자가 저수지 이름으로 직접 고른 시설코드(기기 저장값). 없으면 규칙대로 고른다. */
+    private val facCode: String? = null,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow<StatusUiState>(StatusUiState.Loading)
     val uiState: StateFlow<StatusUiState> = _uiState.asStateFlow()
@@ -49,7 +51,7 @@ class StatusViewModel(
     private fun load() {
         _uiState.value = StatusUiState.Loading
         viewModelScope.launch(dispatcher) {
-            _uiState.value = when (val result = repository.load(sigunCode)) {
+            _uiState.value = when (val result = repository.load(sigunCode, facCode)) {
                 is StatusResult.Success -> StatusUiState.Ready(result)
                 is StatusResult.Failure -> StatusUiState.Error(
                     message = result.message,
@@ -62,11 +64,13 @@ class StatusViewModel(
     class Factory(
         private val repository: StatusRepository,
         private val sigunCode: String,
+        /** 저장된 선택 저수지. 없으면 서버가 규칙대로 대표지를 고른다. */
+        private val facCode: String? = null,
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             require(modelClass.isAssignableFrom(StatusViewModel::class.java))
-            return StatusViewModel(repository, sigunCode) as T
+            return StatusViewModel(repository, sigunCode, facCode = facCode) as T
         }
     }
 }

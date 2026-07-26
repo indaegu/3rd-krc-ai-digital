@@ -1,5 +1,7 @@
 // POST /api/v1/regions/resolve — 선택한 주소를 시군구·우리 지역 대표 저수지로 확정.
-// 요청에는 코드 2개(admCd·legalCode)만 받는다 — 주소 원문은 서버로 다시 오지 않는다.
+// 요청에는 코드 2개(admCd·legalCode)와 읍·면·동/리 이름만 받는다 — 주소 원문(도로명·번지)은
+// 서버로 다시 오지 않는다. 읍·면·동/리는 시군 안에서 대표 저수지를 좁히는 데만 쓰고
+// 저장·로그에 남기지 않는다(좌표·거리는 쓰지 않는다).
 // 후보가 없거나 준비되지 않은 지역도 HTTP 200 + prepared=false로 응답한다
 // (클라이언트 카피: "이 지역은 준비 중이에요").
 import type {
@@ -22,6 +24,11 @@ const CODE_PATTERN = /^[0-9]{10}$/;
 const bodySchema = z.strictObject({
   admCd: z.string().regex(CODE_PATTERN),
   legalCode: z.string().regex(CODE_PATTERN),
+  // v1 additive. 없으면 종전처럼 시군 단위로만 좁힌다.
+  emdNm: z.string().max(30).optional(),
+  liNm: z.string().max(30).optional(),
+  // 사용자가 저수지 이름으로 직접 고른 경우의 시설코드. 같은 시군 후보일 때만 쓰인다.
+  facCode: z.string().regex(CODE_PATTERN).optional(),
 });
 
 function errorResponse(status: number, error: ApiError): Response {
@@ -48,7 +55,16 @@ export function createResolveHandler(deps: RegionResolverDeps = {}) {
     if (!parsed.success) {
       return invalidBodyResponse();
     }
-    const resolveRequest: RegionResolveRequest = parsed.data;
+    // exactOptionalPropertyTypes — 없는 값은 키 자체를 넣지 않는다.
+    const resolveRequest: RegionResolveRequest = {
+      admCd: parsed.data.admCd,
+      legalCode: parsed.data.legalCode,
+      ...(parsed.data.emdNm === undefined ? {} : { emdNm: parsed.data.emdNm }),
+      ...(parsed.data.liNm === undefined ? {} : { liNm: parsed.data.liNm }),
+      ...(parsed.data.facCode === undefined
+        ? {}
+        : { facCode: parsed.data.facCode }),
+    };
 
     try {
       const resolution = await resolveRegion(resolveRequest, deps);

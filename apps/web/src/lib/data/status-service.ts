@@ -385,10 +385,22 @@ async function upsertObservations(
 export async function buildStatus(
   sigunCode: string,
   deps: StatusServiceDeps = {},
+  /**
+   * 사용자가 저수지 이름으로 직접 고른 시설코드. 주어지면 그 시설을 대표지로 쓴다
+   * (같은 시군 후보일 때만 — 아니면 무시하고 규칙대로 고른다).
+   * 이걸 받지 않으면 저수지 이름 검색으로 고른 값이 매 요청마다 규칙에 덮여 무의미해진다.
+   */
+  requestedFacCode?: string | null,
 ): Promise<StatusResult> {
   // resolver는 admCd/legalCode 앞 5자리만 사용한다 — sigunCode 하나로 재결정.
   const resolution = await resolveRegion(
-    { admCd: sigunCode, legalCode: sigunCode },
+    {
+      admCd: sigunCode,
+      legalCode: sigunCode,
+      ...(requestedFacCode === undefined || requestedFacCode === null
+        ? {}
+        : { facCode: requestedFacCode }),
+    },
     deps.resolver ?? {},
   );
   if (

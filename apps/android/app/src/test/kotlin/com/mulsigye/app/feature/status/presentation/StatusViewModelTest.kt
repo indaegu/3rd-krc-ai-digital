@@ -117,8 +117,13 @@ private class QueueStatusRepository(
     var callCount = 0
         private set
 
-    override suspend fun load(sigunCode: String): StatusResult {
+    /** 선택 저수지를 그대로 넘기는지 확인용. */
+    var lastFacCode: String? = null
+        private set
+
+    override suspend fun load(sigunCode: String, facCode: String?): StatusResult {
         callCount += 1
+        lastFacCode = facCode
         // removeFirst()는 compileSdk 36에서 API 35+ List 멤버로 바인딩돼 JDK 17에서 실패한다.
         return results.removeAt(0)
     }

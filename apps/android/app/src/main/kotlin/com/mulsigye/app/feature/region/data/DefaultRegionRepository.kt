@@ -10,6 +10,8 @@ import com.mulsigye.app.feature.region.domain.RegionRepository
 import com.mulsigye.app.feature.region.domain.RegionResolveResult
 import com.mulsigye.app.feature.region.domain.RegionSearchResult
 import com.mulsigye.app.feature.region.domain.RepresentativeReservoir
+import com.mulsigye.app.feature.region.domain.ReservoirHit
+import com.mulsigye.app.feature.region.domain.ReservoirSearchResult
 import java.io.IOException
 import java.time.Instant
 import java.time.format.DateTimeParseException
@@ -31,7 +33,14 @@ class DefaultRegionRepository(
                 } else {
                     RegionSearchResult.Success(
                         candidates = body.candidates.map {
-                            RegionCandidate(label = it.label, admCd = it.admCd, legalCode = it.legalCode)
+                            RegionCandidate(
+                                label = it.label,
+                                admCd = it.admCd,
+                                legalCode = it.legalCode,
+                                // 이 두 값이 빠지면 resolve가 시군 단위로만 좁혀 종전 문제로 돌아간다.
+                                emdNm = it.emdNm,
+                                liNm = it.liNm,
+                            )
                         },
                         asOf = Instant.parse(body.asOf),
                         sources = body.sources,
@@ -49,9 +58,24 @@ class DefaultRegionRepository(
             InvalidResponseFailure.toSearchFailure()
         }
 
-    override suspend fun resolve(admCd: String, legalCode: String): RegionResolveResult =
+    override suspend fun resolve(
+        admCd: String,
+        legalCode: String,
+        emdNm: String?,
+        liNm: String?,
+        facCode: String?,
+    ): RegionResolveResult =
         try {
-            val response = api.resolveRegion(RegionResolveRequestDto(admCd = admCd, legalCode = legalCode))
+            // 빈 문자열은 보내지 않는다 — 서버가 "없음"과 구분할 필요가 없게 null로 넘긴다.
+            val response = api.resolveRegion(
+                RegionResolveRequestDto(
+                    admCd = admCd,
+                    legalCode = legalCode,
+                    emdNm = emdNm?.takeIf { it.isNotBlank() },
+                    liNm = liNm?.takeIf { it.isNotBlank() },
+                    facCode = facCode?.takeIf { it.isNotBlank() },
+                ),
+            )
             val body = response.body()
             if (response.isSuccessful && body != null) {
                 if (body.schemaVersion != "1") {
@@ -79,6 +103,36 @@ class DefaultRegionRepository(
         } catch (_: DateTimeParseException) {
             InvalidResponseFailure.toResolveFailure()
         }
+
+    override suspend fun searchReservoirs(query: String): ReservoirSearchResult =
+        try {
+            val response = api.searchReservoirs(query)
+            val body = response.body()
+            if (response.isSuccessful && body != null) {
+                if (body.schemaVersion != "1") {
+                    InvalidResponseFailure.toReservoirFailure()
+                } else {
+                    ReservoirSearchResult.Success(
+                        reservoirs = body.reservoirs.map {
+                            ReservoirHit(
+                                facCode = it.facCode,
+                                name = it.name,
+                                address = it.address,
+                                sigunCode = it.sigunCode,
+                                sigunName = it.sigunName,
+                                prepared = it.prepared,
+                            )
+                        },
+                    )
+                }
+            } else {
+                response.toApiFailure(json).toReservoirFailure()
+            }
+        } catch (_: IOException) {
+            NetworkFailure.toReservoirFailure()
+        } catch (_: SerializationException) {
+            InvalidResponseFailure.toReservoirFailure()
+        }
 }
 
 private fun com.mulsigye.app.core.network.ApiFailure.toSearchFailure() =
@@ -86,3 +140,6 @@ private fun com.mulsigye.app.core.network.ApiFailure.toSearchFailure() =
 
 private fun com.mulsigye.app.core.network.ApiFailure.toResolveFailure() =
     RegionResolveResult.Failure(code = code, message = message, retryable = retryable)
+
+private fun com.mulsigye.app.core.network.ApiFailure.toReservoirFailure() =
+    ReservoirSearchResult.Failure(code = code, message = message, retryable = retryable)

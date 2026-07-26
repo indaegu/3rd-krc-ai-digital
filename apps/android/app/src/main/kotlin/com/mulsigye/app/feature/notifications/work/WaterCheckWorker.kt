@@ -35,7 +35,11 @@ class WaterCheckWorker(
         val region = container.regionStore.regionStoreFlow.first()
             .regions.getOrNull(PRIMARY_REGION_INDEX) ?: return Result.success()
 
-        val status = when (val result = container.statusRepository.load(region.sigunCode)) {
+        // 저장된 선택 저수지를 함께 넘긴다 — 넘기지 않으면 알림이 메인 화면과 다른 저수지를
+        // 말할 수 있다(주소 좁히기·이름 검색으로 고른 시설이 시군 기본값과 다를 수 있다).
+        val status = when (
+            val result = container.statusRepository.load(region.sigunCode, region.facCode)
+        ) {
             is StatusResult.Success -> result
             is StatusResult.Failure ->
                 // 네트워크·일시 오류면 다음 주기를 기다리기보다 한 번 재시도한다.

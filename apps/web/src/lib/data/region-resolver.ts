@@ -6,7 +6,10 @@
 import type { RegionResolveResponse } from "@mulsigye/contracts";
 import { z } from "zod";
 import type { ReservoirSpec } from "./normalize-reservoir-spec.ts";
-import { pickRepresentativeReservoir } from "./representative-reservoir.ts";
+import {
+  pickRepresentativeReservoir,
+  type AddressLocality,
+} from "./representative-reservoir.ts";
 import { createServiceRoleClient } from "./supabase-server.ts";
 import sigunIndexJson from "../../../../../data/snapshots/sigun-index.json" with { type: "json" };
 import reservoirsJson from "../../../../../data/snapshots/reservoirs.json" with { type: "json" };
@@ -52,6 +55,8 @@ const SNAPSHOT_RESERVOIRS: readonly ReservoirSpec[] = reservoirsJson;
 const reservoirRowSchema = z.object({
   fac_code: z.string().regex(/^[0-9]{10}$/),
   name: z.string().min(1),
+  // 소재지도 받는다 — 읍·면·동/리로 대표지를 좁히려면 필요하다(없으면 시군 단위로만 좁혀진다).
+  address: z.string().nullish(),
   beneficiary_area: z.coerce.number().nullable(),
 });
 
@@ -69,7 +74,7 @@ async function fetchReservoirsFromSupabase(
   const client = createClient();
   const { data, error } = await client
     .from("reservoirs")
-    .select("fac_code,name,beneficiary_area")
+    .select("fac_code,name,address,beneficiary_area")
     .eq("sigun_code", sigunCode);
   if (error !== null || data === null) {
     throw new Error("reservoirs 조회 실패");
@@ -79,7 +84,7 @@ async function fetchReservoirsFromSupabase(
     return {
       facCode: parsed.fac_code,
       name: parsed.name,
-      address: null,
+      address: parsed.address ?? null,
       sigunCode: parsed.fac_code.slice(0, 5),
       beneficiaryArea: parsed.beneficiary_area,
       effectiveStorage: null,
@@ -90,9 +95,22 @@ async function fetchReservoirsFromSupabase(
 /**
  * admCd·legalCode(각 10자리 검증 완료)를 시군구와 대표 저수지로 확정한다.
  * 같은 입력이면 항상 같은 결과 — 대표지 결정은 pickRepresentativeReservoir 규칙만 따른다.
+ *
+ * `emdNm`/`liNm`(도로명주소가 준 읍·면·동·리)을 함께 주면 시군 안에서 그 단위까지 좁힌다.
+ * 넓은 시군에서 늘 같은 저수지가 뽑히던 문제를 막는다(제주시 → 상대 고정). 좌표·거리는 쓰지
+ * 않으며, 이 값들은 대표지 결정에만 쓰고 저장·로그에 남기지 않는다.
+ *
+ * `facCode`를 주면(사용자가 저수지 이름으로 직접 고른 경우) 그 시설을 그대로 대표지로 쓴다 —
+ * 같은 시군에 속하고 후보 목록에 있을 때만이다.
  */
 export async function resolveRegion(
-  request: { admCd: string; legalCode: string },
+  request: {
+    admCd: string;
+    legalCode: string;
+    emdNm?: string | null;
+    liNm?: string | null;
+    facCode?: string | null;
+  },
   deps: RegionResolverDeps = {},
 ): Promise<RegionResolution> {
   const sigunIndex = deps.sigunIndex ?? SIGUN_INDEX;
@@ -133,7 +151,21 @@ export async function resolveRegion(
     stale = true;
   }
 
-  const representative = pickRepresentativeReservoir(matchedCode, candidates);
+  const locality: AddressLocality = {
+    emdNm: request.emdNm ?? null,
+    liNm: request.liNm ?? null,
+  };
+  // 사용자가 직접 고른 저수지가 있으면 그것이 대표지다(같은 시군 후보일 때만).
+  const chosen =
+    request.facCode === undefined || request.facCode === null
+      ? null
+      : (candidates.find(
+          (candidate) =>
+            candidate.facCode === request.facCode &&
+            candidate.sigunCode === matchedCode,
+        ) ?? null);
+  const representative =
+    chosen ?? pickRepresentativeReservoir(matchedCode, candidates, locality);
   return {
     sigunCode: matchedCode,
     sigunName: sigunIndex[matchedCode]?.sigunName ?? null,
