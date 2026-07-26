@@ -5,6 +5,27 @@
   font-weight: 700;
 }
 
+/* 큰 글자 = 도달 예정 단계 색(도달 없음이면 정상 색). */
+.big[data-stage="ok"] {
+  color: var(--ok-fg);
+}
+
+.big[data-stage="watch"] {
+  color: var(--watch-fg);
+}
+
+.big[data-stage="care"] {
+  color: var(--care-fg);
+}
+
+.big[data-stage="alert"] {
+  color: var(--alert-fg);
+}
+
+.big[data-stage="crit"] {
+  color: var(--crit-fg);
+}
+
 .big {
   margin: 2px 0 0;
   color: var(--blue);

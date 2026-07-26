@@ -13,7 +13,7 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.mulsigye.app.core.designsystem.component.MulsigyeCard
-import com.mulsigye.app.core.designsystem.theme.Blue
+import com.mulsigye.app.core.designsystem.theme.stageColorFor
 import com.mulsigye.app.core.designsystem.theme.Ink2
 import com.mulsigye.app.core.designsystem.theme.Ink3
 import com.mulsigye.app.feature.forecast.domain.ForecastResult
@@ -38,6 +38,8 @@ fun ReachCard(
     val model = forecast.model
     val days = reach.days
     val targetStage = reach.targetStage
+    // 큰 글자 색 = 도달 예정 단계 색(도달 없음이면 '정상' 색). 게이지·큰 숫자와 같은 축.
+    val emphasisColor = stageColorFor(targetStage?.code ?: "ok").fg
 
     MulsigyeCard(modifier = modifier) {
         Text(
@@ -52,7 +54,7 @@ fun ReachCard(
                 Text(
                     text = days.toString(),
                     style = MaterialTheme.typography.displayLarge,
-                    color = Blue,
+                    color = emphasisColor,
                 )
                 Text(
                     text = "일 뒤",
@@ -71,7 +73,7 @@ fun ReachCard(
             Text(
                 text = "안정",
                 style = MaterialTheme.typography.displayLarge,
-                color = Blue,
+                color = emphasisColor,
             )
             Spacer(Modifier.height(4.dp))
             Text(

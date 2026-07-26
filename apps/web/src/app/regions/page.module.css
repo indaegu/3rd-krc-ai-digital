@@ -8,7 +8,9 @@
 
 .header {
   display: grid;
-  gap: 8px;
+  /* 제목 · 보조문 · 아래 목록이 서로 붙어 보이지 않게 여유를 준다. */
+  gap: 12px;
+  margin-bottom: 8px;
 }
 
 .title {

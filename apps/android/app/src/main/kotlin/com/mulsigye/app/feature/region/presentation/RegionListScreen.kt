@@ -76,6 +76,10 @@ import kotlin.math.roundToInt
 /** 목록 항목 사이 간격(dp). 드래그 목표 인덱스 계산 시 한 칸 높이에 이 간격을 더한다. */
 private const val ROW_SPACING_DP = 12
 
+/** 줄 끝 아이콘(삭제 X·추가 +)의 공통 터치 크기와 글리프 크기 — 두 줄의 아이콘을 같은 자리에 맞춘다. */
+private val RowActionTouchSize = 48.dp
+private val RowActionGlyphSize = 15.dp
+
 /**
  * 누적 드래그량으로 목표 인덱스를 계산하는 순수 함수(테스트 대상).
  *
@@ -135,13 +139,14 @@ fun RegionListScreen(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = 20.dp, end = 20.dp, top = 20.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+                // 상단이 상태바에 붙어 보이지 않게 여백을 넉넉히 준다.
+                .padding(start = 20.dp, end = 20.dp, top = 32.dp, bottom = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(
                     modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     Text(
                         text = if (manage) "지역 관리" else "우리 지역을 등록하면\n수신호를 알려드려요.",
@@ -343,7 +348,9 @@ private fun AddRegionRow(onClick: () -> Unit) {
         color = Gray50,
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 20.dp),
+            modifier = Modifier
+                .heightIn(min = 60.dp)
+                .padding(start = 16.dp, end = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
@@ -352,7 +359,18 @@ private fun AddRegionRow(onClick: () -> Unit) {
                 color = Ink3,
                 modifier = Modifier.weight(1f),
             )
-            Text(text = "+", style = MaterialTheme.typography.titleLarge, color = Ink3)
+            // 삭제 X와 같은 터치 크기·같은 오른쪽 위치에 두어 두 줄의 아이콘이 세로로 맞는다.
+            Box(
+                modifier = Modifier.size(RowActionTouchSize),
+                contentAlignment = Alignment.Center,
+            ) {
+                Canvas(modifier = Modifier.size(RowActionGlyphSize)) {
+                    val s = size.width
+                    val w = s * 0.16f
+                    drawLine(Ink3, Offset(0f, s / 2f), Offset(s, s / 2f), strokeWidth = w, cap = StrokeCap.Round)
+                    drawLine(Ink3, Offset(s / 2f, 0f), Offset(s / 2f, s), strokeWidth = w, cap = StrokeCap.Round)
+                }
+            }
         }
     }
 }
@@ -464,14 +482,15 @@ private fun RegionRow(
             } else {
                 Box(
                     modifier = Modifier
-                        .size(48.dp)
+                        .size(RowActionTouchSize)
                         .clickable(onClick = onRemove)
                         .semantics { contentDescription = "$displayName 삭제" },
                     contentAlignment = Alignment.Center,
                 ) {
-                    Canvas(modifier = Modifier.size(13.dp)) {
+                    // X와 아래 "+"는 같은 글리프 크기·같은 오른쪽 위치를 쓴다(줄 끝 정렬 통일).
+                    Canvas(modifier = Modifier.size(RowActionGlyphSize)) {
                         val s = size.width
-                        val w = s * 0.15f
+                        val w = s * 0.16f
                         drawLine(Ink2, Offset(0f, 0f), Offset(s, s), strokeWidth = w, cap = StrokeCap.Round)
                         drawLine(Ink2, Offset(s, 0f), Offset(0f, s), strokeWidth = w, cap = StrokeCap.Round)
                     }

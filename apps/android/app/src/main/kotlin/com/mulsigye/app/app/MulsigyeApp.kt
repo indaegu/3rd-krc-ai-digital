@@ -12,6 +12,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -58,6 +59,9 @@ import com.mulsigye.app.feature.status.presentation.StatusViewModel
 import com.mulsigye.app.feature.coach.presentation.CoachViewModel
 import com.mulsigye.app.feature.nearby.presentation.NearbyViewModel
 import kotlinx.coroutines.launch
+
+/** 화면 공통 상단 여백 — 상태바와 제목 사이 숨 쉴 틈. */
+private val ScreenTopSpacing = 12.dp
 
 // #2 동의 시트 뒤 콘텐츠 블러 강도. 뒤 텍스트가 읽히지 않을 만큼 충분히 흐리게(API 31+).
 private val ConsentBackdropBlur = 18.dp
@@ -140,6 +144,8 @@ fun AppRouter(container: AppContainer, store: RegionStoreState) {
             modifier = Modifier
                 .fillMaxSize()
                 .statusBarsPadding()
+                // 상태바 바로 아래에 제목이 붙어 보이지 않도록 화면 공통 상단 여백을 둔다.
+                .padding(top = ScreenTopSpacing)
                 .navigationBarsPadding()
                 .then(if (blurBehindConsent) Modifier.blur(ConsentBackdropBlur) else Modifier),
         ) {

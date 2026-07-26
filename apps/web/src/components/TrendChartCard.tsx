@@ -13,12 +13,17 @@ interface TrendChartCardProps {
 }
 
 export function TrendChartCard({ forecast }: TrendChartCardProps) {
+  const lastObservedOn = forecast.history.at(-1)?.observedOn;
+
   return (
     <Card>
       <div className={styles.head}>
         <div className={styles.titles}>
           <h2 className={styles.title}>지역 평년 대비 저수율</h2>
           <p className={styles.sub}>
+            {/* 공표 자료(논가뭄지도)는 연 1회 갱신이라 마지막 실측일이 오늘이 아닐 수 있다.
+                어느 날짜 기준인지 부제에 그대로 밝힌다(날짜는 서버 observedOn에서만 온다). */}
+            {lastObservedOn === undefined ? null : `${lastObservedOn} 기준 · `}
             지난 {forecast.history.length}일과 앞으로 {forecast.forecast.length}
             일
           </p>

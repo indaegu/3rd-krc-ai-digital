@@ -93,7 +93,7 @@ describe("TodayCard 상태 4종", () => {
       expect(
         screen.getByText(String(demo.status.reservoir.rate)),
       ).toBeInTheDocument();
-      expect(container.textContent).toContain("저수지 실제 저수율은");
+      expect(container.textContent).toContain("실제 저수율은");
       // 게이지 단계 눈금 라벨 5종이 렌더된다(stageBands 존재 경로).
       for (const label of ZONE_LABELS) {
         expect(screen.getAllByText(label).length).toBeGreaterThanOrEqual(1);
@@ -107,9 +107,7 @@ describe("TodayCard 관측 실패", () => {
   it("rate가 null이면 원저수율 보조 줄에 '아직 없어요'를 보여준다", () => {
     const { container } = render(<TodayCard status={STALE_NULL_RATE} />);
 
-    expect(
-      screen.getByText("저수지 실제 저수율은 아직 없어요"),
-    ).toBeInTheDocument();
+    expect(screen.getByText("실제 저수율은 아직 없어요")).toBeInTheDocument();
     expect(screen.queryByText("null")).not.toBeInTheDocument();
     // 큰 숫자는 여전히 평년 대비 avgRatio다.
     expect(

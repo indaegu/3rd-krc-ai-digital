@@ -2,7 +2,7 @@
   position: relative;
   width: min(100% - 32px, 560px);
   margin: 0 auto;
-  padding: 12px 0 48px;
+  padding: 24px 0 48px;
 }
 
 /* 브랜드 그라디언트 배경 — 온보딩·스플래시처럼 화면 전체에 깔린다.

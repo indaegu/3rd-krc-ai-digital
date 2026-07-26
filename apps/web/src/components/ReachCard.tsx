@@ -25,7 +25,10 @@ export function ReachCard({ forecast }: ReachCardProps) {
       <h2 className={styles.eyebrow}>이 추세라면</h2>
       {reachable ? (
         <>
-          <p className={styles.big}>
+          <p
+            className={styles.big}
+            data-stage={reach.targetStage?.code ?? "ok"}
+          >
             {reach.days}
             <span className={styles.suffix}>일 뒤</span>
           </p>
@@ -36,7 +39,12 @@ export function ReachCard({ forecast }: ReachCardProps) {
         </>
       ) : (
         <>
-          <p className={styles.big}>안정</p>
+          <p
+            className={styles.big}
+            data-stage={reach.targetStage?.code ?? "ok"}
+          >
+            안정
+          </p>
           <p className={styles.desc}>
             당분간 물 사정이 안정적으로 유지될 것으로 보여요
           </p>

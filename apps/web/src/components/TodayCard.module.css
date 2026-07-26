@@ -36,6 +36,27 @@
 }
 
 /* 단계 텍스트 — 색으로만 단계를 구분하지 않으며(라벨 텍스트가 주 전달), fg 토큰으로 강조만. */
+/* 큰 값도 단계 색을 따른다(게이지 물 색과 같은 축). */
+.rateLine[data-stage="ok"] {
+  color: var(--ok-fg);
+}
+
+.rateLine[data-stage="watch"] {
+  color: var(--watch-fg);
+}
+
+.rateLine[data-stage="care"] {
+  color: var(--care-fg);
+}
+
+.rateLine[data-stage="alert"] {
+  color: var(--alert-fg);
+}
+
+.rateLine[data-stage="crit"] {
+  color: var(--crit-fg);
+}
+
 .stage {
   font-weight: 700;
 }
@@ -94,6 +115,8 @@
   color: var(--ink3);
   font-size: 0.875rem;
   font-weight: 500;
+  /* 숫자와 단위가 갈라지지 않게 한 줄로 유지한다. */
+  white-space: nowrap;
 }
 
 .secondary b {

@@ -110,19 +110,17 @@ export function TodayCard({ status }: TodayCardProps) {
               {stage.label}
             </b>
           </p>
-          <p className={styles.rateLine}>
+          <p className={styles.rateLine} data-stage={stageCode}>
             <span ref={numberRef}>0</span>
             <span className={styles.rateUnit}>%</span>
           </p>
           <div className={styles.block}>
             <p className={styles.headline}>{headline}</p>
             {rate === null ? (
-              <p className={styles.secondary}>
-                저수지 실제 저수율은 아직 없어요
-              </p>
+              <p className={styles.secondary}>실제 저수율은 아직 없어요</p>
             ) : (
               <p className={styles.secondary}>
-                저수지 실제 저수율은 <b>{formatRate(rate)}</b>%예요
+                실제 저수율은 <b>{formatRate(rate)}</b>%예요
               </p>
             )}
           </div>

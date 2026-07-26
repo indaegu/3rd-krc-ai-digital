@@ -55,7 +55,11 @@ fun TrendChartCard(
                     modifier = Modifier.semantics { heading() },
                 )
                 Text(
-                    text = "지난 ${forecast.history.size}일과 앞으로 ${forecast.forecast.size}일",
+                    // 공표 자료(논가뭄지도)는 연 1회 갱신이라 마지막 실측일이 오늘이 아닐 수 있다.
+                    // 어느 날짜 기준인지 부제에 그대로 밝힌다(날짜는 서버 observedOn에서만 온다).
+                    text = forecast.history.lastOrNull()?.observedOn
+                        ?.let { "$it 기준 · 지난 ${forecast.history.size}일과 앞으로 ${forecast.forecast.size}일" }
+                        ?: "지난 ${forecast.history.size}일과 앞으로 ${forecast.forecast.size}일",
                     style = MaterialTheme.typography.labelMedium,
                     color = Ink3,
                 )
