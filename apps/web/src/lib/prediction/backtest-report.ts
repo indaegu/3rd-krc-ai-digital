@@ -65,6 +65,7 @@ export const backtestReportSchema = z.strictObject({
     ma7: modelResultSchema,
     linear: modelResultSchema,
     ses: modelResultSchema,
+    damped: modelResultSchema,
   }),
   selectedModel: z.strictObject({
     name: modelNameSchema,

@@ -135,6 +135,7 @@ describe("GET /api/v1/status", () => {
       rate: 60.4,
       waterLevel: 27.48,
       observedOn: "2026-07-20",
+      rateHistory: expect.any(Array),
     });
     expect(body.region.avgRatio).toBe(112.7);
     expect(body.region.officialStage).toEqual({ code: "ok", label: "정상" });

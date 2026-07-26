@@ -52,4 +52,14 @@ class ReservoirGaugeLogicTest {
         assertTrue(zoneLineFractionsFromTop(null).isEmpty())
         assertTrue(zoneLineFractionsFromTop(emptyList()).isEmpty())
     }
+
+    @Test
+    fun `100 미만 값은 만수로 반올림되지 않는다`() {
+        // 물결 진폭 때문에 96~99%가 "가득 참"으로 보이면 안 된다(모션 설정에 따라 값이 달라지면 안 됨).
+        assertEquals(97f, gaugeFillPercent(97.0))
+        assertEquals(96.4f, gaugeFillPercent(96.4))
+        assertEquals(99.9f, gaugeFillPercent(99.9))
+        // 100 이상만 만수로 자른다.
+        assertEquals(100f, gaugeFillPercent(112.7))
+    }
 }

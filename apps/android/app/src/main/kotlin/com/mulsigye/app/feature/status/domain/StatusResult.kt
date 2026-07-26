@@ -8,6 +8,12 @@ data class DroughtStage(
     val label: String,
 )
 
+/** 대표 저수지 실측 한 점(날짜 + 원저수율 %). 차트 토글의 "저수지 실측"에 쓴다. */
+data class ReservoirRatePoint(
+    val observedOn: String,
+    val rate: Double,
+)
+
 /** 대표 저수지 최신 관측값. rate는 원저수율(%)이며 avgRatio와 섞지 않는다. */
 data class ReservoirStatus(
     val facCode: String,
@@ -15,6 +21,8 @@ data class ReservoirStatus(
     val rate: Double?,
     val waterLevel: Double?,
     val observedOn: String?,
+    /** 최근 실측 시계열(오래된 날짜부터). 서버가 주지 않으면 빈 목록. */
+    val rateHistory: List<ReservoirRatePoint> = emptyList(),
 )
 
 /** 논가뭄지도 기준 지역 공식 값. */

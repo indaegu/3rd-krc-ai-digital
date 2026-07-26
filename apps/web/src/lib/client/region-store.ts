@@ -132,6 +132,30 @@ export function addRegion(region: StoredRegion): RegionStore {
   return store;
 }
 
+/**
+ * 기본 주소지(대표 지역) 지정 — 해당 시군을 목록 맨 위(index 0)로 옮기고 선택도 거기로 둔다.
+ * 대표의 정의가 "목록 0번"이라(product.md #7) 선택 인덱스만 바꾸면 다시 열 때 되돌아간다.
+ * 목록에 없는 코드면 그대로 둔다.
+ */
+export function setPrimaryRegion(sigunCode: string): RegionStore {
+  const store = loadRegionStore();
+  const index = store.regions.findIndex(
+    (region) => region.sigunCode === sigunCode,
+  );
+  if (index < 0) {
+    return store;
+  }
+  const regions = [...store.regions];
+  const [moved] = regions.splice(index, 1);
+  if (moved === undefined) {
+    return store;
+  }
+  regions.unshift(moved);
+  const next: RegionStore = { ...store, regions, currentIndex: 0 };
+  saveRegionStore(next);
+  return next;
+}
+
 /** 지역 삭제. 현재 선택이 삭제되거나 앞당겨지면 currentIndex를 보정한다. */
 export function removeRegion(sigunCode: string): RegionStore {
   const store = loadRegionStore();

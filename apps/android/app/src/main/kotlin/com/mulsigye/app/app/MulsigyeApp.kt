@@ -219,6 +219,7 @@ private fun RegionsRoute(
         onToggleManageMode = vm::toggleManageMode,
         onToggleSelection = vm::toggleSelection,
         onDeleteSelected = vm::deleteSelected,
+        onSetPrimary = vm::setPrimary,
         onNavigateAdd = { backStack.push(Screen.RegionAdd) },
         onNavigateNotifications = { backStack.push(Screen.NotificationSettings) },
         onStart = onStart,

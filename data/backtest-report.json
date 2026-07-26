@@ -2,8 +2,8 @@
   "reportVersion": "backtest-v1",
   "sourceFile": "한국농어촌공사_논가뭄지도_20251231.csv",
   "sourceChecksum": "02d2392898289ab5c473b5c1c6c9220f8ade84bbeed4f4e68507a8da2efad319",
-  "runAt": "2026-07-24T13:39:00.023Z",
-  "gitCommit": "f1dcf9e5510a1040e19c9415b64fd9c816648d0a",
+  "runAt": "2026-07-26T05:29:53.319Z",
+  "gitCommit": "c65a8f2b72bb7bde39477b3643ac34f8bfc3cbe9",
   "modelParams": {
     "modelVersion": "pred-v1",
     "linearWindowDays": 14,
@@ -4986,6 +4986,1248 @@
           "mae14": 3.1397,
           "rmse14": 5.2853,
           "bandScale": 0.98
+        }
+      }
+    },
+    "damped": {
+      "macro": {
+        "mae7": 2.1061,
+        "rmse7": 3.7839,
+        "mae14": 3.0541,
+        "rmse14": 5.2449
+      },
+      "byRegion": {
+        "26710": {
+          "originCount": 6,
+          "mae7": 1.8737,
+          "rmse7": 4.0312,
+          "mae14": 2.5991,
+          "rmse14": 5.4959,
+          "bandScale": 1.05
+        },
+        "27000": {
+          "originCount": 6,
+          "mae7": 0.7907,
+          "rmse7": 1.2717,
+          "mae14": 1.409,
+          "rmse14": 2.4821,
+          "bandScale": 0.6
+        },
+        "27710": {
+          "originCount": 6,
+          "mae7": 1.759,
+          "rmse7": 2.5383,
+          "mae14": 2.3965,
+          "rmse14": 3.5635,
+          "bandScale": 0.68
+        },
+        "27720": {
+          "originCount": 6,
+          "mae7": 3.9082,
+          "rmse7": 7.8733,
+          "mae14": 6.6919,
+          "rmse14": 13.0812,
+          "bandScale": 1.6
+        },
+        "28710": {
+          "originCount": 6,
+          "mae7": 0.6205,
+          "rmse7": 1.2005,
+          "mae14": 0.7313,
+          "rmse14": 1.2038,
+          "bandScale": 0.6
+        },
+        "28720": {
+          "originCount": 6,
+          "mae7": 0.7705,
+          "rmse7": 2.6766,
+          "mae14": 0.9079,
+          "rmse14": 2.8931,
+          "bandScale": 0.6
+        },
+        "29000": {
+          "originCount": 6,
+          "mae7": 0.6425,
+          "rmse7": 0.9124,
+          "mae14": 1.0279,
+          "rmse14": 1.3881,
+          "bandScale": 0.6
+        },
+        "30000": {
+          "originCount": 6,
+          "mae7": 2.0361,
+          "rmse7": 3.0423,
+          "mae14": 3.5845,
+          "rmse14": 5.3314,
+          "bandScale": 1.02
+        },
+        "31000": {
+          "originCount": 6,
+          "mae7": 2.0507,
+          "rmse7": 3.1878,
+          "mae14": 3.3113,
+          "rmse14": 4.9694,
+          "bandScale": 0.95
+        },
+        "31710": {
+          "originCount": 6,
+          "mae7": 1.979,
+          "rmse7": 4.4532,
+          "mae14": 2.9739,
+          "rmse14": 6.7376,
+          "bandScale": 1.28
+        },
+        "36110": {
+          "originCount": 6,
+          "mae7": 0.5863,
+          "rmse7": 0.8669,
+          "mae14": 0.9268,
+          "rmse14": 1.3636,
+          "bandScale": 0.6
+        },
+        "41110": {
+          "originCount": 6,
+          "mae7": 2.9104,
+          "rmse7": 5.5194,
+          "mae14": 2.8408,
+          "rmse14": 4.628,
+          "bandScale": 0.88
+        },
+        "41130": {
+          "originCount": 6,
+          "mae7": 3.28,
+          "rmse7": 5.1514,
+          "mae14": 3.5797,
+          "rmse14": 5.3708,
+          "bandScale": 1.02
+        },
+        "41210": {
+          "originCount": 6,
+          "mae7": 0,
+          "rmse7": 0,
+          "mae14": 0,
+          "rmse14": 0,
+          "bandScale": 0.6
+        },
+        "41220": {
+          "originCount": 6,
+          "mae7": 0.8323,
+          "rmse7": 1.0909,
+          "mae14": 1.3917,
+          "rmse14": 1.8566,
+          "bandScale": 0.6
+        },
+        "41270": {
+          "originCount": 6,
+          "mae7": 0,
+          "rmse7": 0,
+          "mae14": 0,
+          "rmse14": 0,
+          "bandScale": 0.6
+        },
+        "41290": {
+          "originCount": 6,
+          "mae7": 3.262,
+          "rmse7": 5.2444,
+          "mae14": 3.9856,
+          "rmse14": 6.0363,
+          "bandScale": 1.15
+        },
+        "41360": {
+          "originCount": 6,
+          "mae7": 1.0931,
+          "rmse7": 1.7226,
+          "mae14": 2.0771,
+          "rmse14": 3.911,
+          "bandScale": 0.75
+        },
+        "41370": {
+          "originCount": 6,
+          "mae7": 1.2901,
+          "rmse7": 2.3789,
+          "mae14": 2.9406,
+          "rmse14": 5.8874,
+          "bandScale": 1.12
+        },
+        "41390": {
+          "originCount": 6,
+          "mae7": 0.919,
+          "rmse7": 1.4211,
+          "mae14": 1.5635,
+          "rmse14": 2.0704,
+          "bandScale": 0.6
+        },
+        "41410": {
+          "originCount": 6,
+          "mae7": 1.4135,
+          "rmse7": 2.3388,
+          "mae14": 1.6465,
+          "rmse14": 2.6472,
+          "bandScale": 0.6
+        },
+        "41430": {
+          "originCount": 6,
+          "mae7": 1.5417,
+          "rmse7": 2.4592,
+          "mae14": 2.8163,
+          "rmse14": 4.636,
+          "bandScale": 0.88
+        },
+        "41460": {
+          "originCount": 6,
+          "mae7": 1.9429,
+          "rmse7": 2.6696,
+          "mae14": 2.815,
+          "rmse14": 3.8546,
+          "bandScale": 0.73
+        },
+        "41480": {
+          "originCount": 6,
+          "mae7": 0.4325,
+          "rmse7": 0.5323,
+          "mae14": 0.6073,
+          "rmse14": 0.7842,
+          "bandScale": 0.6
+        },
+        "41500": {
+          "originCount": 6,
+          "mae7": 0.6007,
+          "rmse7": 0.8638,
+          "mae14": 0.7857,
+          "rmse14": 1.1851,
+          "bandScale": 0.6
+        },
+        "41550": {
+          "originCount": 6,
+          "mae7": 1.8467,
+          "rmse7": 4.0242,
+          "mae14": 1.7375,
+          "rmse14": 3.3777,
+          "bandScale": 0.64
+        },
+        "41570": {
+          "originCount": 6,
+          "mae7": 3.0243,
+          "rmse7": 6.7065,
+          "mae14": 4.3037,
+          "rmse14": 8.6925,
+          "bandScale": 1.6
+        },
+        "41590": {
+          "originCount": 6,
+          "mae7": 2.234,
+          "rmse7": 3.04,
+          "mae14": 2.0852,
+          "rmse14": 2.7089,
+          "bandScale": 0.6
+        },
+        "41610": {
+          "originCount": 6,
+          "mae7": 0.7137,
+          "rmse7": 1.2212,
+          "mae14": 1.6444,
+          "rmse14": 2.804,
+          "bandScale": 0.6
+        },
+        "41630": {
+          "originCount": 6,
+          "mae7": 1.1687,
+          "rmse7": 2.4458,
+          "mae14": 1.3998,
+          "rmse14": 2.5805,
+          "bandScale": 0.6
+        },
+        "41650": {
+          "originCount": 6,
+          "mae7": 1.4666,
+          "rmse7": 2.5106,
+          "mae14": 1.9629,
+          "rmse14": 2.7951,
+          "bandScale": 0.6
+        },
+        "41670": {
+          "originCount": 6,
+          "mae7": 1.0879,
+          "rmse7": 2.0946,
+          "mae14": 1.2352,
+          "rmse14": 1.9535,
+          "bandScale": 0.6
+        },
+        "41800": {
+          "originCount": 6,
+          "mae7": 2.0372,
+          "rmse7": 2.6888,
+          "mae14": 3.0746,
+          "rmse14": 3.9207,
+          "bandScale": 0.75
+        },
+        "41820": {
+          "originCount": 6,
+          "mae7": 0.3861,
+          "rmse7": 0.6412,
+          "mae14": 0.7792,
+          "rmse14": 1.6014,
+          "bandScale": 0.6
+        },
+        "41830": {
+          "originCount": 6,
+          "mae7": 1.2652,
+          "rmse7": 1.6271,
+          "mae14": 1.4455,
+          "rmse14": 1.753,
+          "bandScale": 0.6
+        },
+        "43110": {
+          "originCount": 6,
+          "mae7": 1.812,
+          "rmse7": 3.4074,
+          "mae14": 2.3354,
+          "rmse14": 4.0806,
+          "bandScale": 0.78
+        },
+        "43130": {
+          "originCount": 6,
+          "mae7": 1.993,
+          "rmse7": 3.8413,
+          "mae14": 3.0671,
+          "rmse14": 5.6772,
+          "bandScale": 1.08
+        },
+        "43150": {
+          "originCount": 6,
+          "mae7": 1.5692,
+          "rmse7": 2.6192,
+          "mae14": 2.1656,
+          "rmse14": 3.2385,
+          "bandScale": 0.62
+        },
+        "43720": {
+          "originCount": 6,
+          "mae7": 3.7664,
+          "rmse7": 7.8106,
+          "mae14": 4.9677,
+          "rmse14": 9.299,
+          "bandScale": 1.6
+        },
+        "43730": {
+          "originCount": 6,
+          "mae7": 1.9749,
+          "rmse7": 3.8403,
+          "mae14": 3.0289,
+          "rmse14": 5.8064,
+          "bandScale": 1.11
+        },
+        "43740": {
+          "originCount": 6,
+          "mae7": 2.1915,
+          "rmse7": 4.5902,
+          "mae14": 3.2353,
+          "rmse14": 6.3118,
+          "bandScale": 1.2
+        },
+        "43745": {
+          "originCount": 6,
+          "mae7": 3.4127,
+          "rmse7": 5.7738,
+          "mae14": 5.9964,
+          "rmse14": 11.7871,
+          "bandScale": 1.6
+        },
+        "43750": {
+          "originCount": 6,
+          "mae7": 0.7999,
+          "rmse7": 1.6701,
+          "mae14": 1.1621,
+          "rmse14": 1.9274,
+          "bandScale": 0.6
+        },
+        "43760": {
+          "originCount": 6,
+          "mae7": 2.4318,
+          "rmse7": 5.1318,
+          "mae14": 3.1025,
+          "rmse14": 6.1162,
+          "bandScale": 1.17
+        },
+        "43770": {
+          "originCount": 6,
+          "mae7": 1.8771,
+          "rmse7": 2.8222,
+          "mae14": 3.2552,
+          "rmse14": 4.956,
+          "bandScale": 0.94
+        },
+        "43800": {
+          "originCount": 6,
+          "mae7": 2.1923,
+          "rmse7": 5.1501,
+          "mae14": 2.1104,
+          "rmse14": 4.3361,
+          "bandScale": 0.83
+        },
+        "44130": {
+          "originCount": 6,
+          "mae7": 1.452,
+          "rmse7": 2.3577,
+          "mae14": 2.2372,
+          "rmse14": 3.4912,
+          "bandScale": 0.67
+        },
+        "44150": {
+          "originCount": 6,
+          "mae7": 1.5304,
+          "rmse7": 2.6833,
+          "mae14": 2.2145,
+          "rmse14": 3.6769,
+          "bandScale": 0.7
+        },
+        "44180": {
+          "originCount": 6,
+          "mae7": 1.0966,
+          "rmse7": 1.5742,
+          "mae14": 1.8547,
+          "rmse14": 2.4517,
+          "bandScale": 0.6
+        },
+        "44200": {
+          "originCount": 6,
+          "mae7": 1.715,
+          "rmse7": 2.4828,
+          "mae14": 1.8787,
+          "rmse14": 2.5903,
+          "bandScale": 0.6
+        },
+        "44210": {
+          "originCount": 6,
+          "mae7": 1.9782,
+          "rmse7": 3.0405,
+          "mae14": 2.6907,
+          "rmse14": 4.0039,
+          "bandScale": 0.76
+        },
+        "44230": {
+          "originCount": 6,
+          "mae7": 3.6215,
+          "rmse7": 5.6946,
+          "mae14": 6.2582,
+          "rmse14": 10.6953,
+          "bandScale": 1.6
+        },
+        "44250": {
+          "originCount": 6,
+          "mae7": 1.1765,
+          "rmse7": 1.7242,
+          "mae14": 2.1424,
+          "rmse14": 2.9603,
+          "bandScale": 0.6
+        },
+        "44270": {
+          "originCount": 6,
+          "mae7": 3.6396,
+          "rmse7": 4.9851,
+          "mae14": 4.7385,
+          "rmse14": 6.5912,
+          "bandScale": 1.26
+        },
+        "44710": {
+          "originCount": 6,
+          "mae7": 2.7297,
+          "rmse7": 4.9776,
+          "mae14": 3.215,
+          "rmse14": 5.5097,
+          "bandScale": 1.05
+        },
+        "44760": {
+          "originCount": 6,
+          "mae7": 1.7778,
+          "rmse7": 3.1479,
+          "mae14": 1.9492,
+          "rmse14": 3.0594,
+          "bandScale": 0.6
+        },
+        "44770": {
+          "originCount": 6,
+          "mae7": 1.8046,
+          "rmse7": 4.0226,
+          "mae14": 1.7488,
+          "rmse14": 3.3583,
+          "bandScale": 0.64
+        },
+        "44790": {
+          "originCount": 6,
+          "mae7": 1.0482,
+          "rmse7": 1.8252,
+          "mae14": 1.6684,
+          "rmse14": 2.7314,
+          "bandScale": 0.6
+        },
+        "44800": {
+          "originCount": 6,
+          "mae7": 2.2582,
+          "rmse7": 2.75,
+          "mae14": 3.8943,
+          "rmse14": 4.7026,
+          "bandScale": 0.9
+        },
+        "44810": {
+          "originCount": 6,
+          "mae7": 4.9508,
+          "rmse7": 8.752,
+          "mae14": 6.693,
+          "rmse14": 9.8267,
+          "bandScale": 1.6
+        },
+        "44825": {
+          "originCount": 6,
+          "mae7": 1.6249,
+          "rmse7": 2.8355,
+          "mae14": 2.6702,
+          "rmse14": 4.4622,
+          "bandScale": 0.85
+        },
+        "45110": {
+          "originCount": 6,
+          "mae7": 1.0119,
+          "rmse7": 1.3425,
+          "mae14": 1.9246,
+          "rmse14": 2.3417,
+          "bandScale": 0.6
+        },
+        "45130": {
+          "originCount": 6,
+          "mae7": 0.567,
+          "rmse7": 0.7467,
+          "mae14": 1.2454,
+          "rmse14": 1.5846,
+          "bandScale": 0.6
+        },
+        "45140": {
+          "originCount": 6,
+          "mae7": 1.7324,
+          "rmse7": 2.6128,
+          "mae14": 2.437,
+          "rmse14": 4.0725,
+          "bandScale": 0.78
+        },
+        "45180": {
+          "originCount": 6,
+          "mae7": 1.0988,
+          "rmse7": 1.6019,
+          "mae14": 1.704,
+          "rmse14": 2.5516,
+          "bandScale": 0.6
+        },
+        "45190": {
+          "originCount": 6,
+          "mae7": 3.0447,
+          "rmse7": 5.7239,
+          "mae14": 3.6632,
+          "rmse14": 5.7467,
+          "bandScale": 1.1
+        },
+        "45210": {
+          "originCount": 6,
+          "mae7": 0.6187,
+          "rmse7": 0.9432,
+          "mae14": 0.7261,
+          "rmse14": 0.9926,
+          "bandScale": 0.6
+        },
+        "45710": {
+          "originCount": 6,
+          "mae7": 1.5887,
+          "rmse7": 2.4292,
+          "mae14": 2.5639,
+          "rmse14": 3.7846,
+          "bandScale": 0.72
+        },
+        "45720": {
+          "originCount": 6,
+          "mae7": 2.5827,
+          "rmse7": 4.2799,
+          "mae14": 4.4727,
+          "rmse14": 7.5399,
+          "bandScale": 1.44
+        },
+        "45730": {
+          "originCount": 6,
+          "mae7": 3.3669,
+          "rmse7": 4.8588,
+          "mae14": 5.14,
+          "rmse14": 7.2475,
+          "bandScale": 1.38
+        },
+        "45740": {
+          "originCount": 6,
+          "mae7": 2.6967,
+          "rmse7": 4.7103,
+          "mae14": 3.9168,
+          "rmse14": 6.8095,
+          "bandScale": 1.3
+        },
+        "45750": {
+          "originCount": 6,
+          "mae7": 0.2178,
+          "rmse7": 0.2826,
+          "mae14": 0.4177,
+          "rmse14": 0.5753,
+          "bandScale": 0.6
+        },
+        "45770": {
+          "originCount": 6,
+          "mae7": 2.4523,
+          "rmse7": 3.9405,
+          "mae14": 3.7081,
+          "rmse14": 5.6821,
+          "bandScale": 1.08
+        },
+        "45790": {
+          "originCount": 6,
+          "mae7": 1.2939,
+          "rmse7": 1.9186,
+          "mae14": 2.3913,
+          "rmse14": 3.6085,
+          "bandScale": 0.69
+        },
+        "45800": {
+          "originCount": 6,
+          "mae7": 0.7001,
+          "rmse7": 1.1687,
+          "mae14": 1.1114,
+          "rmse14": 1.8986,
+          "bandScale": 0.6
+        },
+        "46110": {
+          "originCount": 6,
+          "mae7": 0.0735,
+          "rmse7": 0.1001,
+          "mae14": 0.1155,
+          "rmse14": 0.1567,
+          "bandScale": 0.6
+        },
+        "46130": {
+          "originCount": 6,
+          "mae7": 2.0158,
+          "rmse7": 4.0551,
+          "mae14": 2.923,
+          "rmse14": 5.8372,
+          "bandScale": 1.11
+        },
+        "46150": {
+          "originCount": 6,
+          "mae7": 2.5547,
+          "rmse7": 5.1849,
+          "mae14": 3.1257,
+          "rmse14": 5.4555,
+          "bandScale": 1.04
+        },
+        "46170": {
+          "originCount": 6,
+          "mae7": 1.7371,
+          "rmse7": 3.5064,
+          "mae14": 2.3685,
+          "rmse14": 4.6771,
+          "bandScale": 0.89
+        },
+        "46230": {
+          "originCount": 6,
+          "mae7": 2.8164,
+          "rmse7": 4.0342,
+          "mae14": 4.5083,
+          "rmse14": 5.9458,
+          "bandScale": 1.13
+        },
+        "46710": {
+          "originCount": 6,
+          "mae7": 1.5077,
+          "rmse7": 2.9163,
+          "mae14": 1.9037,
+          "rmse14": 3.2172,
+          "bandScale": 0.61
+        },
+        "46720": {
+          "originCount": 6,
+          "mae7": 1.6488,
+          "rmse7": 3.4026,
+          "mae14": 2.1405,
+          "rmse14": 3.8122,
+          "bandScale": 0.73
+        },
+        "46730": {
+          "originCount": 6,
+          "mae7": 1.8969,
+          "rmse7": 2.5939,
+          "mae14": 3.5227,
+          "rmse14": 4.8735,
+          "bandScale": 0.93
+        },
+        "46770": {
+          "originCount": 6,
+          "mae7": 2.2848,
+          "rmse7": 4.958,
+          "mae14": 3.0248,
+          "rmse14": 6.2018,
+          "bandScale": 1.18
+        },
+        "46780": {
+          "originCount": 6,
+          "mae7": 2.7183,
+          "rmse7": 5.502,
+          "mae14": 3.5793,
+          "rmse14": 7.0732,
+          "bandScale": 1.35
+        },
+        "46790": {
+          "originCount": 6,
+          "mae7": 3.4069,
+          "rmse7": 7.6726,
+          "mae14": 4.0822,
+          "rmse14": 8.5537,
+          "bandScale": 1.6
+        },
+        "46800": {
+          "originCount": 6,
+          "mae7": 3.5793,
+          "rmse7": 7.0938,
+          "mae14": 4.7017,
+          "rmse14": 8.6579,
+          "bandScale": 1.6
+        },
+        "46810": {
+          "originCount": 6,
+          "mae7": 2.622,
+          "rmse7": 5.15,
+          "mae14": 3.738,
+          "rmse14": 6.8815,
+          "bandScale": 1.31
+        },
+        "46820": {
+          "originCount": 6,
+          "mae7": 2.7175,
+          "rmse7": 4.5623,
+          "mae14": 4.1677,
+          "rmse14": 6.8324,
+          "bandScale": 1.3
+        },
+        "46830": {
+          "originCount": 6,
+          "mae7": 1.6719,
+          "rmse7": 3.0017,
+          "mae14": 2.6753,
+          "rmse14": 4.944,
+          "bandScale": 0.94
+        },
+        "46840": {
+          "originCount": 6,
+          "mae7": 2.0676,
+          "rmse7": 4.1902,
+          "mae14": 2.0945,
+          "rmse14": 3.9142,
+          "bandScale": 0.75
+        },
+        "46860": {
+          "originCount": 6,
+          "mae7": 1.6631,
+          "rmse7": 2.4488,
+          "mae14": 2.3529,
+          "rmse14": 3.1604,
+          "bandScale": 0.6
+        },
+        "46870": {
+          "originCount": 6,
+          "mae7": 1.5777,
+          "rmse7": 2.6476,
+          "mae14": 2.2641,
+          "rmse14": 3.4318,
+          "bandScale": 0.65
+        },
+        "46880": {
+          "originCount": 6,
+          "mae7": 1.4791,
+          "rmse7": 2.3508,
+          "mae14": 1.8668,
+          "rmse14": 2.6798,
+          "bandScale": 0.6
+        },
+        "46890": {
+          "originCount": 6,
+          "mae7": 4.0012,
+          "rmse7": 7.5985,
+          "mae14": 4.5068,
+          "rmse14": 8.1416,
+          "bandScale": 1.55
+        },
+        "46900": {
+          "originCount": 6,
+          "mae7": 2.3966,
+          "rmse7": 4.8024,
+          "mae14": 3.439,
+          "rmse14": 6.1137,
+          "bandScale": 1.17
+        },
+        "46910": {
+          "originCount": 6,
+          "mae7": 1.6741,
+          "rmse7": 2.6667,
+          "mae14": 2.5189,
+          "rmse14": 3.5563,
+          "bandScale": 0.68
+        },
+        "47110": {
+          "originCount": 6,
+          "mae7": 2.6252,
+          "rmse7": 5.4957,
+          "mae14": 4.3598,
+          "rmse14": 9.8529,
+          "bandScale": 1.6
+        },
+        "47130": {
+          "originCount": 6,
+          "mae7": 2.0068,
+          "rmse7": 3.4544,
+          "mae14": 2.6858,
+          "rmse14": 5.1688,
+          "bandScale": 0.99
+        },
+        "47150": {
+          "originCount": 6,
+          "mae7": 1.7093,
+          "rmse7": 3.6158,
+          "mae14": 2.495,
+          "rmse14": 5.2796,
+          "bandScale": 1.01
+        },
+        "47170": {
+          "originCount": 6,
+          "mae7": 1.8461,
+          "rmse7": 3.8635,
+          "mae14": 3.8353,
+          "rmse14": 8.068,
+          "bandScale": 1.54
+        },
+        "47190": {
+          "originCount": 6,
+          "mae7": 1.3855,
+          "rmse7": 3.0626,
+          "mae14": 2.1839,
+          "rmse14": 5.0017,
+          "bandScale": 0.95
+        },
+        "47210": {
+          "originCount": 6,
+          "mae7": 4.8036,
+          "rmse7": 8.8672,
+          "mae14": 6.5621,
+          "rmse14": 11.3661,
+          "bandScale": 1.6
+        },
+        "47230": {
+          "originCount": 6,
+          "mae7": 2.4833,
+          "rmse7": 4.515,
+          "mae14": 3.5969,
+          "rmse14": 6.4455,
+          "bandScale": 1.23
+        },
+        "47250": {
+          "originCount": 6,
+          "mae7": 4.3961,
+          "rmse7": 8.8141,
+          "mae14": 5.9536,
+          "rmse14": 11.6562,
+          "bandScale": 1.6
+        },
+        "47280": {
+          "originCount": 6,
+          "mae7": 4.2221,
+          "rmse7": 8.0589,
+          "mae14": 6.9301,
+          "rmse14": 13.5928,
+          "bandScale": 1.6
+        },
+        "47290": {
+          "originCount": 6,
+          "mae7": 0.6775,
+          "rmse7": 1.2498,
+          "mae14": 1.0581,
+          "rmse14": 1.9025,
+          "bandScale": 0.6
+        },
+        "47730": {
+          "originCount": 6,
+          "mae7": 2.311,
+          "rmse7": 4.2657,
+          "mae14": 3.7561,
+          "rmse14": 7.2596,
+          "bandScale": 1.38
+        },
+        "47750": {
+          "originCount": 6,
+          "mae7": 2.3924,
+          "rmse7": 3.9906,
+          "mae14": 5.0389,
+          "rmse14": 8.654,
+          "bandScale": 1.6
+        },
+        "47760": {
+          "originCount": 6,
+          "mae7": 2.9678,
+          "rmse7": 5.6063,
+          "mae14": 5.793,
+          "rmse14": 11.8696,
+          "bandScale": 1.6
+        },
+        "47770": {
+          "originCount": 6,
+          "mae7": 4.5083,
+          "rmse7": 8.1159,
+          "mae14": 7.2631,
+          "rmse14": 13.6092,
+          "bandScale": 1.6
+        },
+        "47820": {
+          "originCount": 6,
+          "mae7": 0.8184,
+          "rmse7": 1.3313,
+          "mae14": 1.4644,
+          "rmse14": 2.3245,
+          "bandScale": 0.6
+        },
+        "47830": {
+          "originCount": 6,
+          "mae7": 3.1212,
+          "rmse7": 6.7461,
+          "mae14": 3.9363,
+          "rmse14": 8.2381,
+          "bandScale": 1.57
+        },
+        "47840": {
+          "originCount": 6,
+          "mae7": 6.4076,
+          "rmse7": 11.9073,
+          "mae14": 10.2199,
+          "rmse14": 18.7565,
+          "bandScale": 1.6
+        },
+        "47850": {
+          "originCount": 6,
+          "mae7": 1.8358,
+          "rmse7": 4.0998,
+          "mae14": 2.3254,
+          "rmse14": 4.8093,
+          "bandScale": 0.92
+        },
+        "47900": {
+          "originCount": 6,
+          "mae7": 2.871,
+          "rmse7": 5.6359,
+          "mae14": 4.7831,
+          "rmse14": 8.8326,
+          "bandScale": 1.6
+        },
+        "47920": {
+          "originCount": 6,
+          "mae7": 4.8963,
+          "rmse7": 8.2456,
+          "mae14": 8.9282,
+          "rmse14": 16.5516,
+          "bandScale": 1.6
+        },
+        "47930": {
+          "originCount": 6,
+          "mae7": 6.6372,
+          "rmse7": 9.1578,
+          "mae14": 9.0465,
+          "rmse14": 11.1243,
+          "bandScale": 1.6
+        },
+        "48120": {
+          "originCount": 6,
+          "mae7": 2.3511,
+          "rmse7": 3.8152,
+          "mae14": 4.308,
+          "rmse14": 6.5823,
+          "bandScale": 1.25
+        },
+        "48170": {
+          "originCount": 6,
+          "mae7": 2.2212,
+          "rmse7": 3.7179,
+          "mae14": 3.2019,
+          "rmse14": 5.4243,
+          "bandScale": 1.03
+        },
+        "48220": {
+          "originCount": 6,
+          "mae7": 5.0446,
+          "rmse7": 9.2548,
+          "mae14": 8.1764,
+          "rmse14": 14.449,
+          "bandScale": 1.6
+        },
+        "48240": {
+          "originCount": 6,
+          "mae7": 2.1064,
+          "rmse7": 4.1276,
+          "mae14": 2.7205,
+          "rmse14": 5.3933,
+          "bandScale": 1.03
+        },
+        "48250": {
+          "originCount": 6,
+          "mae7": 1.1325,
+          "rmse7": 2.1457,
+          "mae14": 1.465,
+          "rmse14": 2.81,
+          "bandScale": 0.6
+        },
+        "48270": {
+          "originCount": 6,
+          "mae7": 1.2797,
+          "rmse7": 2.2989,
+          "mae14": 1.9014,
+          "rmse14": 3.6021,
+          "bandScale": 0.69
+        },
+        "48310": {
+          "originCount": 6,
+          "mae7": 3.263,
+          "rmse7": 5.4166,
+          "mae14": 4.1631,
+          "rmse14": 6.7404,
+          "bandScale": 1.29
+        },
+        "48330": {
+          "originCount": 6,
+          "mae7": 4.0098,
+          "rmse7": 8.4537,
+          "mae14": 6.1161,
+          "rmse14": 10.9688,
+          "bandScale": 1.6
+        },
+        "48720": {
+          "originCount": 6,
+          "mae7": 1.5783,
+          "rmse7": 3.1651,
+          "mae14": 2.0699,
+          "rmse14": 3.9743,
+          "bandScale": 0.76
+        },
+        "48730": {
+          "originCount": 6,
+          "mae7": 2.1887,
+          "rmse7": 4.4078,
+          "mae14": 3.3697,
+          "rmse14": 7.1176,
+          "bandScale": 1.36
+        },
+        "48740": {
+          "originCount": 6,
+          "mae7": 2.396,
+          "rmse7": 3.9264,
+          "mae14": 3.6691,
+          "rmse14": 5.9309,
+          "bandScale": 1.13
+        },
+        "48820": {
+          "originCount": 6,
+          "mae7": 2.3066,
+          "rmse7": 4.9639,
+          "mae14": 2.9349,
+          "rmse14": 6.2377,
+          "bandScale": 1.19
+        },
+        "48840": {
+          "originCount": 6,
+          "mae7": 2.4465,
+          "rmse7": 5.0666,
+          "mae14": 3.0967,
+          "rmse14": 6.1938,
+          "bandScale": 1.18
+        },
+        "48850": {
+          "originCount": 6,
+          "mae7": 3.334,
+          "rmse7": 6.8171,
+          "mae14": 4.4895,
+          "rmse14": 8.7804,
+          "bandScale": 1.6
+        },
+        "48860": {
+          "originCount": 6,
+          "mae7": 3.0432,
+          "rmse7": 4.1926,
+          "mae14": 4.1404,
+          "rmse14": 5.3803,
+          "bandScale": 1.03
+        },
+        "48870": {
+          "originCount": 6,
+          "mae7": 1.7585,
+          "rmse7": 2.7252,
+          "mae14": 2.4902,
+          "rmse14": 3.3761,
+          "bandScale": 0.64
+        },
+        "48880": {
+          "originCount": 6,
+          "mae7": 4.277,
+          "rmse7": 7.933,
+          "mae14": 6.6181,
+          "rmse14": 11.8886,
+          "bandScale": 1.6
+        },
+        "48890": {
+          "originCount": 6,
+          "mae7": 2.4874,
+          "rmse7": 4.4822,
+          "mae14": 3.3872,
+          "rmse14": 5.7507,
+          "bandScale": 1.1
+        },
+        "50110": {
+          "originCount": 6,
+          "mae7": 2.1317,
+          "rmse7": 3.8113,
+          "mae14": 4.9252,
+          "rmse14": 8.1268,
+          "bandScale": 1.55
+        },
+        "50130": {
+          "originCount": 6,
+          "mae7": 2.2622,
+          "rmse7": 4.0827,
+          "mae14": 2.9934,
+          "rmse14": 4.6395,
+          "bandScale": 0.88
+        },
+        "51110": {
+          "originCount": 6,
+          "mae7": 1.1381,
+          "rmse7": 1.6036,
+          "mae14": 1.8568,
+          "rmse14": 2.292,
+          "bandScale": 0.6
+        },
+        "51130": {
+          "originCount": 6,
+          "mae7": 0.7646,
+          "rmse7": 1.5839,
+          "mae14": 1.2333,
+          "rmse14": 2.1397,
+          "bandScale": 0.6
+        },
+        "51150": {
+          "originCount": 6,
+          "mae7": 0.8793,
+          "rmse7": 1.4873,
+          "mae14": 1.2491,
+          "rmse14": 1.9023,
+          "bandScale": 0.6
+        },
+        "51170": {
+          "originCount": 6,
+          "mae7": 0.3455,
+          "rmse7": 0.655,
+          "mae14": 0.5678,
+          "rmse14": 0.9864,
+          "bandScale": 0.6
+        },
+        "51210": {
+          "originCount": 6,
+          "mae7": 4.3635,
+          "rmse7": 9.9022,
+          "mae14": 3.7904,
+          "rmse14": 7.5877,
+          "bandScale": 1.45
+        },
+        "51230": {
+          "originCount": 6,
+          "mae7": 2.0648,
+          "rmse7": 3.1626,
+          "mae14": 2.4069,
+          "rmse14": 3.284,
+          "bandScale": 0.63
+        },
+        "51720": {
+          "originCount": 6,
+          "mae7": 1.9117,
+          "rmse7": 3.4005,
+          "mae14": 2.8125,
+          "rmse14": 4.4123,
+          "bandScale": 0.84
+        },
+        "51730": {
+          "originCount": 6,
+          "mae7": 1.2671,
+          "rmse7": 2.1433,
+          "mae14": 1.3052,
+          "rmse14": 1.9938,
+          "bandScale": 0.6
+        },
+        "51750": {
+          "originCount": 6,
+          "mae7": 1.7753,
+          "rmse7": 3.2058,
+          "mae14": 3.0541,
+          "rmse14": 4.421,
+          "bandScale": 0.84
+        },
+        "51760": {
+          "originCount": 6,
+          "mae7": 2.179,
+          "rmse7": 3.166,
+          "mae14": 3.0292,
+          "rmse14": 4.3468,
+          "bandScale": 0.83
+        },
+        "51780": {
+          "originCount": 6,
+          "mae7": 2.0962,
+          "rmse7": 4.1375,
+          "mae14": 2.808,
+          "rmse14": 4.903,
+          "bandScale": 0.93
+        },
+        "51790": {
+          "originCount": 6,
+          "mae7": 0.4149,
+          "rmse7": 0.638,
+          "mae14": 0.7254,
+          "rmse14": 1.2062,
+          "bandScale": 0.6
+        },
+        "51800": {
+          "originCount": 6,
+          "mae7": 3.2878,
+          "rmse7": 5.9248,
+          "mae14": 4.3209,
+          "rmse14": 7.1488,
+          "bandScale": 1.36
+        },
+        "51810": {
+          "originCount": 6,
+          "mae7": 0.5076,
+          "rmse7": 0.7672,
+          "mae14": 0.8151,
+          "rmse14": 1.067,
+          "bandScale": 0.6
+        },
+        "51820": {
+          "originCount": 6,
+          "mae7": 2.8687,
+          "rmse7": 4.5217,
+          "mae14": 4.036,
+          "rmse14": 5.7804,
+          "bandScale": 1.1
+        },
+        "51830": {
+          "originCount": 6,
+          "mae7": 2.6631,
+          "rmse7": 4.5648,
+          "mae14": 3.2705,
+          "rmse14": 4.7547,
+          "bandScale": 0.91
         }
       }
     }

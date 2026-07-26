@@ -252,7 +252,7 @@ class RegionAddViewModelTest {
         vm.register(setAsPrimary = true) {}
         advanceUntilIdle()
 
-        // 둘째 등록에서 "기본 주소지로 설정"을 끄면 대표는 첫 지역(46170)에 남는다.
+        // 둘째 등록에서 "기본 주소지로 설정"을 끄면 기본 주소지(맨 위)는 첫 지역(46170)에 남는다.
         vm.onCandidateSelect(candidate)
         advanceUntilIdle()
         vm.register(setAsPrimary = false) {}
@@ -260,6 +260,46 @@ class RegionAddViewModelTest {
 
         val state = storeInstance.regionStoreFlow.first()
         assertEquals(2, state.regions.size)
-        assertEquals("46170", state.regions[state.currentIndex].sigunCode)
+        // 기본 주소지는 목록 맨 위(index 0)다 — 체크를 끄면 순서를 건드리지 않는다.
+        assertEquals("46170", state.regions[0].sigunCode)
+    }
+
+    @Test
+    fun checkedPrimaryMovesNewRegionToTop() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val repo = FakeRegionRepository().apply {
+            enqueueResolve(
+                resolveSuccess(
+                    prepared = true,
+                    reservoir = RepresentativeReservoir(facCode = "4617010001", name = "나주호"),
+                    sigunCode = "46170",
+                    sigunName = "나주시",
+                ),
+                resolveSuccess(
+                    prepared = true,
+                    reservoir = RepresentativeReservoir(facCode = "1111010001", name = "다른저수지"),
+                    sigunCode = "11110",
+                    sigunName = "종로구",
+                ),
+            )
+        }
+        val storeInstance = store()
+        val vm = RegionAddViewModel(repo, storeInstance, dispatcher, debounceMillis = 0)
+
+        vm.onCandidateSelect(candidate)
+        advanceUntilIdle()
+        vm.register(setAsPrimary = true) {}
+        advanceUntilIdle()
+
+        // 두 번째 지역을 "기본 주소지로 설정"으로 등록하면 맨 위로 올라와야 한다.
+        vm.onCandidateSelect(candidate)
+        advanceUntilIdle()
+        vm.register(setAsPrimary = true) {}
+        advanceUntilIdle()
+
+        val state = storeInstance.regionStoreFlow.first()
+        assertEquals(2, state.regions.size)
+        assertEquals("11110", state.regions[0].sigunCode)
+        assertEquals(0, state.currentIndex)
     }
 }

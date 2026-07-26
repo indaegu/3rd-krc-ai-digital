@@ -28,15 +28,21 @@ import com.mulsigye.app.core.designsystem.theme.Ink2
  * 각 항목에 이름 텍스트를 함께 둔다. 표식 캔버스는 장식이라 접근성 트리에서 제외한다.
  */
 @Composable
-fun TrendLegend(modifier: Modifier = Modifier) {
+fun TrendLegend(
+    modifier: Modifier = Modifier,
+    /** 실측만 그리는 차트(저수지 실측 토글)에서는 예측·밴드 항목을 감춘다. */
+    observedOnly: Boolean = false,
+) {
     Row(
         modifier = modifier,
         horizontalArrangement = Arrangement.spacedBy(16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        LegendItem("실측") { SolidSwatch(Blue) }
-        LegendItem("예측") { DashSwatch(BlueDeep) }
-        LegendItem("불확실 구간") { BandSwatch(BlueSoft) }
+        LegendItem(if (observedOnly) "실측 저수율" else "실측") { SolidSwatch(Blue) }
+        if (!observedOnly) {
+            LegendItem("예측") { DashSwatch(BlueDeep) }
+            LegendItem("불확실 구간") { BandSwatch(BlueSoft) }
+        }
     }
 }
 

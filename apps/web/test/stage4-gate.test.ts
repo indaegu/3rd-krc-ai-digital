@@ -253,7 +253,14 @@ describe("단계 4 게이트 ① — 4개 상태 메인 전체 트리", () => {
         const desc = screen.getByText(/단계에 들어설 가능성이 있어요/);
         expect(desc.textContent).toContain(reach.targetStage.label);
       } else {
-        expect(screen.getByText("안정")).toBeInTheDocument();
+        // 도달 예정이 없으면 추세에 따라 문구가 갈린다(falling이면 "천천히 감소").
+        expect(
+          screen.getByText(
+            scenario.forecast.trend.bucket === "falling"
+              ? "천천히 감소"
+              : "안정",
+          ),
+        ).toBeInTheDocument();
       }
 
       // 만수위 참고 배너는 flood(highWaterNotice=true)에서만.

@@ -210,6 +210,12 @@ export interface components {
          * @description KST 달력일 YYYY-MM-DD
          */
         observedOn: string | null;
+        /** @description 대표 저수지의 최근 실측 저수율(오래된 날짜부터). 지역 평년 대비와 축이 다르므로 차트에서 토글로만 함께 보여준다. 값이 없으면 빈 배열이다. */
+        rateHistory?: {
+          /** Format: date */
+          observedOn: string;
+          rate: number;
+        }[];
       };
       /** @description 논가뭄지도 기준 지역 공식 값 */
       region: {
@@ -348,7 +354,7 @@ export interface components {
       /** @description 백테스트로 채택한 예측 모델 메타데이터 (data/backtest-report.json) */
       model: {
         /** @enum {string} */
-        name: "naive" | "ma7" | "linear" | "ses";
+        name: "naive" | "ma7" | "linear" | "ses" | "damped";
         /** @description 예측 상수를 포함한 모델 버전. 예 pred-v1 */
         version: string;
         /** @description 백테스트 7일 macro MAE %p */

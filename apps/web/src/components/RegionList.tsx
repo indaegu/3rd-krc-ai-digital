@@ -83,6 +83,8 @@ export function RegionList({ onStoreChange }: RegionListProps) {
         const displayName =
           nameState.kind === "ready" ? nameState.sigunName : region.sigunCode;
         const isCurrent = index === store.currentIndex;
+        // 기본 주소지 = 목록 맨 위(index 0). 선택(currentIndex)과 구분한다.
+        const isPrimary = index === 0;
         return (
           <li
             key={region.sigunCode}
@@ -104,7 +106,7 @@ export function RegionList({ onStoreChange }: RegionListProps) {
                   <span className={styles.reservoir}>
                     {nameState.reservoirName}
                   </span>
-                  {isCurrent ? (
+                  {isPrimary ? (
                     <span className={styles.badge}>기본 주소지</span>
                   ) : null}
                 </span>

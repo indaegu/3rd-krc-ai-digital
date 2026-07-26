@@ -222,12 +222,10 @@ export function runBacktest(
       continue;
     }
 
-    const residuals = {
-      naive: [],
-      ma7: [],
-      linear: [],
-      ses: [],
-    } as Record<PredictionModelName, Residual[]>;
+    // 모델 목록이 늘어도 빠뜨리지 않도록 이름 배열에서 만든다(하드코딩한 객체는 새 모델을 놓친다).
+    const residuals = Object.fromEntries(
+      PREDICTION_MODEL_NAMES.map((name) => [name, [] as Residual[]]),
+    ) as Record<PredictionModelName, Residual[]>;
     let originCount = 0;
     let regionSamples = 0;
 

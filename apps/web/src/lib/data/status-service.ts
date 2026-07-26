@@ -31,6 +31,9 @@ import observationsSnapshotJson from "../../../../../data/snapshots/reservoir-ob
 import regionalSnapshotJson from "../../../../../data/snapshots/regional-drought-daily.json" with { type: "json" };
 import yearlyPositionJson from "../../../../../data/yearly-position.json" with { type: "json" };
 
+/** 응답에 담는 실측 시계열 최대 길이(계약 maxItems와 같다). */
+const RATE_HISTORY_MAX = 60;
+
 export const WATERLEVEL_API_SOURCE = "농촌용수 저수지 수위정보 조회";
 export const SUPABASE_SNAPSHOT_SOURCE = "Supabase 스냅샷";
 export const DROUGHT_MAP_SOURCE = "논가뭄지도";
@@ -137,6 +140,8 @@ type ObservationView = {
    * 해당 폴백 단에서 확보한 관측만 담는다 — 2점 미만이면 판정은 false다.
    */
   rateSeries: readonly number[];
+  /** 날짜를 포함한 최근 실측(오래된 날짜부터). 차트 토글에서 "저수지 실측"으로 보여준다. */
+  rateHistory: readonly { observedOn: string; rate: number }[];
 };
 
 type RegionalView = {
@@ -185,6 +190,14 @@ async function latestObservationFromSupabase(
         .reverse()
         .map((row) => row.rate)
         .filter((rate): rate is number => rate !== null),
+      rateHistory: rows
+        .slice()
+        .reverse()
+        .flatMap((row) =>
+          row.rate === null
+            ? []
+            : [{ observedOn: row.observed_on, rate: row.rate }],
+        ),
     };
   } catch {
     return null;
@@ -215,6 +228,11 @@ function latestObservationFromSnapshot(
         rateSeries: rows
           .map((row) => row.rate)
           .filter((rate): rate is number => rate !== null),
+        rateHistory: rows.flatMap((row) =>
+          row.rate === null
+            ? []
+            : [{ observedOn: row.observedOn, rate: row.rate }],
+        ),
       };
     }
   }
@@ -228,6 +246,10 @@ function latestObservationFromSnapshot(
     observedOn: byFacility.observedOn,
     // 관측 1점뿐 — 추세를 알 수 없으므로 만수위 판정은 false가 된다.
     rateSeries: byFacility.rate === null ? [] : [byFacility.rate],
+    rateHistory:
+      byFacility.rate === null || byFacility.observedOn === null
+        ? []
+        : [{ observedOn: byFacility.observedOn, rate: byFacility.rate }],
   };
 }
 
@@ -398,6 +420,13 @@ export async function buildStatus(
         .sort((a, b) => (a.observedOn < b.observedOn ? -1 : 1))
         .map((row) => row.rate)
         .filter((rate): rate is number => rate !== null),
+      rateHistory: [...api.observations]
+        .sort((a, b) => (a.observedOn < b.observedOn ? -1 : 1))
+        .flatMap((row) =>
+          row.rate === null
+            ? []
+            : [{ observedOn: row.observedOn, rate: row.rate }],
+        ),
     };
     sources.push(WATERLEVEL_API_SOURCE);
     await upsertObservations(getClient(), api.observations);
@@ -458,6 +487,8 @@ export async function buildStatus(
       rate: observation.rate,
       waterLevel: observation.waterLevel,
       observedOn: observation.observedOn,
+      // 차트 토글용 실측 시계열(계약 상한 60개). 지역 평년 대비와 축이 달라 함께 그리지 않는다.
+      rateHistory: observation.rateHistory.slice(-RATE_HISTORY_MAX),
     },
     region: {
       observedOn: region.observedOn,

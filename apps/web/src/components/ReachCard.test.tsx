@@ -59,12 +59,25 @@ describe("ReachCard 도달 예상 3케이스", () => {
     expect(container.textContent).not.toMatch(FORBIDDEN_COPY);
   });
 
-  it("정상(days null): '안정'을 보여주고 도달일 문구를 만들지 않는다", () => {
+  it("도달 없음 + 하락 중이면 '안정' 대신 '천천히 감소'로 알린다", () => {
+    // NORMAL 픽스처는 trend=falling · days=null이다. 계속 낮아지는 지역을 "안정"이라고 하면
+    // 안심시키는 오해가 생기므로 추세를 반영한 문구를 쓴다.
     const { container } = render(<ReachCard forecast={NORMAL} />);
 
-    expect(screen.getByText("안정")).toBeInTheDocument();
+    expect(screen.getByText("천천히 감소")).toBeInTheDocument();
     expect(container.textContent).not.toContain("일 뒤");
     expect(container.textContent).not.toContain("들어설 가능성");
+    expect(container.textContent).not.toMatch(FORBIDDEN_COPY);
+  });
+
+  it("이미 심각 단계이고 하락 중이면 '심각 지속'을 보여준다", () => {
+    // 심각은 더 낮은 단계가 없어 reach가 비어 온다 — 이때 "안정"이면 정반대로 읽힌다.
+    const { container } = render(
+      <ReachCard forecast={NORMAL} currentStageCode="crit" />,
+    );
+
+    expect(screen.getByText("심각 지속")).toBeInTheDocument();
+    expect(container.textContent).not.toContain("안정");
     expect(container.textContent).not.toMatch(FORBIDDEN_COPY);
   });
 });

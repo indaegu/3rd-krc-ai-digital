@@ -90,3 +90,28 @@
   background: var(--blue-soft);
   border-radius: 2px;
 }
+
+/* 지표 토글 — 주 지표(지역 평년 대비)와 저수지 실측을 바꿔 본다. */
+.toggle {
+  display: flex;
+  gap: 6px;
+  margin: 4px 0 8px;
+}
+
+.toggleButton {
+  min-height: 40px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--gray100);
+  color: var(--ink2);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.toggleButton[aria-pressed="true"] {
+  background: var(--blue-tint);
+  color: var(--blue-deep);
+}

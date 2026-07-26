@@ -149,8 +149,17 @@ fun MainScreen(
             when (forecastState) {
                 is ForecastUiState.Loading -> ForecastSkeleton()
                 is ForecastUiState.Ready -> {
-                    ReachCard(forecast = forecastState.data)
-                    TrendChartCard(forecast = forecastState.data, onDetail = onNavigateTrend)
+                    ReachCard(
+                        forecast = forecastState.data,
+                        currentStageCode = (statusState as? StatusUiState.Ready)?.data?.region?.officialStage?.code,
+                    )
+                    TrendChartCard(
+                        forecast = forecastState.data,
+                        onDetail = onNavigateTrend,
+                        reservoirHistory = (statusState as? StatusUiState.Ready)?.data?.reservoir?.rateHistory
+                            ?: emptyList(),
+                        reservoirName = (statusState as? StatusUiState.Ready)?.data?.reservoir?.name,
+                    )
                 }
                 is ForecastUiState.Error -> ModuleError(
                     title = "흐름 예측을 불러오지 못했어요",

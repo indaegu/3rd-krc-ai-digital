@@ -252,8 +252,8 @@ describe("메인 예측 모듈", () => {
     render(<HomePage />);
 
     expect(await screen.findByText("이 추세라면")).toBeInTheDocument();
-    // normal 데모: reach.days null → 안정.
-    expect(screen.getByText("안정")).toBeInTheDocument();
+    // normal 데모: reach.days null + trend falling → "천천히 감소"(안정 아님).
+    expect(screen.getByText("천천히 감소")).toBeInTheDocument();
     expect(
       screen.getByRole("img", { name: /지역 평년 대비 저수율/ }),
     ).toBeInTheDocument();
