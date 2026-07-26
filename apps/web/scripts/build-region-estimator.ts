@@ -14,6 +14,7 @@ import { createHash } from "node:crypto";
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
+import { stageCodeFromAvgRatio } from "../src/lib/data/drought-stage.ts";
 import { decodeCp949, decodeUtf8 } from "../src/lib/data/encoding.ts";
 
 const REPO_ROOT = join(import.meta.dirname, "..", "..", "..");
@@ -63,6 +64,20 @@ function mean(values: number[]): number {
   return values.reduce((acc, v) => acc + v, 0) / values.length;
 }
 
+/** 오름차순 정렬된 표본에서 분위수(0~1). 표본이 없으면 0. */
+function quantile(sortedValues: number[], q: number): number {
+  if (sortedValues.length === 0) return 0;
+  const index = Math.min(
+    sortedValues.length - 1,
+    Math.max(0, Math.round((sortedValues.length - 1) * q)),
+  );
+  return sortedValues[index] ?? 0;
+}
+
+function round(value: number, digits = 4): number {
+  return Number(value.toFixed(digits));
+}
+
 function main(): void {
   // ── 저수지 제원(시군·유효저수량) — 이미 정규화된 스냅샷을 그대로 쓴다.
   const reservoirs = JSON.parse(
@@ -78,25 +93,42 @@ function main(): void {
     effectiveStorage: number | null;
   }[];
 
+  // 일별 저수율 CSV에는 fac_code가 없어 (시설명, 소재지)로만 조인한다. 이 키가 겹치는 시설
+  // (실측: 나주 방축·예천 죽안)은 어느 시설인지 확정할 수 없으므로 **양쪽 모두 제외**한다.
+  // 덮어쓰면 임의의 유효저수량이 붙고, 같은 키의 일별 행이 여러 번 더해져 가중 평균이 망가진다.
   const capacityByKey = new Map<
     string,
     { sigunCode: string; capacity: number }
   >();
-  const capacityBySigun = new Map<string, number>();
+  const ambiguousKeys = new Set<string>();
   for (const item of reservoirs) {
     if (item.effectiveStorage === null || item.effectiveStorage <= 0) continue;
-    capacityByKey.set(`${item.name}|${item.address}`, {
+    const key = `${item.name}|${item.address}`;
+    if (capacityByKey.has(key)) {
+      ambiguousKeys.add(key);
+      continue;
+    }
+    capacityByKey.set(key, {
       sigunCode: item.sigunCode,
       capacity: item.effectiveStorage,
     });
+  }
+  for (const key of ambiguousKeys) {
+    capacityByKey.delete(key);
+  }
+
+  // 시군별 총 유효저수량(커버리지 계산용)은 조인 가능한 시설만 센다.
+  const capacityBySigun = new Map<string, number>();
+  for (const { sigunCode, capacity } of capacityByKey.values()) {
     capacityBySigun.set(
-      item.sigunCode,
-      (capacityBySigun.get(item.sigunCode) ?? 0) + item.effectiveStorage,
+      sigunCode,
+      (capacityBySigun.get(sigunCode) ?? 0) + capacity,
     );
   }
 
   // ── 공표 시군 일별(저수율·평년·평년대비).
-  const droughtRaw = decodeCp949(readFileSync(join(RAW, DROUGHT_CSV)));
+  const droughtBytes = readFileSync(join(RAW, DROUGHT_CSV));
+  const droughtRaw = decodeCp949(droughtBytes);
   const droughtRows = parseCsv(droughtRaw).slice(1);
   const official = new Map<
     string,
@@ -127,7 +159,8 @@ function main(): void {
   }
 
   // ── 저수지 일별 저수율(wide) → 시군·날짜별 용량가중 통합저수율.
-  const dailyRaw = decodeUtf8(readFileSync(join(RAW, DAILY_CSV)));
+  const dailyBytes = readFileSync(join(RAW, DAILY_CSV));
+  const dailyRaw = decodeUtf8(dailyBytes);
   const dailyRows = parseCsv(dailyRaw);
   const header = dailyRows[0];
   if (header === undefined) throw new Error("일별 저수율 CSV 헤더가 없다");
@@ -172,6 +205,10 @@ function main(): void {
 
   // ── 지역별 보정계수 + 게이트.
   const regions: Record<string, RegionModel> = {};
+  // 검증 구간 통계(게이트 통과 지역만). 문서에 싣는 수치는 전부 여기서 나온다.
+  const holdoutErrors: number[] = [];
+  let holdoutSamples = 0;
+  let stageMatches = 0;
   for (const [sigunCode, byDate] of acc) {
     const trainRows: {
       est: number;
@@ -207,27 +244,48 @@ function main(): void {
 
     const total = capacityBySigun.get(sigunCode) ?? 0;
     const covered = coveredCapacity.get(sigunCode) ?? 0;
+    const usableRegion = trainMae <= ESTIMATOR_GATE_MAE_PP;
     regions[sigunCode] = {
       factor: Number(factor.toFixed(6)),
-      trainMae: Number(trainMae.toFixed(4)),
-      testMae: testMae === null ? null : Number(testMae.toFixed(4)),
+      trainMae: round(trainMae),
+      testMae: testMae === null ? null : round(testMae),
       sampleDays: trainRows.length,
       reservoirCount: reservoirCount.get(sigunCode)?.size ?? 0,
-      capacityShare: total > 0 ? Number((covered / total).toFixed(4)) : 0,
-      usable: trainMae <= ESTIMATOR_GATE_MAE_PP,
+      capacityShare: total > 0 ? round(covered / total) : 0,
+      usable: usableRegion,
     };
+
+    // 검증 구간(학습에 쓰지 않은 날짜)의 표본을 모아 문서에 싣는 통계를 산출물에서 직접 계산한다.
+    // 게이트를 통과한 지역만 모아야 실제로 화면에 나갈 값의 성능이 된다.
+    if (usableRegion) {
+      for (const row of testRows) {
+        const estimatedRatio = ((row.est * factor) / row.normal) * 100;
+        holdoutErrors.push(Math.abs(estimatedRatio - row.ratio));
+        holdoutSamples += 1;
+        // 단계 임계값은 drought-stage.ts 단일 출처를 그대로 쓴다(여기서 복제하지 않는다).
+        if (
+          stageCodeFromAvgRatio(estimatedRatio) ===
+          stageCodeFromAvgRatio(row.ratio)
+        ) {
+          stageMatches += 1;
+        }
+      }
+    }
   }
 
   const usable = Object.values(regions).filter((r) => r.usable);
-  const testErrors = usable
-    .map((r) => r.testMae)
-    .filter((v): v is number => v !== null);
+  // 분위수는 정렬된 표본에서만 뽑는다.
+  holdoutErrors.sort((a, b) => a - b);
 
   const report = {
     reportVersion: "region-estimator-v1",
     generatedAt: new Date().toISOString(),
     sourceFiles: [DROUGHT_CSV, DAILY_CSV],
-    sourceChecksum: createHash("sha256").update(droughtRaw).digest("hex"),
+    // 원본 CSV "원시 바이트"를 파일별로 해시한다(적재 리포트의 sha256과 같은 방식이라 대조 가능).
+    sourceChecksums: {
+      [DROUGHT_CSV]: createHash("sha256").update(droughtBytes).digest("hex"),
+      [DAILY_CSV]: createHash("sha256").update(dailyBytes).digest("hex"),
+    },
     params: {
       trainEnd: TRAIN_END,
       gateMaePp: ESTIMATOR_GATE_MAE_PP,
@@ -236,7 +294,16 @@ function main(): void {
     summary: {
       regionCount: Object.keys(regions).length,
       usableCount: usable.length,
-      holdoutMaePp: Number(mean(testErrors).toFixed(4)),
+      ambiguousJoinKeys: ambiguousKeys.size,
+      // 아래는 모두 "게이트 통과 지역 × 검증 구간" 표본에서 계산한다(문서 수치의 근거).
+      holdoutSamples,
+      holdoutMaePp: round(mean(holdoutErrors)),
+      holdoutMedianPp: round(quantile(holdoutErrors, 0.5)),
+      holdoutP90Pp: round(quantile(holdoutErrors, 0.9)),
+      stageAgreementPct:
+        holdoutSamples === 0
+          ? 0
+          : round((stageMatches / holdoutSamples) * 100, 2),
     },
     normals: Object.fromEntries(
       [...normals].map(([code, byMonthDay]) => [
@@ -249,8 +316,13 @@ function main(): void {
 
   writeFileSync(OUT, `${JSON.stringify(report, null, 2)}\n`, "utf8");
   console.log(
-    `[수신호 estimator] 지역 ${report.summary.regionCount}곳 중 추정 사용 ${report.summary.usableCount}곳 · ` +
-      `검증 MAE ${report.summary.holdoutMaePp}%p → ${OUT}`,
+    `[수신호 estimator] 지역 ${report.summary.regionCount}곳 중 추정 사용 ${report.summary.usableCount}곳
+` +
+      `  검증(n=${report.summary.holdoutSamples}) MAE ${report.summary.holdoutMaePp}%p · ` +
+      `중앙값 ${report.summary.holdoutMedianPp} · p90 ${report.summary.holdoutP90Pp} · ` +
+      `단계 일치 ${report.summary.stageAgreementPct}%
+` +
+      `  모호 조인 제외 ${report.summary.ambiguousJoinKeys}쌍 → ${OUT}`,
   );
 }
 

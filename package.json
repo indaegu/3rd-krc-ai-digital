@@ -22,7 +22,8 @@
     "supabase:reset": "supabase --workdir infra/supabase db reset --local",
     "supabase:lint": "supabase --workdir infra/supabase db lint --local --level error",
     "supabase:test": "supabase --workdir infra/supabase test db",
-    "supabase:stop": "supabase --workdir infra/supabase stop --no-backup"
+    "supabase:stop": "supabase --workdir infra/supabase stop --no-backup",
+    "build:estimator": "pnpm --filter @mulsigye/web build:estimator"
   },
   "devDependencies": {
     "eslint": "10.7.0",

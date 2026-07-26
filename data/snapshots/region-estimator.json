@@ -1,11 +1,14 @@
 {
   "reportVersion": "region-estimator-v1",
-  "generatedAt": "2026-07-26T06:22:12.242Z",
+  "generatedAt": "2026-07-26T06:41:28.272Z",
   "sourceFiles": [
     "한국농어촌공사_논가뭄지도_20251231.csv",
     "한국농어촌공사_전국 저수지 일별 저수율_20251231.csv"
   ],
-  "sourceChecksum": "b0223dd1435ae1cb772905457eceb60515070d144b42ea6e3f3fdcbd27137a1b",
+  "sourceChecksums": {
+    "한국농어촌공사_논가뭄지도_20251231.csv": "02d2392898289ab5c473b5c1c6c9220f8ade84bbeed4f4e68507a8da2efad319",
+    "한국농어촌공사_전국 저수지 일별 저수율_20251231.csv": "fca170dc1e2a14be75bae0d4ea93840200be4aeec85ce8d36a652272e5c47a5b"
+  },
   "params": {
     "trainEnd": "2025-09-30",
     "gateMaePp": 2,
@@ -14,7 +17,12 @@
   "summary": {
     "regionCount": 114,
     "usableCount": 88,
-    "holdoutMaePp": 1.0503
+    "ambiguousJoinKeys": 2,
+    "holdoutSamples": 8096,
+    "holdoutMaePp": 1.0527,
+    "holdoutMedianPp": 0.5115,
+    "holdoutP90Pp": 2.706,
+    "stageAgreementPct": 99.53
   },
   "normals": {
     "26710": {
@@ -57083,11 +57091,11 @@
       "usable": true
     },
     "46170": {
-      "factor": 0.998711,
-      "trainMae": 0.2445,
-      "testMae": 0.3501,
+      "factor": 0.998712,
+      "trainMae": 0.2403,
+      "testMae": 0.3331,
       "sampleDays": 273,
-      "reservoirCount": 160,
+      "reservoirCount": 159,
       "capacityShare": 1,
       "usable": true
     },
@@ -57416,12 +57424,12 @@
       "usable": true
     },
     "47900": {
-      "factor": 0.972009,
-      "trainMae": 0.8606,
-      "testMae": 0.9734,
+      "factor": 0.970603,
+      "trainMae": 0.8247,
+      "testMae": 1.2037,
       "sampleDays": 273,
-      "reservoirCount": 44,
-      "capacityShare": 0.8933,
+      "reservoirCount": 43,
+      "capacityShare": 1,
       "usable": true
     },
     "47920": {
