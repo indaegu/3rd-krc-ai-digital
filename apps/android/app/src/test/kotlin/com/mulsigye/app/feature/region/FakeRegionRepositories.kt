@@ -3,6 +3,7 @@ package com.mulsigye.app.feature.region
 import com.mulsigye.app.feature.region.domain.RegionRepository
 import com.mulsigye.app.feature.region.domain.RegionResolveResult
 import com.mulsigye.app.feature.region.domain.RegionSearchResult
+import com.mulsigye.app.feature.region.domain.ReservoirSearchResult
 import com.mulsigye.app.feature.status.domain.StatusRepository
 import com.mulsigye.app.feature.status.domain.StatusResult
 
@@ -22,6 +23,23 @@ class FakeRegionRepository : RegionRepository {
     var lastSearchQuery: String? = null
         private set
 
+    /** 대표지를 읍·면·동/리로 좁히는지 확인하기 위해 마지막 resolve 인자를 남긴다. */
+    var lastResolveEmdNm: String? = null
+        private set
+    var lastResolveLiNm: String? = null
+        private set
+
+    private val reservoirQueue = mutableListOf<ReservoirSearchResult>()
+    var reservoirDefault: ReservoirSearchResult? = null
+    var reservoirSearchCount = 0
+        private set
+    var lastReservoirQuery: String? = null
+        private set
+
+    fun enqueueReservoirSearch(vararg results: ReservoirSearchResult) {
+        reservoirQueue.addAll(results)
+    }
+
     fun enqueueSearch(vararg results: RegionSearchResult) {
         searchQueue.addAll(results)
     }
@@ -37,9 +55,27 @@ class FakeRegionRepository : RegionRepository {
         return if (searchQueue.isNotEmpty()) searchQueue.removeAt(0) else requireNotNull(searchDefault)
     }
 
-    override suspend fun resolve(admCd: String, legalCode: String): RegionResolveResult {
+    override suspend fun resolve(
+        admCd: String,
+        legalCode: String,
+        emdNm: String?,
+        liNm: String?,
+        facCode: String?,
+    ): RegionResolveResult {
         resolveCount += 1
+        lastResolveEmdNm = emdNm
+        lastResolveLiNm = liNm
         return if (resolveQueue.isNotEmpty()) resolveQueue.removeAt(0) else requireNotNull(resolveDefault)
+    }
+
+    override suspend fun searchReservoirs(query: String): ReservoirSearchResult {
+        reservoirSearchCount += 1
+        lastReservoirQuery = query
+        return if (reservoirQueue.isNotEmpty()) {
+            reservoirQueue.removeAt(0)
+        } else {
+            requireNotNull(reservoirDefault)
+        }
     }
 }
 
@@ -55,8 +91,13 @@ class FakeStatusRepository : StatusRepository {
         results[sigunCode] = result
     }
 
-    override suspend fun load(sigunCode: String): StatusResult {
+    /** 선택 저수지를 넘겼는지 확인할 수 있게 마지막 facCode를 남긴다. */
+    var lastFacCode: String? = null
+        private set
+
+    override suspend fun load(sigunCode: String, facCode: String?): StatusResult {
         loadCount += 1
+        lastFacCode = facCode
         return results[sigunCode] ?: requireNotNull(default)
     }
 }

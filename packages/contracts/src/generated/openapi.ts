@@ -38,6 +38,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/reservoirs/search": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * 저수지 이름으로 후보 조회
+     * @description 주소를 몰라도 아는 저수지 이름으로 지역을 등록할 수 있게 한다. 넓은 시군에서는 주소만으로 원하는 저수지가 잡히지 않을 수 있다(제주시 5곳 등). 후보는 커밋 스냅샷 (시설제원 정규화본)에서만 오고 좌표·거리는 쓰지 않는다.
+     */
+    get: operations["searchReservoirs"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/regions/resolve": {
     parameters: {
       query?: never;
@@ -145,6 +165,10 @@ export interface components {
       retryable: boolean;
     };
     RegionCandidate: {
+      /** @description 읍·면·동 이름. 클라이언트가 resolve 요청에 그대로 실어 보내 대표 저수지를 좁히는 데 쓴다(저장하지 않는다). 도심 주소 등에서는 빈 문자열일 수 있다 */
+      emdNm?: string;
+      /** @description 리 이름. 쓰임은 emdNm과 같다 */
+      liNm?: string;
       /** @description 표시용 도로명주소. 선택 후 폐기하며 서버에 저장하지 않는다 */
       label: string;
       /** @description 행정구역코드 10자리 */
@@ -161,9 +185,34 @@ export interface components {
       sources: string[];
       stale: boolean;
     };
+    ReservoirSearchResponse: {
+      /** @constant */
+      schemaVersion: "1";
+      reservoirs: {
+        facCode: string;
+        name: string;
+        /** @description 시설제원 소재지. 같은 이름이 여러 곳에 있어 구분에 필요하다 */
+        address: string | null;
+        sigunCode: string;
+        /** @description 논가뭄지도 기준 시군명. 준비되지 않은 시군이면 null */
+        sigunName: string | null;
+        /** @description 논가뭄지도에 있는 시군이라 등록 가능한지. false면 화면에서 "준비 중"으로 알리고 선택을 막는다(결과를 통째로 감추지 않는다) */
+        prepared: boolean;
+      }[];
+      /** Format: date-time */
+      asOf: string;
+      sources: string[];
+      stale: boolean;
+    };
     RegionResolveRequest: {
       admCd: string;
       legalCode: string;
+      /** @description 도로명주소가 준 읍·면·동 이름(예 "조천읍"). **시군 안에서 대표 저수지를 좁히는 데만** 쓰고 저장·로그에 남기지 않는다. 시설제원에 좌표가 없어 거리 계산은 하지 않으며, 행정구역 단위로만 좁힌다. 없으면 종전처럼 시군 단위로 고른다 */
+      emdNm?: string;
+      /** @description 도로명주소가 준 리 이름(예 "함덕리"). 쓰임·보관 규칙은 emdNm과 같다 */
+      liNm?: string;
+      /** @description 사용자가 **저수지 이름으로 직접 고른** 시설코드. 주어지면 그 시설을 대표 저수지로 쓴다(같은 시군 후보일 때만). 넓은 시군에서 주소만으로는 원하는 저수지가 안 잡힐 때 쓰는 길이다 */
+      facCode?: string;
     };
     /** @description 우리 지역 대표 저수지. 거리 필드는 두지 않는다 */
     RepresentativeReservoir: {
@@ -542,7 +591,10 @@ export interface operations {
           "application/json": components["schemas"]["RegionSearchResponse"];
         };
       };
-      /** @description 검색어가 없거나 형식이 잘못됨 (retryable=false) */
+      /**
+       * @description 사용자가 고칠 수 있는 검색어 문제 (모두 `retryable=false`). 도로명주소 공식 오류표를 사유별로 옮긴 것이며, `message`가 무엇을 바꿔야 하는지 알려준다. 분류의 단일 출처는 `apps/web/src/lib/data/juso.ts`의 `JusoFailureReason`다.
+       *     | code | 사유(공식 오류메시지) | |---|---| | `INVALID_QUERY` | 서버 자체 검증 — 검색어 없음·두 글자 미만·100자 초과 | | `JUSO_TOO_BROAD` | 주소를 상세히 입력해 주시기 바랍니다(시도명 검색 불가) | | `JUSO_TOO_MANY` | 검색 범위를 초과하였습니다(9천건 초과) | | `JUSO_TOO_SHORT` | 검색어는 두글자 이상 입력되어야 합니다 | | `JUSO_DIGITS_ONLY` | 검색어는 문자와 숫자 같이 입력되어야 합니다 | | `JUSO_LONG_NUMBER` | 검색어에 너무 긴 숫자가 포함되어 있습니다 | | `JUSO_TOO_LONG` | 검색어가 너무 깁니다 | | `JUSO_FORBIDDEN_CHARS` | 특수문자+숫자만 / SQL 예약어·특수문자 | | `JUSO_EMPTY` | 검색어가 입력되지 않았습니다 |
+       */
       400: {
         headers: {
           [name: string]: unknown;
@@ -551,8 +603,40 @@ export interface operations {
           "application/json": components["schemas"]["ApiError"];
         };
       };
-      /** @description 도로명주소 API를 사용할 수 없음 (retryable=true) */
+      /** @description 도로명주소 API 쪽 문제. **`retryable`이 사유에 따라 다르다** — 일시 장애(`JUSO_UNAVAILABLE`)는 `true`지만, 승인키 문제(`JUSO_AUTH`: 승인되지 않은 KEY·개발승인키 만료·비정상 경로)는 다시 눌러도 풀리지 않으므로 `false`다. 클라이언트는 `retryable`을 보고 '다시 시도' 버튼을 결정한다. */
       503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ApiError"];
+        };
+      };
+    };
+  };
+  searchReservoirs: {
+    parameters: {
+      query: {
+        /** @description 저수지 이름 또는 소재지 일부. 두 글자 이상. */
+        q: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description 저수지 후보 목록(최대 20건). 없으면 빈 배열 */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ReservoirSearchResponse"];
+        };
+      };
+      /** @description 검색어가 없거나 두 글자 미만 (retryable=false) */
+      400: {
         headers: {
           [name: string]: unknown;
         };

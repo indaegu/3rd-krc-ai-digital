@@ -5,6 +5,8 @@ export type ApiError = components["schemas"]["ApiError"];
 export type RegionCandidate = components["schemas"]["RegionCandidate"];
 export type RegionSearchResponse =
   components["schemas"]["RegionSearchResponse"];
+export type ReservoirSearchResponse =
+  components["schemas"]["ReservoirSearchResponse"];
 export type RegionResolveRequest =
   components["schemas"]["RegionResolveRequest"];
 export type RegionResolveResponse =

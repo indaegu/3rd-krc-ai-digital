@@ -78,6 +78,9 @@ describe("GET /api/v1/regions/search", () => {
       label: "전남광주통합특별시 나주시 빛가람로 17 (송월동)",
       admCd: "1217010200",
       legalCode: "4617010200",
+      // 읍·면·동/리는 대표 저수지를 시군 안에서 좁히는 데 쓴다(저장하지 않는다).
+      emdNm: "송월동",
+      liNm: "",
     });
     expect(body.candidates[1]?.legalCode).toBe("4617010200");
 

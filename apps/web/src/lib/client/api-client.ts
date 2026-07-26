@@ -10,6 +10,7 @@ import type {
   RegionResolveRequest,
   RegionResolveResponse,
   RegionSearchResponse,
+  ReservoirSearchResponse,
   StatusResponse,
 } from "@mulsigye/contracts";
 
@@ -125,10 +126,18 @@ function baseInit(options?: RequestOptions): RequestInit {
 
 export function getStatus(
   sigunCode: string,
-  options?: RequestOptions,
+  options?: RequestOptions & {
+    /** 사용자가 저수지 이름으로 직접 고른 시설코드. 있으면 그 저수지로 조회한다. */
+    facCode?: string;
+  },
 ): Promise<ApiResult<StatusResponse>> {
+  const facCode = options?.facCode;
+  const query =
+    facCode === undefined || facCode === ""
+      ? `?sigunCode=${encodeURIComponent(sigunCode)}`
+      : `?sigunCode=${encodeURIComponent(sigunCode)}&facCode=${encodeURIComponent(facCode)}`;
   return requestJson<StatusResponse>(
-    `/api/v1/status?sigunCode=${encodeURIComponent(sigunCode)}`,
+    `/api/v1/status${query}`,
     baseInit(options),
   );
 }
@@ -183,6 +192,16 @@ export function searchRegions(
 ): Promise<ApiResult<RegionSearchResponse>> {
   return requestJson<RegionSearchResponse>(
     `/api/v1/regions/search?q=${encodeURIComponent(q)}`,
+    baseInit(options),
+  );
+}
+
+export function searchReservoirs(
+  q: string,
+  options?: RequestOptions,
+): Promise<ApiResult<ReservoirSearchResponse>> {
+  return requestJson<ReservoirSearchResponse>(
+    `/api/v1/reservoirs/search?q=${encodeURIComponent(q)}`,
     baseInit(options),
   );
 }

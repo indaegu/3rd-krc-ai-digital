@@ -251,6 +251,13 @@ private fun RegionAddRoute(container: AppContainer, backStack: BackStack) {
         // 등록 후 지역 목록으로 복귀한다.
         onRegister = { setAsPrimary -> vm.register(setAsPrimary) { backStack.pop() } },
         onBack = { backStack.pop() },
+        onReservoirQueryChange = vm::onReservoirQueryChange,
+        onReservoirSelect = vm::onReservoirSelect,
+        onRetryReservoirSearch = vm::retryReservoirSearch,
+        onDismissReservoir = vm::dismissReservoir,
+        onRegisterReservoir = { setAsPrimary ->
+            vm.registerReservoir(setAsPrimary) { backStack.pop() }
+        },
     )
 }
 
@@ -265,7 +272,12 @@ private fun MainRoute(container: AppContainer, store: RegionStoreState, backStac
 
     val statusVm: StatusViewModel = viewModel(
         key = "status-$regionCode",
-        factory = StatusViewModel.Factory(container.statusRepository, regionCode),
+        factory = StatusViewModel.Factory(
+            container.statusRepository,
+            regionCode,
+            // 사용자가 저수지 이름으로 고른 경우 그 저수지를 유지한다.
+            store.regions.getOrNull(store.currentIndex)?.facCode,
+        ),
     )
     val forecastVm: ForecastViewModel = viewModel(
         key = "forecast-$regionCode",
@@ -397,7 +409,12 @@ private fun TrendRoute(container: AppContainer, store: RegionStoreState, backSta
     // 필요하다. status 실패는 토글만 감추고 상세 화면 자체는 막지 않는다.
     val statusVm: StatusViewModel = viewModel(
         key = "trend-status-$regionCode",
-        factory = StatusViewModel.Factory(container.statusRepository, regionCode),
+        factory = StatusViewModel.Factory(
+            container.statusRepository,
+            regionCode,
+            // 사용자가 저수지 이름으로 고른 경우 그 저수지를 유지한다.
+            store.regions.getOrNull(store.currentIndex)?.facCode,
+        ),
     )
     val state by forecastVm.uiState.collectAsStateWithLifecycle()
     val statusState by statusVm.uiState.collectAsStateWithLifecycle()

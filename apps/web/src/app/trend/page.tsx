@@ -59,6 +59,8 @@ export default function TrendPage() {
   const [status, setStatus] = useState<StatusState>({ kind: "loading" });
   const mountedRef = useRef(true);
   const sigunRef = useRef<string | null>(null);
+  /** 저장된 선택 저수지 — 메인과 같은 저수지를 보여주려면 status 조회에 함께 보낸다. */
+  const facCodeRef = useRef<string | undefined>(undefined);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -71,16 +73,19 @@ export default function TrendPage() {
     setForecast({ kind: "loading" });
     setStatus({ kind: "loading" });
     // 실측 토글 재료 — 실패하면 토글만 감춘다(오류 카드를 띄우지 않는다).
-    void getStatus(sigunCode).then((result) => {
-      if (!mountedRef.current) {
-        return;
-      }
-      setStatus(
-        result.kind === "ok"
-          ? { kind: "ready", data: result.data }
-          : { kind: "hidden" },
-      );
-    });
+    const facCode = facCodeRef.current;
+    void getStatus(sigunCode, facCode === undefined ? {} : { facCode }).then(
+      (result) => {
+        if (!mountedRef.current) {
+          return;
+        }
+        setStatus(
+          result.kind === "ok"
+            ? { kind: "ready", data: result.data }
+            : { kind: "hidden" },
+        );
+      },
+    );
     void getForecast(sigunCode).then((result) => {
       if (!mountedRef.current) {
         return;
@@ -105,6 +110,7 @@ export default function TrendPage() {
       return;
     }
     sigunRef.current = region.sigunCode;
+    facCodeRef.current = region.facCode;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- localStorage는 클라이언트 마운트 후에만 읽는다
     setReady(true);
     load(region.sigunCode);

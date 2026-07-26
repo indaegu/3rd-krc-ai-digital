@@ -25,9 +25,9 @@ class DefaultStatusRepository(
     private val json: Json,
 ) : StatusRepository {
 
-    override suspend fun load(sigunCode: String): StatusResult =
+    override suspend fun load(sigunCode: String, facCode: String?): StatusResult =
         try {
-            val response = api.getStatus(sigunCode)
+            val response = api.getStatus(sigunCode, facCode?.takeIf { it.isNotBlank() })
             val body = response.body()
             if (response.isSuccessful && body != null) {
                 if (body.schemaVersion != "1") {

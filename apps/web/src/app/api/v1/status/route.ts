@@ -1,4 +1,5 @@
-// GET /api/v1/status?sigunCode= — 대표 저수지 현재값과 공식 가뭄단계(사실만 반환).
+// GET /api/v1/status?sigunCode=&facCode= — 대표 저수지 현재값과 공식 가뭄단계(사실만 반환).
+// facCode는 사용자가 저수지 이름으로 직접 고른 경우에만 붙는다(같은 시군일 때만 쓰인다).
 // 60분 캐시는 수위 API fetch 레벨(next.revalidate=3600)에서 관리하므로 라우트는 dynamic이다.
 // 수위 API 장애에도 Supabase·커밋 스냅샷 폴백으로 HTTP 200 stale=true를 유지한다.
 import type { ApiError } from "@mulsigye/contracts";
@@ -12,6 +13,7 @@ export const dynamic = "force-dynamic";
 const NO_STORE_HEADERS = { "Cache-Control": "no-store" } as const;
 
 const SIGUN_CODE_PATTERN = /^[0-9]{5}$/;
+const FAC_CODE_PATTERN = /^[0-9]{10}$/;
 
 function errorResponse(status: number, error: ApiError): Response {
   return Response.json(error, { status, headers: NO_STORE_HEADERS });
@@ -28,7 +30,14 @@ function unavailableResponse(): Response {
 
 export function createStatusHandler(deps: StatusServiceDeps = {}) {
   return async function handleStatus(request: Request): Promise<Response> {
-    const sigunCode = new URL(request.url).searchParams.get("sigunCode") ?? "";
+    const params = new URL(request.url).searchParams;
+    const sigunCode = params.get("sigunCode") ?? "";
+    const rawFacCode = params.get("facCode");
+    // 형식이 어긋난 facCode는 오류로 막지 않고 무시한다 — 지역 조회 자체는 계속 되어야 한다.
+    const facCode =
+      rawFacCode !== null && FAC_CODE_PATTERN.test(rawFacCode)
+        ? rawFacCode
+        : null;
     if (!SIGUN_CODE_PATTERN.test(sigunCode)) {
       return errorResponse(400, {
         code: "INVALID_SIGUN_CODE",
@@ -38,7 +47,7 @@ export function createStatusHandler(deps: StatusServiceDeps = {}) {
     }
 
     try {
-      const result = await buildStatus(sigunCode, deps);
+      const result = await buildStatus(sigunCode, deps, facCode);
       if (result.kind === "not_prepared") {
         return errorResponse(404, {
           code: "REGION_NOT_PREPARED",
