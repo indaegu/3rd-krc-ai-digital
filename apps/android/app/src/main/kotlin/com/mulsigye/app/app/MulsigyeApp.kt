@@ -393,10 +393,22 @@ private fun TrendRoute(container: AppContainer, store: RegionStoreState, backSta
         key = "trend-forecast-$regionCode",
         factory = ForecastViewModel.Factory(container.forecastRepository, regionCode),
     )
+    // 상세에도 "저수지 실측" 토글을 두려면 대표 저수지 시계열(status.reservoir.rateHistory)이
+    // 필요하다. status 실패는 토글만 감추고 상세 화면 자체는 막지 않는다.
+    val statusVm: StatusViewModel = viewModel(
+        key = "trend-status-$regionCode",
+        factory = StatusViewModel.Factory(container.statusRepository, regionCode),
+    )
     val state by forecastVm.uiState.collectAsStateWithLifecycle()
+    val statusState by statusVm.uiState.collectAsStateWithLifecycle()
+    val statusData = (statusState as? StatusUiState.Ready)?.data
 
     when (val forecast = state) {
-        is ForecastUiState.Ready -> TrendScreen(data = forecast.data, onBack = { backStack.pop() })
+        is ForecastUiState.Ready -> TrendScreen(
+            data = forecast.data,
+            status = statusData,
+            onBack = { backStack.pop() },
+        )
         // 로딩은 흐름 상세 레이아웃을 그대로 흉내 낸 스켈레톤으로(풀스크린 스피너·밋밋한 텍스트 금지).
         is ForecastUiState.Loading -> TrendLoadingScreen(onBack = { backStack.pop() })
         is ForecastUiState.Error -> TrendErrorScreen(

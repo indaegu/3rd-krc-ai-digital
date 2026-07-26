@@ -30,6 +30,17 @@ data class StatusReservoirDto(
     val rateHistory: List<ReservoirRatePointDto> = emptyList(),
 )
 
+/**
+ * openapi.yaml `StatusResponse.region.estimate`와 1:1. 서버가 실측으로 계산한 날의 근거다.
+ * v1 additive — 공표값 경로에서는 null이다.
+ */
+@Serializable
+data class RegionEstimateDto(
+    val maePp: Double,
+    val reservoirCount: Int,
+    val capacityRatio: Double,
+)
+
 /** openapi.yaml `StatusResponse.region`와 1:1. 논가뭄지도 기준 지역 공식 값. */
 @Serializable
 data class StatusRegionDto(
@@ -38,6 +49,9 @@ data class StatusRegionDto(
     val normalRate: Double? = null,
     val avgRatio: Double,
     val officialStage: DroughtStageDto,
+    /** v1 additive — "official" | "estimate". 없으면 공표값으로 본다. */
+    val basis: String? = null,
+    val estimate: RegionEstimateDto? = null,
 )
 
 /**

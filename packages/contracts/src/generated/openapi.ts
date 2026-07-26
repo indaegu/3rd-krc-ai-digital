@@ -231,6 +231,20 @@ export interface components {
         /** @description 평년 대비 저수율 %. 100 초과 가능(실측 140.1). 일일 변화량은 %p */
         avgRatio: number;
         officialStage: components["schemas"]["DroughtStage"];
+        /**
+         * @description 이 지역 값의 출처. `official`은 논가뭄지도 공표값 그대로, `estimate`는 저수지 실측을 시군 통합저수율로 집계해 서버가 계산한 오늘 추정값이다(AGENTS.md 규칙 5 예외). 필드가 없으면 `official`로 본다. 단계 임계값(70/60/50/40)은 두 경우 모두 같다
+         * @enum {string}
+         */
+        basis?: "official" | "estimate";
+        /** @description `basis: estimate`일 때만 채워지는 근거. 화면은 이 값을 그대로 표기해야 하며 추정임을 숨기지 않는다 */
+        estimate?: {
+          /** @description 이 지역 모델의 검증 구간 평균 절대 오차(%p) */
+          maePp: number;
+          /** @description 집계에 들어간 저수지 수 */
+          reservoirCount: number;
+          /** @description 집계가 덮은 시군 유효저수량 비중(0~1) */
+          capacityRatio: number;
+        } | null;
       };
       /** @description 만수위 '참고' 안내 여부. 대표 저수지 원저수율 95% 이상 + 상승 추세일 때만 true이며 서버가 확정한다. 클라이언트는 이 값을 재판정하지 않는다(자체 임계값 복제 금지). 경보가 아니라 참고 표시 전용이다 */
       highWaterNotice: boolean;
@@ -328,10 +342,21 @@ export interface components {
         /** @description 평년 대비 저수율 %. 100 초과 가능 */
         avgRatio: number;
         officialStage: components["schemas"]["DroughtStage"];
+        /**
+         * @description `StatusResponse.region.basis`와 같은 뜻이다. 같은 화면에서 오늘 값과 그래프 기준이 어긋나지 않도록 두 응답이 같은 시계열을 쓴다. 필드가 없으면 `official`로 본다
+         * @enum {string}
+         */
+        basis?: "official" | "estimate";
+        /** @description `basis: estimate`일 때만 채워지는 근거 */
+        estimate?: {
+          maePp: number;
+          reservoirCount: number;
+          capacityRatio: number;
+        } | null;
       };
-      /** @description 최근 30일 실측(실선) */
+      /** @description 최근 60일 실측(실선) */
       history: components["schemas"]["ForecastPoint"][];
-      /** @description 14일 예측(점선)과 밴드 */
+      /** @description 30일 예측(점선)과 밴드 */
       forecast: components["schemas"]["ForecastBandPoint"][];
       trend: {
         /** @description 일일 변화량 %p/day. 최근 14일 실측 avgRatio의 관측 선형 기울기 (observedDailyDelta)로 계산한다. 예측선·밴드는 채택 모델과 잔차 분위수 기반이며 추세·도달일과 근거를 분리한다 */
@@ -359,8 +384,10 @@ export interface components {
         version: string;
         /** @description 백테스트 7일 macro MAE %p */
         mae7: number;
-        /** @description 백테스트 14일 macro MAE %p */
+        /** @description 백테스트 14일 macro MAE %p (horizon 1~14 잔차) */
         mae14: number;
+        /** @description 백테스트 30일 macro MAE %p (horizon 1~30 잔차). 예측 지평을 30일로 늘리며 추가한 v1 additive 필드다. 화면은 7·14·30일 오차를 함께 밝힌다 */
+        mae30?: number;
         /**
          * @description 밴드 산식. 잔차 충분 시 경험적 25~75 분위수(50% 구간)에 지역 bandScale을 곱한다. 부족 시 최근 14일 MAE. residual_quantile_p10_p90은 v1 하위호환 값
          * @enum {string}

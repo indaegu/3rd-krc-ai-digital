@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import type { ForecastResponse } from "@mulsigye/contracts";
+import type { ForecastResponse, StatusResponse } from "@mulsigye/contracts";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -39,6 +39,19 @@ function loadExample<T>(name: string): T {
 }
 
 const WATCH = loadExample<ForecastResponse>("forecast.watch-demo.json");
+const STATUS = loadExample<StatusResponse>("status.watch-demo.json");
+
+/**
+ * /api/v1/status와 /api/v1/forecast를 URL로 갈라 응답한다.
+ * 상세 화면은 이제 두 응답을 모두 쓴다(실측 토글 재료가 status에 있다).
+ */
+function routedFetch(forecast: ForecastResponse) {
+  return vi.fn((input: unknown) =>
+    Promise.resolve(
+      jsonResponse(String(input).includes("/status") ? STATUS : forecast),
+    ),
+  );
+}
 
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -67,10 +80,7 @@ function seedRegion() {
 beforeEach(() => {
   window.localStorage.clear();
   vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: true }));
-  vi.stubGlobal(
-    "fetch",
-    vi.fn(() => Promise.resolve(jsonResponse(WATCH))),
-  );
+  vi.stubGlobal("fetch", routedFetch(WATCH));
 });
 
 afterEach(() => {
@@ -125,10 +135,7 @@ describe("흐름 상세 — 평평한 예측선 캡션과 날짜 축", () => {
         avgRatio: point.avgRatio + index,
       })),
     };
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(() => Promise.resolve(jsonResponse(rising))),
-    );
+    vi.stubGlobal("fetch", routedFetch(rising));
 
     const { container } = render(<TrendPage />);
     // 상세가 로드될 때까지 기다린 뒤(제목 등장) 캡션 부재를 확인한다.

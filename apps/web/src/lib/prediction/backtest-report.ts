@@ -2,7 +2,7 @@
 // 엔진(backtest.ts)은 코어를 만들고, CLI(scripts/backtest.ts)가
 // sourceFile/sourceChecksum/runAt/gitCommit을 주입해 이 스키마로 검증 후 기록한다.
 import { z } from "zod";
-import { PREDICTION_MODEL_NAMES } from "./models.ts";
+import { FORECAST_HORIZON_DAYS, PREDICTION_MODEL_NAMES } from "./models.ts";
 
 /** 지역 제외 사유(프로토콜 6항). no_evaluable_origin은 평가 가능한 origin 0개 방어용. */
 export const EXCLUSION_REASONS = [
@@ -14,12 +14,14 @@ export type ExclusionReason = (typeof EXCLUSION_REASONS)[number];
 
 const modelNameSchema = z.enum(PREDICTION_MODEL_NAMES);
 
-/** 7일 = horizon 1~7, 14일 = horizon 1~14 잔차의 MAE/RMSE(%p, 소수 4자리 반올림). */
+/** 7일=horizon 1~7, 14일=1~14, 30일=1~지평끝 잔차의 MAE/RMSE(%p, 소수 4자리 반올림). */
 const metricSetSchema = z.strictObject({
   mae7: z.number(),
   rmse7: z.number(),
   mae14: z.number(),
   rmse14: z.number(),
+  mae30: z.number(),
+  rmse30: z.number(),
 });
 
 const regionMetricsSchema = z.strictObject({
@@ -28,6 +30,8 @@ const regionMetricsSchema = z.strictObject({
   rmse7: z.number(),
   mae14: z.number(),
   rmse14: z.number(),
+  mae30: z.number(),
+  rmse30: z.number(),
   /** 지역 밴드 배율 = clamp(round2(지역 rmse14 / 모델 macro rmse14), 0.6, 1.6). */
   bandScale: z.number(),
 });
@@ -77,18 +81,23 @@ export const backtestReportSchema = z.strictObject({
     rmse7: z.number(),
     mae14: z.number(),
     rmse14: z.number(),
+    mae30: z.number(),
+    rmse30: z.number(),
   }),
-  /** 채택 모델의 horizon 1..14 잔차(실측-예측) 경험적 분위수(p25/p75, 50% 구간). */
+  /**
+   * 채택 모델의 horizon 1..FORECAST_HORIZON_DAYS 잔차(실측-예측) 경험적 분위수(p25/p75).
+   * 길이는 지평 상수를 따라간다 — 지평을 바꾸면 리포트를 다시 만들어야 통과한다.
+   */
   residualQuantiles: z
     .array(
       z.strictObject({
-        horizon: z.number().int().min(1).max(14),
+        horizon: z.number().int().min(1).max(FORECAST_HORIZON_DAYS),
         count: z.number().int().nonnegative(),
         p25: z.number(),
         p75: z.number(),
       }),
     )
-    .length(14),
+    .length(FORECAST_HORIZON_DAYS),
   excluded: z.array(
     z.strictObject({
       sigunCode: z.string().min(1),

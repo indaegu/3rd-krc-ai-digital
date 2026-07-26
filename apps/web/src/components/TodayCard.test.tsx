@@ -117,6 +117,40 @@ describe("TodayCard 관측 실패", () => {
   });
 });
 
+describe("TodayCard 추정 표기", () => {
+  /** 추정 경로 status — 기준일만 바꿔 배지 문구를 확인한다. */
+  function estimated(observedOn: string): StatusResponse {
+    return {
+      ...NORMAL,
+      region: {
+        ...NORMAL.region,
+        observedOn,
+        basis: "estimate",
+        estimate: { maePp: 0.65, reservoirCount: 25, capacityRatio: 1 },
+      },
+    };
+  }
+
+  it("basis가 official이면 배지를 그리지 않는다", () => {
+    render(<TodayCard status={NORMAL} />);
+    expect(screen.queryByText(/추정/)).not.toBeInTheDocument();
+  });
+
+  it("기준일이 서버 기준 오늘이면 '오늘 추정'이다", () => {
+    // asOf 2026-07-21T00:00Z → KST 2026-07-21.
+    render(<TodayCard status={estimated("2026-07-21")} />);
+    expect(screen.getByText("오늘 추정")).toBeInTheDocument();
+    // 대표 저수지명은 그대로 남는다(배지가 라벨을 대체하지 않는다).
+    expect(screen.getByText(NORMAL.reservoir.name)).toBeInTheDocument();
+  });
+
+  it("기준일이 오늘이 아니면 날짜를 드러낸다(며칠 지난 값을 오늘로 읽지 않게)", () => {
+    render(<TodayCard status={estimated("2026-07-18")} />);
+    expect(screen.getByText("7월 18일 추정")).toBeInTheDocument();
+    expect(screen.queryByText("오늘 추정")).not.toBeInTheDocument();
+  });
+});
+
 describe("TodayCard 게이지 단계 눈금 폴백", () => {
   it("stageBands가 없으면 게이지 단계 눈금 라벨을 그리지 않는다", () => {
     // stale 데모 픽스처에는 stageBands가 없다(구 페이로드).

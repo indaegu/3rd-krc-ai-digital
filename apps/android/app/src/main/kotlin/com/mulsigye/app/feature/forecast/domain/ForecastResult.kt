@@ -12,6 +12,8 @@ data class ForecastBasis(
     val observedOn: String,
     val avgRatio: Double,
     val officialStage: ForecastStage,
+    /** 서버가 실측으로 계산한 기준점인지. 서버가 주지 않으면 false(공표값). */
+    val isEstimate: Boolean = false,
 )
 
 /** 실측 avgRatio 시계열 점. */
@@ -45,6 +47,8 @@ data class ForecastModel(
     val version: String,
     val mae7: Double,
     val mae14: Double,
+    /** 30일 지평 오차. 구 서버 응답에는 없어 null일 수 있다. */
+    val mae30: Double? = null,
     val bandMethod: String,
 )
 

@@ -7,6 +7,9 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import com.mulsigye.app.core.designsystem.theme.MulsigyeTheme
 import com.mulsigye.app.core.testing.RobolectricComposeTest
+import com.mulsigye.app.feature.status.domain.RegionEstimate
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
@@ -22,10 +25,14 @@ class SourcesCardTest : RobolectricComposeTest() {
     @get:Rule
     val composeTestRule = createComposeRule()
 
-    private fun setCard(sources: List<String>, stale: Boolean) {
+    private fun setCard(
+        sources: List<String>,
+        stale: Boolean,
+        estimate: RegionEstimate? = null,
+    ) {
         composeTestRule.setContent {
             MulsigyeTheme {
-                SourcesCard(sources = sources, stale = stale)
+                SourcesCard(sources = sources, stale = stale, estimate = estimate)
             }
         }
     }
@@ -70,5 +77,35 @@ class SourcesCardTest : RobolectricComposeTest() {
     fun hidesDelayNoteWhenFresh() {
         setCard(sources = listOf("논가뭄지도"), stale = false)
         composeTestRule.onAllNodesWithText("지연되어", substring = true).assertCountEquals(0)
+    }
+
+    @Test
+    fun showsEstimateNoticeOnlyWhenServerSaysEstimate() {
+        setCard(sources = listOf("논가뭄지도"), stale = false)
+        composeTestRule.onAllNodesWithText("추정값이에요", substring = true).assertCountEquals(0)
+    }
+
+    @Test
+    fun rendersServerProvidedEstimateEvidence() {
+        setCard(
+            sources = listOf("논가뭄지도", "저수지 실측 기반 지역 추정"),
+            stale = false,
+            estimate = RegionEstimate(maePp = 0.65, reservoirCount = 25, capacityRatio = 1.0),
+        )
+        // 숫자는 서버 값에서만 온다 — 저수지 수와 오차를 그대로 밝힌다.
+        composeTestRule.onNodeWithText("25곳", substring = true).assertIsDisplayed()
+        composeTestRule.onNodeWithText("0.7%p", substring = true).assertIsDisplayed()
+    }
+
+    @Test
+    fun estimateNoticeUsesOnlyServerNumbers() {
+        val notice = estimateNotice(
+            RegionEstimate(maePp = 1.05, reservoirCount = 7, capacityRatio = 0.93),
+        )
+        assertTrue(notice.contains("7곳"))
+        assertTrue(notice.contains("1.1%p"))
+        assertTrue(notice.contains("공인 기준 그대로"))
+        // 임계 상수(70/60/50/40)는 Android 어디에도 두지 않는다(규칙 10).
+        assertFalse(notice.contains("70"))
     }
 }

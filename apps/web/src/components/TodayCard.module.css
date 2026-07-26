@@ -15,6 +15,28 @@
   border-radius: 10px;
 }
 
+/* 탭 줄 — 저수지명 + (추정일 때만) "오늘 추정" 배지. */
+.tabRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: -4px 0 16px;
+}
+
+.tabRow .tab {
+  margin: 0;
+}
+
+/* 오늘 추정 배지 — 공표값이 아님을 숨기지 않는다(AGENTS.md 규칙 5 예외 조건). */
+.estimateBadge {
+  padding: 6px 12px;
+  color: var(--ink2);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  background: var(--gray100);
+  border-radius: 10px;
+}
+
 .hero {
   display: flex;
   align-items: flex-start;

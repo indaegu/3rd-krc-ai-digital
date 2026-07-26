@@ -17,8 +17,10 @@ import estimatorJson from "../../../data/snapshots/region-estimator.json" with {
 const regionModelSchema = z.object({
   factor: z.number().positive(),
   trainMae: z.number().min(0),
+  validMae: z.number().min(0),
   testMae: z.number().min(0).nullable(),
   sampleDays: z.number().int().positive(),
+  validDays: z.number().int().positive(),
   reservoirCount: z.number().int().nonnegative(),
   capacityShare: z.number().min(0).max(1),
   usable: z.boolean(),
@@ -32,8 +34,10 @@ const estimatorSchema = z.object({
   sourceChecksums: z.record(z.string(), z.string().regex(/^[0-9a-f]{64}$/)),
   params: z.object({
     trainEnd: z.string().min(1),
+    validEnd: z.string().min(1),
     gateMaePp: z.number().positive(),
     minTrainDays: z.number().int().positive(),
+    minValidDays: z.number().int().positive(),
   }),
   summary: z.object({
     regionCount: z.number().int().positive(),
@@ -69,12 +73,25 @@ describe("지역 추정 산출물 — 형태·불변식", () => {
     }
   });
 
-  it("usable 지역은 학습 MAE가 게이트 이하다(폴백 규칙 불변식)", () => {
+  it("usable 지역은 검증 MAE가 게이트 이하다(폴백 규칙 불변식)", () => {
     for (const [code, model] of Object.entries(report.regions)) {
       expect(
         model.usable,
-        `${code}: trainMae ${String(model.trainMae)} vs gate ${String(report.params.gateMaePp)}`,
-      ).toBe(model.trainMae <= report.params.gateMaePp);
+        `${code}: validMae ${String(model.validMae)} vs gate ${String(report.params.gateMaePp)}`,
+      ).toBe(model.validMae <= report.params.gateMaePp);
+    }
+  });
+
+  it("구간이 학습 → 검증 → 시험 순으로 겹치지 않게 나뉘어 있다", () => {
+    // 게이트는 학습에 쓰지 않은 구간에서, 보고 수치는 게이트 판정에도 쓰지 않은 구간에서 나온다.
+    expect(report.params.trainEnd < report.params.validEnd).toBe(true);
+    for (const [code, model] of Object.entries(report.regions)) {
+      expect(model.sampleDays, code).toBeGreaterThanOrEqual(
+        report.params.minTrainDays,
+      );
+      expect(model.validDays, code).toBeGreaterThanOrEqual(
+        report.params.minValidDays,
+      );
     }
   });
 

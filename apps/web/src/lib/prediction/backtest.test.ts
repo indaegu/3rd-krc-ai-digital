@@ -15,6 +15,7 @@ import {
   type BacktestPoint,
 } from "./backtest.ts";
 import { backtestReportSchema } from "./backtest-report.ts";
+import { FORECAST_HORIZON_DAYS } from "./models.ts";
 
 const START = "2025-01-01";
 
@@ -64,28 +65,29 @@ describe("파라미터 상수 (플랜 확정값)", () => {
   });
 });
 
-describe("generateOriginDates — 마지막 90일 안 14일 간격", () => {
-  it("2025-12-31 기준 origin 6개를 오름차순으로 만든다", () => {
+describe("generateOriginDates — 마지막 90일 안 14일 간격(꽉 찬 평가 창)", () => {
+  it("2025-12-31 기준 origin 5개를 오름차순으로 만든다(가장 최근 = 12-01 = 말일-30)", () => {
     expect(generateOriginDates("2025-12-31")).toEqual([
-      "2025-10-08",
-      "2025-10-22",
-      "2025-11-05",
-      "2025-11-19",
-      "2025-12-03",
-      "2025-12-17",
+      "2025-10-06",
+      "2025-10-20",
+      "2025-11-03",
+      "2025-11-17",
+      "2025-12-01",
     ]);
   });
 
-  it("모든 origin이 마지막 90일 안이고 간격은 14일, 마지막 origin은 lastDate-14", () => {
+  it("모든 origin이 마지막 90일 안이고 간격은 14일, 마지막 origin은 lastDate-지평일수", () => {
     const last = "2025-07-19";
     const origins = generateOriginDates(last);
-    expect(origins).toHaveLength(6);
+    expect(origins).toHaveLength(5);
     for (const origin of origins) {
       expect(daysBetweenIso(origin, last)).toBeLessThanOrEqual(
         ORIGIN_WINDOW_DAYS,
       );
-      // 14일 평가 구간이 lastDate를 넘지 않는다.
-      expect(daysBetweenIso(origin, last)).toBeGreaterThanOrEqual(14);
+      // 평가 구간(지평일수)이 lastDate를 넘지 않는다.
+      expect(daysBetweenIso(origin, last)).toBeGreaterThanOrEqual(
+        FORECAST_HORIZON_DAYS,
+      );
     }
     for (let i = 1; i < origins.length; i += 1) {
       const prev = origins[i - 1];
@@ -93,12 +95,14 @@ describe("generateOriginDates — 마지막 90일 안 14일 간격", () => {
       if (prev === undefined || next === undefined) throw new Error("origin");
       expect(daysBetweenIso(prev, next)).toBe(ORIGIN_STEP_DAYS);
     }
-    expect(origins[origins.length - 1]).toBe(addDaysIso(last, -14));
+    expect(origins[origins.length - 1]).toBe(
+      addDaysIso(last, -FORECAST_HORIZON_DAYS),
+    );
   });
 });
 
 describe("splitAtOrigin — 데이터 누수 차단", () => {
-  it("학습 창에 origin 이후 값이 없고, 평가 창은 (origin, origin+14]다", () => {
+  it("학습 창에 origin 이후 값이 없고, 평가 창은 (origin, origin+지평일수]다", () => {
     const last = LINEAR_REGION[LINEAR_REGION.length - 1]?.observedOn ?? "";
     for (const origin of generateOriginDates(last)) {
       const { train, test } = splitAtOrigin(LINEAR_REGION, origin);
@@ -109,12 +113,13 @@ describe("splitAtOrigin — 데이터 누수 차단", () => {
         expect(point.observedOn > origin).toBe(true);
         expect(point.horizon).toBe(daysBetweenIso(origin, point.observedOn));
         expect(point.horizon).toBeGreaterThanOrEqual(1);
-        expect(point.horizon).toBeLessThanOrEqual(14);
+        expect(point.horizon).toBeLessThanOrEqual(FORECAST_HORIZON_DAYS);
       }
       // 결측 없는 픽스처에서는 학습+평가가 원본을 정확히 분할한다.
       expect(train.length + test.length).toBe(
-        LINEAR_REGION.filter((p) => p.observedOn <= addDaysIso(origin, 14))
-          .length,
+        LINEAR_REGION.filter(
+          (p) => p.observedOn <= addDaysIso(origin, FORECAST_HORIZON_DAYS),
+        ).length,
       );
     }
   });
@@ -123,20 +128,23 @@ describe("splitAtOrigin — 데이터 누수 차단", () => {
 describe("runBacktest — 완전 선형 지역", () => {
   const core = runBacktest({ "10001": LINEAR_REGION });
 
-  it("origin 6개·표본 84개(6×14)를 평가한다", () => {
+  it("origin 5개·표본 150개(5×30)를 평가한다", () => {
     expect(core.regionCount).toBe(1);
-    expect(core.originCount).toBe(6);
-    expect(core.sampleCount).toBe(84);
+    expect(core.originCount).toBe(5);
+    expect(core.sampleCount).toBe(5 * FORECAST_HORIZON_DAYS);
     expect(core.excluded).toEqual([]);
   });
 
-  it("linear MAE ≈ 0, naive MAE는 기울기 손계산값(7일 0.4, 14일 0.75)", () => {
+  it("linear MAE ≈ 0, naive MAE는 기울기 손계산값(7일 0.4, 14일 0.75, 30일 1.55)", () => {
     expect(core.models.linear.macro.mae14).toBeCloseTo(0, 4);
     expect(core.models.linear.macro.mae7).toBeCloseTo(0, 4);
+    // 하루 -0.1%p 직선이라 naive의 h일 뒤 오차는 정확히 0.1h다.
+    // 평균 = 0.1 × (1+…+H)/H = 0.05(H+1) → 7일 0.4, 14일 0.75, 30일 1.55.
     expect(core.models.naive.macro.mae7).toBeCloseTo(0.4, 4);
     expect(core.models.naive.macro.mae14).toBeCloseTo(0.75, 4);
+    expect(core.models.naive.macro.mae30).toBeCloseTo(1.55, 4);
     expect(core.models.naive.byRegion["10001"]?.mae14).toBeCloseTo(0.75, 4);
-    expect(core.models.naive.byRegion["10001"]?.originCount).toBe(6);
+    expect(core.models.naive.byRegion["10001"]?.originCount).toBe(5);
   });
 
   it("14일 macro MAE 최저인 linear를 동률 없이 채택한다", () => {
@@ -145,11 +153,11 @@ describe("runBacktest — 완전 선형 지역", () => {
     expect(core.selectedModel.tiedWith).toEqual([]);
   });
 
-  it("채택 모델의 horizon 1..14 잔차 p25/p75 ≈ 0", () => {
-    expect(core.residualQuantiles).toHaveLength(14);
+  it("채택 모델의 horizon 1..지평 잔차 p25/p75 ≈ 0", () => {
+    expect(core.residualQuantiles).toHaveLength(FORECAST_HORIZON_DAYS);
     core.residualQuantiles.forEach((entry, index) => {
       expect(entry.horizon).toBe(index + 1);
-      expect(entry.count).toBe(6);
+      expect(entry.count).toBe(5);
       expect(entry.p25).toBeCloseTo(0, 4);
       expect(entry.p75).toBeCloseTo(0, 4);
     });

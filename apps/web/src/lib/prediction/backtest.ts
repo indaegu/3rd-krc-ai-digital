@@ -1,6 +1,6 @@
 // 백테스트 순수 엔진 — (지역별 avgRatio 시계열 map) → 리포트 코어.
 // 결정적 순수 함수 계약: Date.now/네트워크/랜덤 접근 금지. 날짜 산술은 UTC 고정이다.
-// 프로토콜(180일·마지막 90일 14일 간격 rolling origin·누수 금지·MAE/RMSE·선택 규칙)은
+// 프로토콜(180일·마지막 origin=lastDate-지평, 14일 간격 rolling origin·누수 금지·MAE/RMSE·선택 규칙)은
 // docs/prediction-model.md가 SSOT다. runAt/gitCommit/체크섬은 CLI(scripts/backtest.ts)가 주입한다.
 import {
   FORECAST_HORIZON_DAYS,
@@ -38,7 +38,7 @@ export type BacktestPoint = { observedOn: string; avgRatio: number };
 export type BacktestTestPoint = {
   observedOn: string;
   avgRatio: number;
-  /** origin으로부터 며칠 뒤 실측인지(1..14). */
+  /** origin으로부터 며칠 뒤 실측인지(1..FORECAST_HORIZON_DAYS). */
   horizon: number;
 };
 
@@ -82,20 +82,29 @@ function clamp(value: number, min: number, max: number): number {
 
 /**
  * 시계열 마지막 날짜 기준 rolling origin(오름차순).
- * origin_k = lastDate − 14·k (k=6..1) — 전부 마지막 90일 안이고, 각 origin 뒤에
- * 14일 평가 구간이 lastDate를 넘지 않는다.
+ * origin_k = lastDate − (지평일수 + 14·k), k = maxSteps-1 … 0.
+ *
+ * 두 불변식을 동시에 지킨다.
+ *   ① 가장 최근 origin = lastDate − 지평일수 → 모든 origin이 **꽉 찬 평가 창**을 갖는다
+ *      (긴 horizon의 잔차 표본이 최근 origin에서만 비지 않는다).
+ *   ② 가장 오래된 origin도 마지막 [ORIGIN_WINDOW_DAYS]일 안이다(프로토콜 3항).
+ * 지평이 길어질수록 ②를 지키느라 origin 개수가 줄어든다(지평 30일 → 5개).
  */
 export function generateOriginDates(lastDate: string): string[] {
+  const span = ORIGIN_WINDOW_DAYS - FORECAST_HORIZON_DAYS;
+  if (span < 0) return [];
+  const maxSteps = Math.floor(span / ORIGIN_STEP_DAYS) + 1;
   const origins: string[] = [];
-  const maxSteps = Math.floor(ORIGIN_WINDOW_DAYS / ORIGIN_STEP_DAYS);
-  for (let k = maxSteps; k >= 1; k -= 1) {
-    origins.push(addDaysIso(lastDate, -ORIGIN_STEP_DAYS * k));
+  for (let k = maxSteps - 1; k >= 0; k -= 1) {
+    origins.push(
+      addDaysIso(lastDate, -(FORECAST_HORIZON_DAYS + ORIGIN_STEP_DAYS * k)),
+    );
   }
   return origins;
 }
 
 /**
- * origin 기준 분할: train = observedOn ≤ origin, test = origin < observedOn ≤ origin+14.
+ * origin 기준 분할: train = observedOn ≤ origin, test = origin < observedOn ≤ origin+지평일수.
  * 미래값이 학습에 들어가지 않는 것을 이 분할 하나로 보장한다(프로토콜 2항).
  */
 export function splitAtOrigin(
@@ -120,7 +129,14 @@ export function splitAtOrigin(
 
 type Residual = { horizon: number; error: number };
 
-type MetricSet = { mae7: number; rmse7: number; mae14: number; rmse14: number };
+type MetricSet = {
+  mae7: number;
+  rmse7: number;
+  mae14: number;
+  rmse14: number;
+  mae30: number;
+  rmse30: number;
+};
 
 type EvaluatedRegion = {
   sigunCode: string;
@@ -152,14 +168,21 @@ function maxMissingRun(points: readonly BacktestPoint[]): number {
   return max;
 }
 
-/** 잔차 목록 → MAE/RMSE(7일 = horizon 1~7, 14일 = 1~14). 반올림 없이 원값을 낸다. */
+/**
+ * 잔차 목록 → MAE/RMSE. 7일 = horizon 1~7, 14일 = 1~14, 30일 = 1~지평끝.
+ * **각 지표는 반드시 자기 구간으로 걸러서 센다** — 지평을 30으로 늘렸을 때 mae14가 조용히
+ * 30일치 평균이 되면 화면의 "14일 ±X%p"가 거짓이 된다. 반올림 없이 원값을 낸다.
+ */
 function metricsFrom(residuals: readonly Residual[]): MetricSet {
-  const short = residuals.filter((r) => r.horizon <= 7);
+  const within7 = residuals.filter((r) => r.horizon <= 7);
+  const within14 = residuals.filter((r) => r.horizon <= 14);
   return {
-    mae7: meanAbs(short),
-    rmse7: rootMeanSquare(short),
-    mae14: meanAbs(residuals),
-    rmse14: rootMeanSquare(residuals),
+    mae7: meanAbs(within7),
+    rmse7: rootMeanSquare(within7),
+    mae14: meanAbs(within14),
+    rmse14: rootMeanSquare(within14),
+    mae30: meanAbs(residuals),
+    rmse30: rootMeanSquare(residuals),
   };
 }
 
@@ -193,6 +216,8 @@ function roundMetricSet(set: MetricSet): MetricSet {
     rmse7: roundMetric(set.rmse7),
     mae14: roundMetric(set.mae14),
     rmse14: roundMetric(set.rmse14),
+    mae30: roundMetric(set.mae30),
+    rmse30: roundMetric(set.rmse30),
   };
 }
 
@@ -231,7 +256,8 @@ export function runBacktest(
 
     for (const origin of generateOriginDates(lastPoint.observedOn)) {
       const { train, test } = splitAtOrigin(points, origin);
-      if (train.length < FORECAST_HORIZON_DAYS || test.length === 0) continue;
+      // 학습 길이 하한은 모델 최소 입력이다(지평과 무관 — 지평을 늘려도 하한은 그대로).
+      if (train.length < LINEAR_WINDOW_DAYS || test.length === 0) continue;
       originCount += 1;
       regionSamples += test.length;
       const trainValues = train.map((point) => point.avgRatio);
@@ -283,12 +309,14 @@ export function runBacktest(
     }
     const macro: MetricSet =
       regionSets.length === 0
-        ? { mae7: 0, rmse7: 0, mae14: 0, rmse14: 0 }
+        ? { mae7: 0, rmse7: 0, mae14: 0, rmse14: 0, mae30: 0, rmse30: 0 }
         : {
             mae7: mean(regionSets.map((s) => s.mae7)),
             rmse7: mean(regionSets.map((s) => s.rmse7)),
             mae14: mean(regionSets.map((s) => s.mae14)),
             rmse14: mean(regionSets.map((s) => s.rmse14)),
+            mae30: mean(regionSets.map((s) => s.mae30)),
+            rmse30: mean(regionSets.map((s) => s.rmse30)),
           };
     macroByModel[model] = macro;
     // 지역별 밴드 배율 = clamp(round2(지역 rmse14 / macro rmse14), 0.6, 1.6).

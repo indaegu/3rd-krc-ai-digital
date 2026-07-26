@@ -118,18 +118,35 @@ fun TodayCard(
 
     MulsigyeCard(modifier = modifier) {
         // 대표 저수지명 탭 라벨(서버값). 시안 §4의 카드 좌측 상단 탭 모양.
-        Text(
-            text = status.reservoir.name,
-            style = MaterialTheme.typography.labelMedium,
-            color = Ink2,
-            modifier = Modifier
-                .semantics { heading() }
-                .background(
-                    Gray100,
-                    RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp, bottomEnd = 10.dp),
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(
+                text = status.reservoir.name,
+                style = MaterialTheme.typography.labelMedium,
+                color = Ink2,
+                modifier = Modifier
+                    .semantics { heading() }
+                    .background(
+                        Gray100,
+                        RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp, bottomEnd = 10.dp),
+                    )
+                    .padding(horizontal = 14.dp, vertical = 6.dp),
+            )
+            // 공표 자료가 없는 날짜를 실측으로 계산한 값이면 그 사실도, 기준일도 숨기지 않는다.
+            // 추정 기준일은 커버리지를 채운 가장 최근 날짜라 오늘이 아닐 수 있다(규칙 5 예외).
+            if (status.region.isEstimate) {
+                Text(
+                    text = estimateBadgeLabel(status.region.observedOn, status.asOf),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = Ink2,
+                    modifier = Modifier
+                        .background(Gray100, RoundedCornerShape(10.dp))
+                        .padding(horizontal = 12.dp, vertical = 6.dp),
                 )
-                .padding(horizontal = 14.dp, vertical = 6.dp),
-        )
+            }
+        }
         Spacer(Modifier.height(12.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(

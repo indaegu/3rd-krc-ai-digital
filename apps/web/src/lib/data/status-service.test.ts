@@ -7,6 +7,7 @@ import type { RegionResolverDeps, ReservoirsClient } from "./region-resolver";
 import {
   buildStatus,
   DROUGHT_MAP_SOURCE,
+  REGION_ESTIMATE_SOURCE,
   SUPABASE_SNAPSHOT_SOURCE,
   WATERLEVEL_API_SOURCE,
   type StatusServiceDeps,
@@ -359,13 +360,82 @@ describe("buildStatus — 지역 단계 소스·경계", () => {
     const { client } = makeStatusClient({
       regional: { data: null, error: { message: "connection refused" } },
     });
-    const result = await buildStatus(NONSAN, makeDeps(okFetch, client));
+    const result = await buildStatus(NONSAN, makeDeps(timeoutFetch, client));
 
     expect(result.kind).toBe("ok");
     if (result.kind !== "ok") throw new Error("ok여야 한다");
     expect(result.body.region.observedOn).toBe("2025-12-31");
+    expect(result.body.region.basis).toBe("official");
     expect(result.body.stale).toBe(true);
     expect(result.body.sources).toContain(DROUGHT_MAP_SOURCE);
+  });
+
+  // 공표 논가뭄지도는 연 1회 갱신이라 오늘 값이 없다. 게이트를 통과한 지역은 시군 실측으로
+  // 오늘 평년 대비를 계산한다(AGENTS.md 규칙 5 예외) — 아래는 그 진입·차단 조건이다.
+  it("공표값보다 최신 실측이 있으면 basis=estimate로 오늘 값을 계산한다", async () => {
+    const { client } = makeStatusClient({
+      // 공표 최신 행이 없어 커밋 스냅샷(2025-12-31)으로 폴백하는 상황.
+      regional: { data: null, error: { message: "connection refused" } },
+    });
+    const result = await buildStatus(NONSAN, makeDeps(okFetch, client));
+
+    expect(result.kind).toBe("ok");
+    if (result.kind !== "ok") throw new Error("ok여야 한다");
+    const { region } = result.body;
+    expect(region.basis).toBe("estimate");
+    expect(region.observedOn).toBe("2026-07-20");
+    // 탑정 60.4% × 보정계수 0.99656 = 60.2, 평년(07-20) 66.6 → 90.4%.
+    expect(region.regionalRate).toBe(60.2);
+    expect(region.normalRate).toBe(66.6);
+    expect(region.avgRatio).toBe(90.4);
+    // 90.4%는 임계값상 '정상' — 스냅샷 라벨이 아니라 임계값으로 다시 판정한다.
+    expect(region.officialStage.code).toBe("ok");
+    // maePp는 어떤 결정에도 쓰지 않은 시험 구간 오차다(44230의 testMae).
+    expect(region.estimate).toEqual({
+      maePp: 0.5311,
+      reservoirCount: 1,
+      capacityRatio: 0.922,
+    });
+    expect(result.body.sources).toContain(REGION_ESTIMATE_SOURCE);
+  });
+
+  it("공표값이 실측보다 최신이면 추정하지 않는다(공표 우선)", async () => {
+    const { client } = makeStatusClient({
+      // 공표 2026-07-20 ≥ 실측 최신일 2026-07-20 → 공표가 이긴다.
+      regional: { data: [REGIONAL_ROW], error: null },
+    });
+    const result = await buildStatus(NONSAN, makeDeps(okFetch, client));
+
+    expect(result.kind).toBe("ok");
+    if (result.kind !== "ok") throw new Error("ok여야 한다");
+    expect(result.body.region.basis).toBe("official");
+    expect(result.body.region.estimate).toBeNull();
+    expect(result.body.region.avgRatio).toBe(112.7);
+    expect(result.body.sources).not.toContain(REGION_ESTIMATE_SOURCE);
+  });
+
+  it("시군 실측 커버리지가 모자라면 공표값을 그대로 쓴다", async () => {
+    // 논산시 유효저수량의 7.8%뿐인 소규모 시설만 올라온 응답.
+    const smallOnlyXml =
+      "<response><body><item><check_date>20260720</check_date>" +
+      "<county>충청남도 논산시 </county><fac_code>4423010001</fac_code>" +
+      "<fac_name>소규모</fac_name><rate>40</rate><water_level>3.1</water_level></item>" +
+      "<numOfRows>10</numOfRows><pageNo>1</pageNo><totalCount>1</totalCount></body>" +
+      "<header><returnAuthMsg>NORMAL SERVICE</returnAuthMsg>" +
+      "<returnReasonCode>00</returnReasonCode></header></response>";
+    // 대표 저수지 조회는 정상 응답, 시군 조회만 소규모 시설 응답으로 바꾼다.
+    const fetchImpl: WaterLevelFetch = async (url) =>
+      xmlResponse(url.includes("county=") ? smallOnlyXml : sampleXml);
+    const { client } = makeStatusClient({
+      regional: { data: null, error: { message: "connection refused" } },
+    });
+    const result = await buildStatus(NONSAN, makeDeps(fetchImpl, client));
+
+    expect(result.kind).toBe("ok");
+    if (result.kind !== "ok") throw new Error("ok여야 한다");
+    expect(result.body.region.basis).toBe("official");
+    expect(result.body.region.observedOn).toBe("2025-12-31");
+    expect(result.body.sources).not.toContain(REGION_ESTIMATE_SOURCE);
   });
 
   it("원천 officialStage 라벨이 있으면 계산값보다 원천을 우선한다", async () => {

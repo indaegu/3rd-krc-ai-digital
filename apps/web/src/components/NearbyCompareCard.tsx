@@ -2,6 +2,10 @@
 // 좌표가 없어 '주변'은 같은 시·도로 정의한다(서버 nearby-service와 동일한 규칙).
 // 목록은 가뭄 심한 순(서버가 확정한 avgRatio 오름차순) 그대로 그리고, 우리 지역을
 // 강조한다. 단계 색·라벨은 drought-stage / design-system 토큰 단일 출처만 쓴다.
+//
+// **비교는 모든 지역이 같은 날짜일 때만 뜻이 있다.** 그래서 이 카드만은 오늘 추정으로 바꾸지
+// 않고 공표 기준일(서버 asOf)을 그대로 쓰며, 그 날짜를 부제에 밝힌다. 오늘 값(TodayCard)과
+// 숫자가 다를 수 있는 이유가 화면에 드러나야 한다(코드 리뷰 P1).
 "use client";
 
 import type { NearbyResponse } from "@mulsigye/contracts";
@@ -66,6 +70,10 @@ export function NearbyCompareCard({ data }: { data: NearbyResponse }) {
   return (
     <Card>
       <h2 className={styles.title}>{sidoName} 안에서 비교</h2>
+      {/* 모든 지역을 같은 날짜로 견줘야 순위가 뜻이 있다 — 그 기준일을 그대로 밝힌다. */}
+      <p className={styles.basisNote}>
+        {data.asOf} 공표 자료로 모든 지역을 같은 날 기준으로 비교했어요.
+      </p>
       {rank !== null ? (
         <p className={styles.summary}>
           {sidoName} {regions.length}곳 중 물 사정이{" "}

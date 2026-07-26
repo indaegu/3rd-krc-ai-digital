@@ -15,12 +15,18 @@ import {
   STAGE_CODE_BY_LABEL,
   type DroughtStageCode,
 } from "../data/drought-stage.ts";
+import type { RegionEstimate } from "../data/region-estimate.ts";
+import { fetchRegionEstimateSeries } from "../data/region-estimate-series.ts";
 import {
   resolveRegion,
   type RegionResolverDeps,
 } from "../data/region-resolver.ts";
-import type { RegionalSnapshotRow } from "../data/status-service.ts";
+import {
+  REGION_ESTIMATE_SOURCE,
+  type RegionalSnapshotRow,
+} from "../data/status-service.ts";
 import { createServiceRoleClient } from "../data/supabase-server.ts";
+import type { WaterLevelApiDeps } from "../data/waterlevel-api.ts";
 import {
   backtestReportSchema,
   type BacktestReport,
@@ -46,6 +52,9 @@ export function committedSnapshotSource(observedOn: string): string {
 
 /** Supabase 시계열 조회 창(일). 예측 입력(최소 14일)보다 넉넉히 가져온다. */
 export const SERIES_LOOKBACK_DAYS = 90;
+
+/** 응답에 담는 실측 구간 길이(일). 차트가 앞뒤로 최소 한 달씩 보이도록 60일을 준다. */
+export const HISTORY_DAYS = 60;
 
 /** 실제 Supabase 클라이언트와 테스트 mock이 공유하는 최소 조회 표면. */
 export type ForecastSupabaseClient = {
@@ -84,6 +93,8 @@ export type ForecastServiceDeps = {
   /** 조회 시점에 생성 — 생성 실패도 조회 실패로 취급해 스냅샷으로 폴백한다. */
   createClient?: () => ForecastSupabaseClient;
   resolver?: RegionResolverDeps;
+  /** 추정 시계열 조회용 — status와 같은 창을 부르므로 fetch 캐시를 공유한다. */
+  waterLevel?: WaterLevelApiDeps;
   snapshotRegional?: readonly RegionalSnapshotRow[];
   snapshotOutlooks?: readonly OutlookSnapshotRow[];
   report?: BacktestReport;
@@ -360,6 +371,31 @@ export async function buildForecast(
     stale = true;
   }
 
+  // 추정 시계열 — status와 **같은 함수**로 받아야 오늘 값과 그래프 기준이 어긋나지 않는다.
+  // 공표 시계열보다 최신이고 예측 입력 길이를 채울 때만 통째로 갈아끼운다(부분 이어붙이기 금지:
+  // 공표 마지막 날짜와 추정 첫 날짜 사이가 몇 달씩 벌어져 기울기가 망가진다).
+  let estimate: RegionEstimate | null = null;
+  const estimateSeries = await fetchRegionEstimateSeries(
+    resolvedCode,
+    resolution.sigunName,
+    { waterLevel: deps.waterLevel ?? {} },
+  );
+  const estimateLatest = estimateSeries.at(-1);
+  if (
+    estimateLatest !== undefined &&
+    estimateSeries.length >= minSeriesDays &&
+    estimateLatest.observedOn > (series.at(-1)?.observedOn ?? "")
+  ) {
+    estimate = estimateLatest;
+    series = estimateSeries.map((point) => ({
+      observedOn: point.observedOn,
+      avgRatio: point.avgRatio,
+      // 추정값에는 공표 라벨이 없다 — 같은 임계값으로 다시 판정한다.
+      officialStage: null,
+    }));
+    sources.push(REGION_ESTIMATE_SOURCE);
+  }
+
   const basisPoint = series.at(-1);
   if (basisPoint === undefined) {
     return { kind: "unavailable" };
@@ -421,8 +457,18 @@ export async function buildForecast(
       observedOn: basisPoint.observedOn,
       avgRatio: basisPoint.avgRatio,
       officialStage: toStageDto(officialStageCode),
+      // status.region.basis와 같은 뜻이다 — 두 화면이 같은 기준을 쓴다는 걸 보이게 한다.
+      basis: estimate === null ? "official" : "estimate",
+      estimate:
+        estimate === null
+          ? null
+          : {
+              maePp: estimate.maePp,
+              reservoirCount: estimate.reservoirCount,
+              capacityRatio: estimate.capacityRatio,
+            },
     },
-    history: series.slice(-30).map((point) => ({
+    history: series.slice(-HISTORY_DAYS).map((point) => ({
       observedOn: point.observedOn,
       avgRatio: point.avgRatio,
     })),
@@ -434,6 +480,7 @@ export async function buildForecast(
       version: report.modelParams.modelVersion,
       mae7: report.selectedModel.mae7,
       mae14: report.selectedModel.mae14,
+      mae30: report.selectedModel.mae30,
       bandMethod: "residual_quantile_p25_p75_regional",
     },
     officialOutlook,

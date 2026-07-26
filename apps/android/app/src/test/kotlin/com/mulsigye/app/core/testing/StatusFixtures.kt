@@ -2,6 +2,7 @@ package com.mulsigye.app.core.testing
 
 import com.mulsigye.app.feature.status.data.remote.StatusResponseDto
 import com.mulsigye.app.feature.status.domain.DroughtStage
+import com.mulsigye.app.feature.status.domain.RegionEstimate
 import com.mulsigye.app.feature.status.domain.RegionStatus
 import com.mulsigye.app.feature.status.domain.ReservoirStatus
 import com.mulsigye.app.feature.status.domain.StageBand
@@ -40,6 +41,14 @@ object StatusFixtures {
                     code = dto.region.officialStage.code,
                     label = dto.region.officialStage.label,
                 ),
+                isEstimate = dto.region.basis == "estimate",
+                estimate = dto.region.estimate?.let {
+                    RegionEstimate(
+                        maePp = it.maePp,
+                        reservoirCount = it.reservoirCount,
+                        capacityRatio = it.capacityRatio,
+                    )
+                },
             ),
             highWaterNotice = dto.highWaterNotice,
             yearlyPosition = dto.yearlyPosition?.let {

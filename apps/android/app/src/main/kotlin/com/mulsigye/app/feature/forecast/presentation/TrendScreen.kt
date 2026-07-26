@@ -18,6 +18,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Path
@@ -40,6 +44,7 @@ import com.mulsigye.app.core.designsystem.theme.Ink
 import com.mulsigye.app.core.designsystem.theme.Ink2
 import com.mulsigye.app.core.designsystem.theme.Ink3
 import com.mulsigye.app.core.designsystem.theme.stageColorFor
+import com.mulsigye.app.feature.status.domain.StatusResult
 import com.mulsigye.app.feature.forecast.domain.ForecastBandPoint
 import com.mulsigye.app.feature.forecast.domain.ForecastResult
 import com.mulsigye.app.feature.forecast.domain.OfficialOutlook
@@ -82,7 +87,15 @@ fun TrendScreen(
     data: ForecastResult.Success,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    /** 대표 저수지 실측 토글 재료. null이면(status 실패·미로딩) 토글을 감춘다. */
+    status: StatusResult.Success? = null,
 ) {
+    // 메인 카드에만 있던 토글을 상세에도 둔다 — "자세히"로 들어오면 실측 보기가 사라지던
+    // 문제(코드 리뷰 P1)를 없앤다. 두 지표는 축이 달라 겹쳐 그리지 않는다.
+    var showReservoir by rememberSaveable { mutableStateOf(false) }
+    val rates = status?.reservoir?.rateHistory.orEmpty()
+    val canToggle = rates.size >= 2
+    val reservoirMode = canToggle && showReservoir
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -98,13 +111,21 @@ fun TrendScreen(
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
-                    text = "${data.sigunName} 지역 평년 대비 저수율",
+                    text = if (reservoirMode) {
+                        "${status?.reservoir?.name ?: "대표 저수지"} 실제 저수율"
+                    } else {
+                        "${data.sigunName} 지역 평년 대비 저수율"
+                    },
                     style = MaterialTheme.typography.titleLarge,
                     color = Ink,
                     modifier = Modifier.semantics { heading() },
                 )
                 Text(
-                    text = "지난 ${data.history.size}일 실측과 앞으로 ${data.forecast.size}일 예측이에요",
+                    text = if (reservoirMode) {
+                        "최근 ${rates.size}일 실측이에요"
+                    } else {
+                        "지난 ${data.history.size}일 실측과 앞으로 ${data.forecast.size}일 예측이에요"
+                    },
                     style = MaterialTheme.typography.bodyLarge,
                     color = Ink2,
                 )
@@ -112,18 +133,43 @@ fun TrendScreen(
 
             // 큰 차트 + 범례 + (예측이 평평할 때만) 평평선 설명 캡션.
             MulsigyeCard {
-                TrendChart(forecast = data, height = 300.dp, showDates = true)
-                Spacer(Modifier.height(12.dp))
-                TrendLegend()
-                // linear/ma7/ses 등 기우는 예측에는 부적합하므로 실제로 평평할 때만 표시.
-                if (isForecastFlat(data.forecast)) {
+                if (canToggle) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        MetricToggle(
+                            label = "지역 평년 대비",
+                            selected = !reservoirMode,
+                            onClick = { showReservoir = false },
+                        )
+                        MetricToggle(
+                            label = "저수지 실측",
+                            selected = reservoirMode,
+                            onClick = { showReservoir = true },
+                        )
+                    }
                     Spacer(Modifier.height(12.dp))
-                    Text(
-                        text = "예측선이 평평한 건 지금 수준이 이어질 가능성이 가장 높다는 뜻이에요. " +
-                            "실제 오르내림은 흐린 띠 범위로 봐요.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Ink3,
+                }
+                if (reservoirMode) {
+                    ReservoirRateChart(
+                        history = rates,
+                        name = status?.reservoir?.name,
+                        height = 300.dp,
                     )
+                    Spacer(Modifier.height(12.dp))
+                    TrendLegend(observedOnly = true)
+                } else {
+                    TrendChart(forecast = data, height = 300.dp, showDates = true)
+                    Spacer(Modifier.height(12.dp))
+                    TrendLegend()
+                    // linear/ma7/ses 등 기우는 예측에는 부적합하므로 실제로 평평할 때만 표시.
+                    if (isForecastFlat(data.forecast)) {
+                        Spacer(Modifier.height(12.dp))
+                        Text(
+                            text = "예측선이 평평한 건 지금 수준이 이어질 가능성이 가장 높다는 뜻이에요. " +
+                                "실제 오르내림은 흐린 띠 범위로 봐요.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Ink3,
+                        )
+                    }
                 }
             }
 
@@ -142,7 +188,13 @@ fun TrendScreen(
                 )
                 Spacer(Modifier.height(10.dp))
                 Text(
-                    text = "현재 예측 오차는 7일 ±${formatMae(data.model.mae7)}%p · 14일 ±${formatMae(data.model.mae14)}%p 수준이에요.",
+                    text = buildString {
+                        append("현재 예측 오차는 7일 ±${formatMae(data.model.mae7)}%p")
+                        append(" · 14일 ±${formatMae(data.model.mae14)}%p")
+                        // 지평을 30일로 늘렸으므로 그 오차도 함께 밝힌다(서버가 줄 때만).
+                        data.model.mae30?.let { append(" · 30일 ±${formatMae(it)}%p") }
+                        append(" 수준이에요.")
+                    },
                     style = MaterialTheme.typography.bodyLarge,
                     color = Ink2,
                 )

@@ -15,6 +15,8 @@ import {
   stageCodeFromLabel,
   type DroughtStageCode,
 } from "./drought-stage.ts";
+import type { RegionEstimate } from "./region-estimate.ts";
+import { fetchRegionEstimateSeries } from "./region-estimate-series.ts";
 import { resolveRegion, type RegionResolverDeps } from "./region-resolver.ts";
 import { createServiceRoleClient } from "./supabase-server.ts";
 import {
@@ -37,6 +39,8 @@ const RATE_HISTORY_MAX = 60;
 export const WATERLEVEL_API_SOURCE = "농촌용수 저수지 수위정보 조회";
 export const SUPABASE_SNAPSHOT_SOURCE = "Supabase 스냅샷";
 export const DROUGHT_MAP_SOURCE = "논가뭄지도";
+/** 공표 자료가 없는 날짜를 저수지 실측으로 채운 경우에만 붙는 출처(AGENTS.md 규칙 5 예외). */
+export const REGION_ESTIMATE_SOURCE = "저수지 실측 기반 지역 추정";
 
 /** 커밋 스냅샷 폴백 사용 시 sources에 스냅샷 기준일을 명시한다(플랜 지시). */
 export function committedSnapshotSource(observedOn: string): string {
@@ -477,6 +481,36 @@ export async function buildStatus(
     stale = true;
   }
 
+  // 공표 논가뭄지도는 연 1회만 갱신돼 오늘 값이 없다. 게이트를 통과한 지역에 한해
+  // 시군 저수지 실측을 통합저수율로 집계해 오늘 평년 대비를 계산한다(AGENTS.md 규칙 5 예외).
+  // 실패·커버리지 미달·공표값이 더 최신이면 그대로 공표값을 쓴다.
+  // 시계열은 forecast와 **같은 함수**로 받는다 — 한쪽만 추정을 쓰면 같은 화면에서 기준이 어긋난다.
+  const regionCode = resolution.sigunCode ?? sigunCode;
+  let estimate: RegionEstimate | null = null;
+  const estimateSeries = await fetchRegionEstimateSeries(
+    regionCode,
+    resolution.sigunName,
+    { waterLevel: deps.waterLevel ?? {} },
+  );
+  const candidate = estimateSeries.at(-1) ?? null;
+  // 공표값이 있는 날짜는 공표값이 우선 — 더 최근 날짜일 때만 추정으로 바꾼다.
+  if (candidate !== null && candidate.observedOn > region.observedOn) {
+    estimate = candidate;
+    sources.push(REGION_ESTIMATE_SOURCE);
+  }
+
+  const effectiveRegion: RegionalView =
+    estimate === null
+      ? region
+      : {
+          observedOn: estimate.observedOn,
+          regionalRate: estimate.regionalRate,
+          normalRate: estimate.normalRate,
+          avgRatio: estimate.avgRatio,
+          // 추정값에 공표 라벨을 그대로 붙일 수 없다 — 같은 임계값으로 다시 판정한다.
+          officialStage: null,
+        };
+
   const body: StatusResponse = {
     schemaVersion: "1",
     sigunCode: resolution.sigunCode ?? sigunCode,
@@ -491,11 +525,21 @@ export async function buildStatus(
       rateHistory: observation.rateHistory.slice(-RATE_HISTORY_MAX),
     },
     region: {
-      observedOn: region.observedOn,
-      regionalRate: region.regionalRate,
-      normalRate: region.normalRate,
-      avgRatio: region.avgRatio,
-      officialStage: toOfficialStage(region),
+      observedOn: effectiveRegion.observedOn,
+      regionalRate: effectiveRegion.regionalRate,
+      normalRate: effectiveRegion.normalRate,
+      avgRatio: effectiveRegion.avgRatio,
+      officialStage: toOfficialStage(effectiveRegion),
+      // 추정 여부와 근거를 숨기지 않는다 — 화면은 이 값을 그대로 표기한다.
+      basis: estimate === null ? "official" : "estimate",
+      estimate:
+        estimate === null
+          ? null
+          : {
+              maePp: estimate.maePp,
+              reservoirCount: estimate.reservoirCount,
+              capacityRatio: estimate.capacityRatio,
+            },
     },
     // 만수위 참고 — 서버 확정 값. 클라이언트는 이 값을 재판정하지 않는다.
     highWaterNotice: isHighWaterNotice(observation.rateSeries),
@@ -505,8 +549,8 @@ export async function buildStatus(
     // 올해 흐름 속 현재 위치 — 서버 확정 값. 스냅샷에 없는 지역은 null.
     yearlyPosition: resolveYearlyPosition(
       deps.snapshotYearly ?? YEARLY_SNAPSHOT,
-      resolution.sigunCode ?? sigunCode,
-      region.avgRatio,
+      regionCode,
+      effectiveRegion.avgRatio,
     ),
     // 게이지 단계 눈금 — 공인 임계값의 단일 출처(drought-stage)에서만 파생한다.
     stageBands: droughtStageBands(),

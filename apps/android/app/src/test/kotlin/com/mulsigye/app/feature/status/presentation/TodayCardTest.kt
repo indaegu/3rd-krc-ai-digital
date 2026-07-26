@@ -11,6 +11,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.mulsigye.app.core.designsystem.theme.MulsigyeTheme
 import com.mulsigye.app.core.testing.RobolectricComposeTest
 import com.mulsigye.app.core.testing.StatusFixtures
+import com.mulsigye.app.feature.status.domain.RegionEstimate
 import org.junit.Rule
 import org.junit.Test
 
@@ -117,6 +118,51 @@ class TodayCardTest : RobolectricComposeTest() {
                 .onAllNodesWithText(word, substring = true)
                 .assertCountEquals(0)
         }
+    }
+
+    /** 추정 경로 status — 기준일만 바꿔 배지 문구를 확인한다. */
+    private fun setEstimated(observedOn: String) {
+        val base = StatusFixtures.success("status.normal.json")
+        composeTestRule.setContent {
+            MulsigyeTheme {
+                TodayCard(
+                    status = base.copy(
+                        region = base.region.copy(
+                            observedOn = observedOn,
+                            isEstimate = true,
+                            estimate = RegionEstimate(
+                                maePp = 0.65,
+                                reservoirCount = 25,
+                                capacityRatio = 1.0,
+                            ),
+                        ),
+                    ),
+                )
+            }
+        }
+    }
+
+    @Test
+    fun hidesEstimateBadgeOnOfficialPayload() {
+        setCard("status.normal.json")
+        composeTestRule.onAllNodesWithText("추정", substring = true).assertCountEquals(0)
+    }
+
+    @Test
+    fun showsTodayBadgeWhenBasisDateIsServerToday() {
+        // 픽스처 asOf 2026-07-21T00:00Z → KST 2026-07-21.
+        setEstimated("2026-07-21")
+        composeTestRule.onNodeWithText("오늘 추정").assertIsDisplayed()
+        // 배지가 대표 저수지명 라벨을 대체하지 않는다.
+        composeTestRule.onNodeWithText("탑정").assertIsDisplayed()
+    }
+
+    @Test
+    fun showsBasisDateWhenEstimateIsNotToday() {
+        // 며칠 지난 값을 오늘 값으로 읽지 않도록 날짜를 드러낸다.
+        setEstimated("2026-07-18")
+        composeTestRule.onNodeWithText("7월 18일 추정").assertIsDisplayed()
+        composeTestRule.onAllNodesWithText("오늘 추정").assertCountEquals(0)
     }
 
     @Test

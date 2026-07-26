@@ -59,4 +59,26 @@ describe("SourcesCard 근거 고지 모듈", () => {
     );
     expect(container.textContent).toContain("지연");
   });
+
+  it("추정으로 계산한 날에만 서버가 준 근거(저수지 수·오차)를 밝힌다", () => {
+    const { container, rerender } = render(
+      <SourcesCard sources={["논가뭄지도"]} stale={false} estimate={null} />,
+    );
+    expect(container.textContent).not.toContain("추정값이에요");
+
+    rerender(
+      <SourcesCard
+        sources={["논가뭄지도", "저수지 실측 기반 지역 추정"]}
+        stale={false}
+        estimate={{ maePp: 0.65, reservoirCount: 25, capacityRatio: 1 }}
+      />,
+    );
+    const text = container.textContent ?? "";
+    // 숫자는 하드코딩이 아니라 서버 값에서만 온다.
+    expect(text).toContain("25곳");
+    expect(text).toContain("0.7%p");
+    expect(text).toContain("추정값이에요");
+    // 임계값은 공인 기준 그대로임을 함께 밝힌다.
+    expect(text).toContain("공인 기준 그대로");
+  });
 });
