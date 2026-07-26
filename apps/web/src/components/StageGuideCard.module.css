@@ -108,26 +108,26 @@
 }
 
 .ok {
-  color: var(--ok-fg);
+  color: var(--ok-text);
   background: var(--ok-bg);
 }
 
 .watch {
-  color: var(--watch-fg);
+  color: var(--watch-text);
   background: var(--watch-bg);
 }
 
 .care {
-  color: var(--care-fg);
+  color: var(--care-text);
   background: var(--care-bg);
 }
 
 .alert {
-  color: var(--alert-fg);
+  color: var(--alert-text);
   background: var(--alert-bg);
 }
 
 .crit {
-  color: var(--crit-fg);
+  color: var(--crit-text);
   background: var(--crit-bg);
 }

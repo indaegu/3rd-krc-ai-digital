@@ -8,27 +8,27 @@
 /* 큰 글자 = 도달 예정 단계 색(도달 없음이면 정상 색). */
 .big[data-stage="ok"],
 .bigWord[data-stage="ok"] {
-  color: var(--ok-fg);
+  color: var(--ok-text);
 }
 
 .big[data-stage="watch"],
 .bigWord[data-stage="watch"] {
-  color: var(--watch-fg);
+  color: var(--watch-text);
 }
 
 .big[data-stage="care"],
 .bigWord[data-stage="care"] {
-  color: var(--care-fg);
+  color: var(--care-text);
 }
 
 .big[data-stage="alert"],
 .bigWord[data-stage="alert"] {
-  color: var(--alert-fg);
+  color: var(--alert-text);
 }
 
 .big[data-stage="crit"],
 .bigWord[data-stage="crit"] {
-  color: var(--crit-fg);
+  color: var(--crit-text);
 }
 
 .big {

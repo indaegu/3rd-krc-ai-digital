@@ -71,19 +71,19 @@
 }
 
 .watch {
-  fill: var(--watch-fg);
+  fill: var(--watch-text);
 }
 
 .care {
-  fill: var(--care-fg);
+  fill: var(--care-text);
 }
 
 .alert {
-  fill: var(--alert-fg);
+  fill: var(--alert-text);
 }
 
 .crit {
-  fill: var(--crit-fg);
+  fill: var(--crit-text);
 }
 
 .axisLabel {

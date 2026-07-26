@@ -170,7 +170,7 @@ private fun NearbyRow(region: NearbyRegion) {
         // 단계 색 칩 — 색만으로 구분하지 않도록 단계명을 텍스트로 함께 담는다.
         Text(
             text = label,
-            color = colors.fg,
+            color = colors.text,
             fontWeight = FontWeight.Bold,
             style = MaterialTheme.typography.bodyMedium,
             modifier = Modifier

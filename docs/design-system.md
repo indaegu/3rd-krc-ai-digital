@@ -17,17 +17,26 @@
 --blue:#2D83FF; --blue-deep:#1F6FE6; --blue-tint:#E8F3FF; --blue-soft:#D6E8FF;
 /* 브랜드 그라디언트(스플래시·온보딩·메인 헤더 배경): 시안→연블루→오프화이트 */
 --grad-top:#A6EEF9; --grad-mid:#C1E8FF; --grad-bottom:#F6F6F6;
-/* 공식 가뭄 단계 fg/bg */
+/* 공식 가뭄 단계 — fg=그래픽 전용, text=글자 전용, bg=옅은 틴트 */
 /* 단계가 나빠질수록 파랑 → 청록 → 노랑 → 주황 → 빨강 */
---ok-fg:#2D83FF;    --ok-bg:#E8F3FF;
---watch-fg:#11C3C9; --watch-bg:#E7F9FA;
---care-fg:#FFC94B;  --care-bg:#FFF6E4;
---alert-fg:#FF8032; --alert-bg:#FFF0E6;
---crit-fg:#FC462D;  --crit-bg:#FFEBE8;
+--ok-fg:#2D83FF;    --ok-text:#0064F5;    --ok-bg:#E8F3FF;
+--watch-fg:#11C3C9; --watch-text:#0B7D81; --watch-bg:#E7F9FA;
+--care-fg:#FFC94B;  --care-text:#966900;  --care-bg:#FFF6E4;
+--alert-fg:#FF8032; --alert-text:#BF4900; --alert-bg:#FFF0E6;
+--crit-fg:#FC462D;  --crit-text:#D71D03;  --crit-bg:#FFEBE8;
 --r-lg:24px; --r-md:18px; --r-sm:12px; --r-card:12px; /* 카드=12, 바텀시트=24 */
 ```
 
 - 색·radius·폰트의 근거는 Figma 디자인 시안(fileKey iBWqexj5tpQX5aNilBnRoY)이다. 값은 시안에서만 온다.
+- **단계 색은 쓰임에 따라 토큰이 다르다.** `fg`는 시안 팔레트 그대로이며 게이지 물처럼
+  큰 면적(그래픽)에만 쓴다. 글자에는 `text`를 쓴다 — `fg`를 글자 색으로 쓰면 흰 배경 대비가
+  1.5~3.6:1로 본문 AA(4.5:1)에 크게 못 미친다(실측: 주의 1.53, 관심 2.17, 경계 2.50,
+  심각 3.47, 정상 3.62). `text`는 색조·채도를 그대로 두고 밝기만 낮춰 흰 배경·자기 틴트 모두
+  4.5:1 이상이다. 1차 타깃이 고령 농업인이라 읽히는 것이 우선이다.
+  - 글자: 단계 칩·배지, "평년 대비 {단계}" 인라인 라벨, 큰 숫자, 도달 카드 강조, 차트 임계선 라벨
+  - 그래픽: 게이지 물·물결(`ReservoirGauge.module.css`가 유일한 `fg` 사용처)
+  - 가드: 웹 `test/stage-color-contrast.test.ts`, Android `StageColorsTest`가 대비와
+    "글자에 fg 금지"를 테스트로 고정한다.
 - 웹은 전역 CSS 변수, Android는 의미가 같은 Compose `ColorScheme`·shape 토큰으로 옮긴다.
 - 이름을 번역 구현하더라도 `ok/watch/care/alert/crit` 의미와 값은 바꾸지 않는다.
 - **Pretendard를 self-host한다**(웹: next/font local `PretendardVariable.woff2`; Android: `res/font`

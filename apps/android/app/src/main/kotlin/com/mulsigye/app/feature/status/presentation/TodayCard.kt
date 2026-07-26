@@ -122,7 +122,7 @@ fun TodayCard(
     val avgText =
         if (counter.value >= avgRatio.toFloat()) formatRate(avgRatio) else counter.value.roundToInt().toString()
 
-    val stageColor = stageColorFor(status.region.officialStage.code).fg
+    val stageColor = stageColorFor(status.region.officialStage.code).text
 
     val headline = if (status.highWaterNotice) {
         HIGH_WATER_HEADLINE

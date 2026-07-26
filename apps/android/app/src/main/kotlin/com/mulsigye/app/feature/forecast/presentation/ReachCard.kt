@@ -45,7 +45,7 @@ fun ReachCard(
     // 계속 낮아지는 지역을 안심시키는 오해가 생기므로 현재 단계·추세로 문구를 가른다.
     val atWorstStage = currentStageCode == "crit"
     // 큰 글자 색 = 도달 예정 단계 색. 도달 예정이 없으면 현재 단계 색을 쓴다.
-    val emphasisColor = stageColorFor(targetStage?.code ?: currentStageCode ?: "ok").fg
+    val emphasisColor = stageColorFor(targetStage?.code ?: currentStageCode ?: "ok").text
 
     MulsigyeCard(modifier = modifier) {
         Text(

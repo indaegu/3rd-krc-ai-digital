@@ -40,7 +40,7 @@ fun StageChip(
     ) {
         Text(
             text = label,
-            color = colors.fg,
+            color = colors.text,
             fontWeight = FontWeight.Bold,
         )
         Text(

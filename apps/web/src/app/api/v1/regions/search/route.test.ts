@@ -2,7 +2,7 @@
 // Juso는 전부 mock — 실키 호출 금지. 주소 원문(검색어·roadAddr)이 구조화 로그와
 // Supabase 경로에 나타나지 않음을 spy·소스 검사로 강제한다(플랜 Global Constraints).
 import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { join, resolve } from "node:path";
 import type { ApiError, RegionSearchResponse } from "@mulsigye/contracts";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createSearchHandler } from "./route";
@@ -275,5 +275,56 @@ describe("GET /api/v1/regions/search — 공식 오류표 안내", () => {
     expect(body.status).toBe(503);
     expect(body.code).toBe("JUSO_UNAVAILABLE");
     expect(body.retryable).toBe(true);
+  });
+});
+
+// 계약(openapi.yaml)과 실제 응답이 어긋나면 소비자가 잘못된 retryable을 믿는다.
+// 라우트가 내보내는 code 집합과 각 code의 status·retryable을 계약 문서와 대조한다.
+describe("GET /api/v1/regions/search — 계약 동기화", () => {
+  const contract = readFileSync(
+    join(process.cwd(), "..", "..", "packages", "contracts", "openapi.yaml"),
+    "utf8",
+  );
+  /** 검색 엔드포인트 블록만 잘라 본다(다른 경로의 같은 코드에 속지 않게). */
+  const searchBlock = contract.slice(
+    contract.indexOf("/api/v1/regions/search:"),
+    contract.indexOf("/api/v1/regions/resolve:"),
+  );
+
+  const CODES = [
+    { code: "INVALID_QUERY", status: 400, retryable: false },
+    { code: "JUSO_TOO_BROAD", status: 400, retryable: false },
+    { code: "JUSO_TOO_MANY", status: 400, retryable: false },
+    { code: "JUSO_TOO_SHORT", status: 400, retryable: false },
+    { code: "JUSO_DIGITS_ONLY", status: 400, retryable: false },
+    { code: "JUSO_LONG_NUMBER", status: 400, retryable: false },
+    { code: "JUSO_TOO_LONG", status: 400, retryable: false },
+    { code: "JUSO_FORBIDDEN_CHARS", status: 400, retryable: false },
+    { code: "JUSO_EMPTY", status: 400, retryable: false },
+    { code: "JUSO_AUTH", status: 503, retryable: false },
+    { code: "JUSO_UNAVAILABLE", status: 503, retryable: true },
+  ] as const;
+
+  for (const entry of CODES) {
+    it(`${entry.code}가 계약에 적혀 있다`, () => {
+      expect(searchBlock).toContain(entry.code);
+    });
+  }
+
+  it("승인키 문제의 retryable=false가 계약 설명·예시에 드러나 있다", () => {
+    // 503을 전부 retryable=true로 적어두면 클라이언트가 헛된 '다시 시도'를 띄운다.
+    expect(searchBlock).toContain("retryable: false");
+    expect(searchBlock).toMatch(/승인키/);
+  });
+
+  it("빈 결과는 200이다(오류가 아니다)", async () => {
+    const body = JSON.stringify({
+      results: { common: { errorCode: "0", errorMessage: "정상" }, juso: [] },
+    });
+    const handler = createSearchHandler({
+      juso: { fetchImpl: async () => jusoResponse(body), apiKey: "k" },
+    });
+    const response = await handler(searchRequest(QUERY));
+    expect(response.status).toBe(200);
   });
 });
