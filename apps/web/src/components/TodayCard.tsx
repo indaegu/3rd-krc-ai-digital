@@ -7,7 +7,10 @@
 import type { StatusResponse } from "@mulsigye/contracts";
 import { useEffect, useRef } from "react";
 
-import { estimateBadgeLabel } from "../lib/client/estimate-label";
+import {
+  estimateBadgeLabel,
+  officialBadgeLabel,
+} from "../lib/client/estimate-label";
 import { prefersReducedMotion } from "../lib/client/reduced-motion";
 import type { DroughtStageCode } from "../lib/data/drought-stage";
 import { ReservoirGauge } from "./ReservoirGauge";
@@ -43,10 +46,20 @@ const YEARLY_HEADLINE_BY_BUCKET: Record<YearlyBucket, string> = {
   high: "올해 흐름 속 높은 편이에요",
 };
 
-/** 보조 세부 문구. low는 하위 N%, high는 상위 100-N%, mid는 중간. */
+/**
+ * 보조 세부 문구. low는 하위 N%, high는 상위 100-N%, mid는 중간.
+ *
+ * 양 끝은 따로 말한다 — 백분위 0은 "하위 0%", 100은 "상위 0%"가 되어 뜻이 없어진다
+ * (실측: 제주시가 올해 최저값과 같아 "하위 0%"로 보였다). 그 사이 값도 0%로 반올림되지
+ * 않게 최소 1%로 올린다.
+ */
 function yearlyDetail(bucket: YearlyBucket, percentile: number): string {
-  if (bucket === "low") return `올해 저수율 중 하위 ${percentile}%`;
-  if (bucket === "high") return `올해 저수율 중 상위 ${100 - percentile}%`;
+  if (percentile <= 0) return "올해 가장 낮은 수준이에요";
+  if (percentile >= 100) return "올해 가장 높은 수준이에요";
+  if (bucket === "low")
+    return `올해 저수율 중 하위 ${String(Math.max(1, percentile))}%`;
+  if (bucket === "high")
+    return `올해 저수율 중 상위 ${String(Math.max(1, 100 - percentile))}%`;
   return "올해 저수율 중 중간";
 }
 
@@ -106,10 +119,18 @@ export function TodayCard({ status }: TodayCardProps) {
         <span className={styles.tab}>{status.reservoir.name}</span>
         {/* 공표 자료가 없는 날짜를 실측으로 계산한 값이면 그 사실도, 기준일도 숨기지 않는다.
             추정 기준일은 커버리지를 채운 가장 최근 날짜라 오늘이 아닐 수 있다. */}
-        {status.region.basis === "estimate" && (
+        {status.region.basis === "estimate" ? (
           <span className={styles.estimateBadge}>
             {estimateBadgeLabel(status.region.observedOn, status.asOf)}
           </span>
+        ) : (
+          /* 공표값이 오늘 것이 아니면(연 1회 갱신 자료) 그 기준일을 밝힌다. */
+          officialBadgeLabel(status.region.observedOn, status.asOf) !==
+            null && (
+            <span className={styles.estimateBadge}>
+              {officialBadgeLabel(status.region.observedOn, status.asOf)}
+            </span>
+          )
         )}
       </div>
       <div className={styles.hero}>

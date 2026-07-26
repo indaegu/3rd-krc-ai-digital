@@ -24,7 +24,7 @@ const SLIDES: Slide[] = [
   },
   {
     image: "/brand/onboarding_2.png",
-    title: "지금 몇 %가 아니라\n'며칠 뒤'를 알려드려요",
+    title: "지금 몇 %가 아니라\n'언제쯤'을 알려드려요",
     body: "이 추세가 이어지면 언제 다음 단계인지 미리 계산해요.",
   },
   {

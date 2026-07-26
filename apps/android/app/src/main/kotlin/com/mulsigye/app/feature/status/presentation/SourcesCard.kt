@@ -80,7 +80,8 @@ fun SourcesCard(
         Spacer(Modifier.height(8.dp))
         Text(
             text = "가뭄 단계는 농어촌공사 공인 기준(지역 평년 대비)을 그대로 써요. " +
-                "‘며칠 뒤’ 예측은 참고용이며, 공식 가뭄 예·경보가 항상 우선이에요.",
+                "앞으로 한 달(30일) 흐름과 ‘다음 단계에 이를 수 있는 시점’은 참고용이고, " +
+                "공식 가뭄 전망은 월 단위 발표예요. 공식 가뭄 예·경보가 항상 우선이에요.",
             style = MaterialTheme.typography.bodyLarge,
             color = Ink2,
         )

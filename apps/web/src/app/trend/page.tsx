@@ -19,6 +19,7 @@ import { Card } from "../../components/ui/Card";
 import { CtaButton } from "../../components/ui/CtaButton";
 import { Skeleton } from "../../components/ui/Skeleton";
 import { getForecast, getStatus } from "../../lib/client/api-client";
+import { koreanYearMonthDay } from "../../lib/client/estimate-label";
 import { currentRegion, loadRegionStore } from "../../lib/client/region-store";
 import styles from "./page.module.css";
 
@@ -157,6 +158,23 @@ export default function TrendPage() {
   );
 }
 
+/** `YYYY-MM` → "2026년 1월". 지난 달인지 사용자가 바로 알 수 있게 연도까지 쓴다. */
+function koreanYearMonth(targetMonth: string): string {
+  const year = Number(targetMonth.slice(0, 4));
+  const month = Number(targetMonth.slice(5, 7));
+  if (!Number.isFinite(year) || !Number.isFinite(month)) return targetMonth;
+  return `${String(year)}년 ${String(month)}월`;
+}
+
+/** 발표 후 2개월이 넘으면 "지난 전망" 고지를 붙인다(월 단위 발행 주기의 두 배). */
+const OUTLOOK_STALE_MONTHS = 2;
+
+function isOutlookStale(
+  outlook: NonNullable<ForecastResponse["officialOutlook"]>,
+): boolean {
+  return (outlook.monthsSincePublished ?? 0) > OUTLOOK_STALE_MONTHS;
+}
+
 /** 예측값이 사실상 평평한지(naive 등) — linear/ma7/ses는 기울 수 있어 캡션 조건이 된다. */
 function isForecastFlat(forecast: ForecastResponse["forecast"]): boolean {
   if (forecast.length === 0) return false;
@@ -291,34 +309,44 @@ function TrendDetail({
         <Card>
           <h2 className={styles.sectionTitle}>공식 가뭄 전망</h2>
           <p className={styles.method}>
-            {outlook.publishedOn} 발표 기준이에요. 자체 예측보다 공식 전망이
-            우선이에요.
+            {koreanYearMonthDay(outlook.publishedOn)} 발표분이에요. 자체
+            예측보다 공식 전망이 우선이에요.
           </p>
+          {/* 원천이 연 1회 갱신이라 발표가 오래된 경우가 있다. 그걸 숨기면
+              "지금 정상 / 1개월 뒤 정상"이 오늘 판단처럼 읽힌다. */}
+          {isOutlookStale(outlook) ? (
+            <p className={styles.outlookStale}>
+              발표 후 {outlook.monthsSincePublished}개월이 지나 지금 상황과 다를
+              수 있어요. 최신 예·경보는 농어촌공사 발표를 확인해 주세요.
+            </p>
+          ) : null}
           <ul className={styles.outlookList}>
             <li className={styles.outlookRow}>
-              <span className={styles.outlookLabel}>지금</span>
+              <span className={styles.outlookLabel}>발표 당시</span>
               <span className={styles.outlookValue}>
                 {outlook.current.label}
               </span>
             </li>
-            <li className={styles.outlookRow}>
-              <span className={styles.outlookLabel}>1개월 뒤</span>
-              <span className={styles.outlookValue}>
-                {outlook.outlook1m.label}
-              </span>
-            </li>
-            <li className={styles.outlookRow}>
-              <span className={styles.outlookLabel}>2개월 뒤</span>
-              <span className={styles.outlookValue}>
-                {outlook.outlook2m.label}
-              </span>
-            </li>
-            <li className={styles.outlookRow}>
-              <span className={styles.outlookLabel}>3개월 뒤</span>
-              <span className={styles.outlookValue}>
-                {outlook.outlook3m.label}
-              </span>
-            </li>
+            {/* 라벨은 "1개월 뒤"가 아니라 **서버가 준 대상 월**이다 — 이미 지난 달일 수 있다. */}
+            {(
+              [
+                [outlook.targetMonths?.[0], outlook.outlook1m],
+                [outlook.targetMonths?.[1], outlook.outlook2m],
+                [outlook.targetMonths?.[2], outlook.outlook3m],
+              ] as const
+            ).map(([targetMonth, stage], index) => (
+              <li
+                key={stage.code + String(index)}
+                className={styles.outlookRow}
+              >
+                <span className={styles.outlookLabel}>
+                  {targetMonth === undefined
+                    ? `${String(index + 1)}개월 뒤`
+                    : koreanYearMonth(targetMonth)}
+                </span>
+                <span className={styles.outlookValue}>{stage.label}</span>
+              </li>
+            ))}
           </ul>
         </Card>
       ) : null}

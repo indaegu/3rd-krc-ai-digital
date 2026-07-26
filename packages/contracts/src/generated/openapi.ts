@@ -408,6 +408,10 @@ export interface components {
         outlook1m: components["schemas"]["DroughtStage"];
         outlook2m: components["schemas"]["DroughtStage"];
         outlook3m: components["schemas"]["DroughtStage"];
+        /** @description outlook1m/2m/3m이 각각 가리키는 **대상 월**(`YYYY-MM`). 발행일 기준 +1/+2/+3개월이며 서버가 확정한다. 원천이 연 1회 갱신이라 이 값이 이미 지난 달일 수 있는데, 그때 화면에 "1개월 뒤"라고 쓰면 사실이 아니다 — 화면은 이 대상 월을 그대로 쓴다. */
+        targetMonths?: string[];
+        /** @description 발행일부터 조회 시각(asOf)까지 지난 개월 수. 서버가 확정한다. 화면은 이 값이 크면 "지난 전망" 고지를 덧붙인다 */
+        monthsSincePublished?: number;
       } | null;
       /** @description 단계별 행동 가이드. 5개 공인 단계(ok→crit 순)별 권장 행동 제목과 우리 지역 현재 단계 표시. 행동 카피의 단일 출처는 서버 행동 카탈로그다. 구 페이로드에는 없을 수 있다(선택). */
       stageGuide?: {

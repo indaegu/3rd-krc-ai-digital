@@ -65,10 +65,17 @@ private val YEARLY_HEADLINE_BY_BUCKET: Map<String, String> = mapOf(
     "high" to "올해 흐름 속 높은 편이에요",
 )
 
-/** 보조 세부 문구. low는 하위 N%, high는 상위 100-N%, mid는 중간. 웹과 동일. */
-private fun yearlyDetail(bucket: String, percentile: Int): String = when (bucket) {
-    "low" -> "올해 저수율 중 하위 $percentile%"
-    "high" -> "올해 저수율 중 상위 ${100 - percentile}%"
+/**
+ * 보조 세부 문구. low는 하위 N%, high는 상위 100-N%, mid는 중간. 웹 yearlyDetail과 동일 규칙.
+ *
+ * 양 끝은 따로 말한다 — 백분위 0은 "하위 0%", 100은 "상위 0%"가 되어 뜻이 없어진다
+ * (실측: 제주시가 올해 최저값과 같아 "하위 0%"로 보였다).
+ */
+internal fun yearlyDetail(bucket: String, percentile: Int): String = when {
+    percentile <= 0 -> "올해 가장 낮은 수준이에요"
+    percentile >= 100 -> "올해 가장 높은 수준이에요"
+    bucket == "low" -> "올해 저수율 중 하위 ${kotlin.math.max(1, percentile)}%"
+    bucket == "high" -> "올해 저수율 중 상위 ${kotlin.math.max(1, 100 - percentile)}%"
     else -> "올해 저수율 중 중간"
 }
 
@@ -136,9 +143,15 @@ fun TodayCard(
             )
             // 공표 자료가 없는 날짜를 실측으로 계산한 값이면 그 사실도, 기준일도 숨기지 않는다.
             // 추정 기준일은 커버리지를 채운 가장 최근 날짜라 오늘이 아닐 수 있다(규칙 5 예외).
-            if (status.region.isEstimate) {
+            // 공표값이어도 오늘 것이 아니면(연 1회 갱신 자료) 그 기준일을 밝힌다.
+            val basisBadge = if (status.region.isEstimate) {
+                estimateBadgeLabel(status.region.observedOn, status.asOf)
+            } else {
+                officialBadgeLabel(status.region.observedOn, status.asOf)
+            }
+            if (basisBadge != null) {
                 Text(
-                    text = estimateBadgeLabel(status.region.observedOn, status.asOf),
+                    text = basisBadge,
                     style = MaterialTheme.typography.labelMedium,
                     color = Ink2,
                     modifier = Modifier

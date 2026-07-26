@@ -39,12 +39,14 @@ import com.mulsigye.app.core.designsystem.component.Shimmer
 import com.mulsigye.app.core.designsystem.theme.Bg
 import com.mulsigye.app.core.designsystem.theme.BlueDeep
 import com.mulsigye.app.core.designsystem.theme.BlueTint
+import com.mulsigye.app.core.designsystem.theme.Gray100
 import com.mulsigye.app.core.designsystem.theme.Gray50
 import com.mulsigye.app.core.designsystem.theme.Ink
 import com.mulsigye.app.core.designsystem.theme.Ink2
 import com.mulsigye.app.core.designsystem.theme.Ink3
 import com.mulsigye.app.core.designsystem.theme.stageColorFor
 import com.mulsigye.app.feature.status.domain.StatusResult
+import com.mulsigye.app.feature.status.presentation.koreanYearMonthDay
 import com.mulsigye.app.feature.forecast.domain.ForecastBandPoint
 import com.mulsigye.app.feature.forecast.domain.ForecastResult
 import com.mulsigye.app.feature.forecast.domain.OfficialOutlook
@@ -410,18 +412,48 @@ private fun OfficialOutlookCard(outlook: OfficialOutlook) {
         SectionTitle("공식 가뭄 전망")
         Spacer(Modifier.height(8.dp))
         Text(
-            text = "${outlook.publishedOn} 발표 기준이에요. 자체 예측보다 공식 전망이 우선이에요.",
+            text = "${koreanYearMonthDay(outlook.publishedOn)} 발표분이에요. " +
+                "자체 예측보다 공식 전망이 우선이에요.",
             style = MaterialTheme.typography.bodyMedium,
             color = Ink3,
         )
+        // 원천이 연 1회 갱신이라 발표가 오래된 경우가 있다. 그걸 숨기면
+        // "지금 정상 / 1개월 뒤 정상"이 오늘 판단처럼 읽힌다.
+        if (outlook.monthsSincePublished > OUTLOOK_STALE_MONTHS) {
+            Spacer(Modifier.height(10.dp))
+            Text(
+                text = "발표 후 ${outlook.monthsSincePublished}개월이 지나 지금 상황과 다를 수 있어요. " +
+                    "최신 예·경보는 농어촌공사 발표를 확인해 주세요.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = Ink2,
+                modifier = Modifier
+                    .background(Gray100, RoundedCornerShape(12.dp))
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
+            )
+        }
         Spacer(Modifier.height(12.dp))
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlookRow("지금", outlook.current.code, outlook.current.label)
-            OutlookRow("1개월 뒤", outlook.outlook1m.code, outlook.outlook1m.label)
-            OutlookRow("2개월 뒤", outlook.outlook2m.code, outlook.outlook2m.label)
-            OutlookRow("3개월 뒤", outlook.outlook3m.code, outlook.outlook3m.label)
+            OutlookRow("발표 당시", outlook.current.code, outlook.current.label)
+            // 라벨은 "1개월 뒤"가 아니라 **서버가 준 대상 월**이다 — 이미 지난 달일 수 있다.
+            listOf(outlook.outlook1m, outlook.outlook2m, outlook.outlook3m)
+                .forEachIndexed { index, stage ->
+                    val label = outlook.targetMonths.getOrNull(index)
+                        ?.let(::koreanYearMonth)
+                        ?: "${index + 1}개월 뒤"
+                    OutlookRow(label, stage.code, stage.label)
+                }
         }
     }
+}
+
+/** 발표 후 이 개월 수를 넘으면 "지난 전망" 고지를 붙인다(웹 trend 화면과 같은 규칙). */
+private const val OUTLOOK_STALE_MONTHS = 2
+
+/** `YYYY-MM` → "2026년 1월". 지난 달인지 바로 알 수 있게 연도까지 쓴다. */
+internal fun koreanYearMonth(targetMonth: String): String {
+    val year = targetMonth.take(4).toIntOrNull() ?: return targetMonth
+    val month = targetMonth.drop(5).take(2).toIntOrNull() ?: return targetMonth
+    return "${year}년 ${month}월"
 }
 
 @Composable

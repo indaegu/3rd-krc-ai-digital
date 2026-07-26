@@ -58,6 +58,13 @@ data class OfficialOutlook(
     val outlook1m: ForecastStage,
     val outlook2m: ForecastStage,
     val outlook3m: ForecastStage,
+    /**
+     * outlook1m/2m/3m이 가리키는 대상 월(YYYY-MM) 3개. 서버 확정값이며 이미 지난 달일 수
+     * 있다 — 그래서 화면은 "1개월 뒤" 대신 이 월을 쓴다. 구 페이로드에서는 빈 목록.
+     */
+    val targetMonths: List<String> = emptyList(),
+    /** 발행 후 지난 개월 수(서버 확정). 크면 "지난 전망" 고지를 붙인다. */
+    val monthsSincePublished: Int = 0,
 )
 
 /**

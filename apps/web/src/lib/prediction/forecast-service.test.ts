@@ -231,6 +231,10 @@ describe("buildForecast — 정상 경로 (90일 하강 -0.45/day, 최신 68)", 
       outlook1m: { code: "care", label: "주의" },
       outlook2m: { code: "care", label: "주의" },
       outlook3m: { code: "watch", label: "관심" },
+      // 대상 월은 서버가 확정한다 — 화면이 "1개월 뒤"라고 쓰지 않게 한다.
+      targetMonths: ["2026-08", "2026-09", "2026-10"],
+      // FIXED_NOW(2026-07-21)와 같은 달 발행이라 경과 0개월.
+      monthsSincePublished: 0,
     });
     expect(body.sources).toContain(DROUGHT_MAP_SOURCE);
     expect(body.sources).toContain(OFFICIAL_OUTLOOK_SOURCE);

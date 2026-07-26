@@ -44,34 +44,49 @@ const THRESHOLD_LINES: ReadonlyArray<{
 ];
 
 /** "YYYY-MM-DD" → "M/D"(앞자리 0 제거). 파싱 실패 시 원문 반환. */
-/** x축 날짜 눈금 간격(일). 44일 구간을 7일마다 끊어 6~7개 라벨이 붙는다. */
-const DATE_TICK_STEP_DAYS = 7;
+/**
+ * 라벨 하나가 차지하는 최소 가로 폭(viewBox 단위). "12/31" 5자 × font-size 10 기준에
+ * 숨 쉴 틈을 더한 값이다. **간격은 '일' 수가 아니라 이 폭으로 판단한다** — 구간이
+ * 44일에서 90일로 늘어나자 같은 '2일' 간격이 화면에서 절반으로 좁아져 날짜가 겹쳤다.
+ */
+const LABEL_SLOT = 46;
 
-/** 라벨끼리 겹치지 않게 유지할 최소 간격(일). */
-const MIN_TICK_GAP = 2;
+/** 눈금 간격으로 쓸 '보기 좋은' 일수 사다리. 필요한 최소 간격 이상인 첫 값을 쓴다. */
+const NICE_STEP_DAYS: readonly number[] = [1, 2, 3, 7, 14, 21, 28, 35, 42, 56];
 
 /**
- * 눈금으로 쓸 인덱스 목록 — 첫날·마지막날은 항상 넣고 사이를 7일마다 끊는다.
- * '오늘' 라벨과 겹치는 자리(±2일)는 빼서 글자가 포개지지 않게 한다.
+ * 눈금으로 쓸 인덱스 목록 — 첫날·마지막날은 항상 넣고 사이를 일정 간격으로 끊는다.
+ *
+ * `minGap`은 **라벨이 겹치지 않으려면 몇 칸 이상 떨어져야 하는지**(인덱스 단위)이며,
+ * 호출자가 실제 픽셀 폭에서 계산해 넘긴다. 양 끝·'오늘' 라벨과 이 간격 안에 드는
+ * 눈금은 글자가 포개지므로 뺀다.
  */
 export function dateTickIndices(
   total: number,
   todayIndex: number,
-  step = DATE_TICK_STEP_DAYS,
+  minGap: number,
 ): number[] {
   if (total <= 0) return [];
   if (total === 1) return [0];
   const last = total - 1;
-  // 양 끝은 항상 두고, 사이를 step마다 끊는다. 끝·'오늘' 라벨과 가까운 눈금은 글자가
-  // 겹치므로 뺀다(최소 간격 MIN_TICK_GAP일).
+  const gap = Math.max(1, Math.ceil(minGap));
+  const step = NICE_STEP_DAYS.find((candidate) => candidate >= gap) ?? gap;
+
   const ticks = new Set<number>([0]);
   for (let i = step; i < last; i += step) {
-    const farFromToday = Math.abs(i - todayIndex) > MIN_TICK_GAP;
-    const farFromEnds = i > MIN_TICK_GAP && last - i > MIN_TICK_GAP;
-    if (farFromToday && farFromEnds) ticks.add(i);
+    if (Math.abs(i - todayIndex) < gap) continue;
+    if (i < gap || last - i < gap) continue;
+    ticks.add(i);
   }
   ticks.add(last);
   return [...ticks].sort((a, b) => a - b);
+}
+
+/** 라벨 하나 폭(LABEL_SLOT)을 인덱스 간격으로 환산한다. */
+export function labelMinGap(total: number): number {
+  if (total <= 1) return 1;
+  const unitsPerIndex = (WIDTH - PAD_LEFT - PAD_RIGHT) / (total - 1);
+  return LABEL_SLOT / unitsPerIndex;
 }
 
 function formatMonthDay(observedOn: string): string {
@@ -324,7 +339,11 @@ export function TrendChart({
 
         {/* 사이 날짜 눈금(7일 간격) — 3개만 보여 날짜 감이 없던 문제를 보완한다. */}
         {showDates
-          ? dateTickIndices(axisDates.length, history.length - 1)
+          ? dateTickIndices(
+              axisDates.length,
+              history.length - 1,
+              labelMinGap(axisDates.length),
+            )
               .filter((index) => index !== 0 && index !== axisDates.length - 1)
               .map((index) => ({ index, date: axisDates[index] }))
               .filter(

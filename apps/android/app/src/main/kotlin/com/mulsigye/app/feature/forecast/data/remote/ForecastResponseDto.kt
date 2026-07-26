@@ -79,6 +79,10 @@ data class OfficialOutlookDto(
     val outlook1m: ForecastStageDto,
     val outlook2m: ForecastStageDto,
     val outlook3m: ForecastStageDto,
+    /** v1 additive — outlook1m/2m/3m이 가리키는 대상 월(YYYY-MM) 3개. */
+    val targetMonths: List<String>? = null,
+    /** v1 additive — 발행 후 지난 개월 수(서버 확정). */
+    val monthsSincePublished: Int? = null,
 )
 
 /** openapi.yaml `ForecastResponse.stageGuide` 원소와 1:1. 행동 카피는 서버 카탈로그가 출처다. */

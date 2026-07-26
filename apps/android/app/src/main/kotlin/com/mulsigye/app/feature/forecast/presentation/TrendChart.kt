@@ -243,30 +243,30 @@ fun TrendChart(
     }
 }
 
-/** x축 날짜 눈금 간격(일). 44일 구간을 7일마다 끊어 대략 6~7개 라벨이 붙는다. */
-private const val DATE_TICK_STEP_DAYS = 7
-
-/** 라벨끼리 겹치지 않게 유지할 최소 간격(일). 끝·'오늘' 라벨 주변 눈금을 솎아낸다. */
-private const val MIN_TICK_GAP = 2
+/** 눈금 간격으로 쓸 '보기 좋은' 일수 사다리. 필요한 최소 간격 이상인 첫 값을 쓴다. */
+private val NICE_STEP_DAYS = listOf(1, 2, 3, 7, 14, 21, 28, 35, 42, 56)
 
 /**
- * 눈금으로 쓸 (x, 날짜문자열) 목록을 고른다 — 순수 함수(테스트 대상).
+ * 눈금으로 쓸 인덱스 목록을 고른다 — 순수 함수(테스트 대상).
  *
- * 첫 실측일과 마지막 예측일은 항상 넣고, 그 사이를 [DATE_TICK_STEP_DAYS]마다 끊는다.
- * '오늘' 라벨과 겹치는 눈금은 뺀다(같은 자리에 두 글자가 겹치지 않게).
+ * 첫 실측일과 마지막 예측일은 항상 넣고, 그 사이를 일정 간격으로 끊는다.
+ * [minGap]은 **라벨이 겹치지 않으려면 몇 칸 이상 떨어져야 하는지**이며, 호출자가 실제 글자
+ * 폭에서 계산해 넘긴다. '일' 수로 고정하면 구간이 44일 → 90일로 늘 때 화면 간격이 절반으로
+ * 좁아져 날짜가 겹친다(웹 TrendChart와 같은 규칙).
  */
-internal fun dateTickIndices(total: Int, todayIndex: Int, step: Int = DATE_TICK_STEP_DAYS): List<Int> {
+internal fun dateTickIndices(total: Int, todayIndex: Int, minGap: Int): List<Int> {
     if (total <= 0) return emptyList()
     if (total == 1) return listOf(0)
     val last = total - 1
-    // 양 끝(첫날·마지막날)은 항상 두고, 사이를 step마다 끊는다.
-    // 끝 라벨·'오늘' 라벨과 너무 가까운 눈금은 글자가 겹치므로 뺀다(최소 간격 MIN_TICK_GAP일).
+    val gap = kotlin.math.max(1, minGap)
+    val step = NICE_STEP_DAYS.firstOrNull { it >= gap } ?: gap
+
     val ticks = LinkedHashSet<Int>()
     ticks += 0
     var i = step
     while (i < last) {
-        val farFromToday = kotlin.math.abs(i - todayIndex) > MIN_TICK_GAP
-        val farFromEnds = i > MIN_TICK_GAP && last - i > MIN_TICK_GAP
+        val farFromToday = kotlin.math.abs(i - todayIndex) >= gap
+        val farFromEnds = i >= gap && last - i >= gap
         if (farFromToday && farFromEnds) ticks += i
         i += step
     }
@@ -300,9 +300,15 @@ private fun DrawScope.drawDateLabels(
     fun xAt(index: Int): Float =
         geo.plotLeft + (geo.plotRight - geo.plotLeft) * (index.toFloat() / kotlin.math.max(1, total - 1))
 
+    // 라벨이 실제로 차지하는 폭에서 최소 간격을 뽑는다("12/31" 다섯 자 + 숨 쉴 틈).
+    val slotPx = paint.measureText("00/00") + 10.dp.toPx()
+    val unitsPerIndex =
+        (geo.plotRight - geo.plotLeft) / kotlin.math.max(1, total - 1).toFloat()
+    val minGap = kotlin.math.ceil(slotPx / kotlin.math.max(1f, unitsPerIndex)).toInt()
+
     // 옅은 세로 눈금선 — 날짜 라벨 위치를 그래프와 잇는다(과하지 않게 아주 옅게).
     val tickColor = Color(0x14191F28)
-    for (index in dateTickIndices(total, todayIndex)) {
+    for (index in dateTickIndices(total, todayIndex, minGap)) {
         val x = xAt(index)
         drawLine(
             color = tickColor,
