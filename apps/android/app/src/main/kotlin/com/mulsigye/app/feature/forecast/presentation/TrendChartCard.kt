@@ -69,7 +69,11 @@ fun TrendChartCard(
         Row(
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Column(modifier = Modifier.weight(1f)) {
+            Column(
+                modifier = Modifier.weight(1f),
+                // 제목과 설명이 붙어 보인다는 피드백 — 행간을 넓힌다(웹 .titles gap과 같은 값).
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
                 Text(
                     // 제목·부제는 선택한 지표를 따라간다(웹 TrendChartCard와 동일).
                     text = when {

@@ -2,7 +2,7 @@
 // Juso는 전부 mock — 실키 호출 금지. 주소 원문(검색어·roadAddr)이 구조화 로그와
 // Supabase 경로에 나타나지 않음을 spy·소스 검사로 강제한다(플랜 Global Constraints).
 import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { join, resolve } from "node:path";
 import type { ApiError, RegionSearchResponse } from "@mulsigye/contracts";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createSearchHandler } from "./route";
@@ -91,10 +91,10 @@ describe("GET /api/v1/regions/search", () => {
     expectNoAddressInLogs();
   });
 
-  it("Juso errorCode가 0이 아니면 retryable=true 503을 돌려준다", async () => {
+  it("Juso 시스템 오류는 retryable=true 503을 돌려준다", async () => {
     const errorBody = JSON.stringify({
       results: {
-        common: { errorCode: "E0006", errorMessage: "시스템 오류" },
+        common: { errorCode: "E0001", errorMessage: "시스템에러" },
         juso: null,
       },
     });
@@ -171,5 +171,160 @@ describe("GET /api/v1/regions/search", () => {
       "utf8",
     );
     expect(routeSource + jusoSource).not.toMatch(/supabase/i);
+  });
+});
+
+// 도로명주소 공식 오류표(business.juso.go.kr) → 사용자 안내 매핑.
+// 종전에는 모든 실패가 하나의 503 "잠시 어려워요"로 뭉개져, "인천"처럼 시·도만 넣은
+// 경우에도 재시도하라는 엉뚱한 안내가 나갔다.
+describe("GET /api/v1/regions/search — 공식 오류표 안내", () => {
+  /** 오류메시지만 바꿔 같은 형태의 실패 응답을 만든다. */
+  async function failWith(
+    errorMessage: string,
+  ): Promise<ApiError & { status: number }> {
+    const body = JSON.stringify({
+      results: { common: { errorCode: "E9999", errorMessage }, juso: null },
+    });
+    const handler = createSearchHandler({
+      juso: { fetchImpl: async () => jusoResponse(body), apiKey: "k" },
+    });
+    const response = await handler(searchRequest(QUERY));
+    return {
+      ...((await response.json()) as ApiError),
+      status: response.status,
+    };
+  }
+
+  const CASES = [
+    {
+      official: "주소를 상세히 입력해 주시기 바랍니다.",
+      code: "JUSO_TOO_BROAD",
+      contains: "시·군·구",
+    },
+    {
+      official: "검색 범위를 초과하였습니다.",
+      code: "JUSO_TOO_MANY",
+      contains: "너무 많아요",
+    },
+    {
+      official: "검색어는 두글자 이상 입력되어야 합니다.",
+      code: "JUSO_TOO_SHORT",
+      contains: "두 글자",
+    },
+    {
+      official: "검색어는 문자와 숫자 같이 입력되어야 합니다.",
+      code: "JUSO_DIGITS_ONLY",
+      contains: "숫자만",
+    },
+    {
+      official: "검색어에 너무 긴 숫자가 포함되어 있습니다. (숫자 10자 이하)",
+      code: "JUSO_LONG_NUMBER",
+      contains: "10자리",
+    },
+    {
+      official: "검색어가 너무 깁니다.(한글40자, 영문, 숫자 80자 이하)",
+      code: "JUSO_TOO_LONG",
+      contains: "너무 길어요",
+    },
+    {
+      official: "특수문자+숫자만으로는 검색이 불가능합니다.",
+      code: "JUSO_FORBIDDEN_CHARS",
+      contains: "특수문자",
+    },
+    {
+      official:
+        "SQL 예약어 또는 특수문자(%,=, >, <, [, ])는 검색이 불가능합니다.",
+      code: "JUSO_FORBIDDEN_CHARS",
+      contains: "특수문자",
+    },
+    {
+      official: "검색어가 입력되지 않았습니다.",
+      code: "JUSO_EMPTY",
+      contains: "검색어",
+    },
+  ] as const;
+
+  for (const testCase of CASES) {
+    it(`"${testCase.official}" → 고칠 방법을 알려주는 400`, async () => {
+      const body = await failWith(testCase.official);
+      // 사용자가 고칠 수 있는 입력 문제라 400·retryable=false다(다시 시도 버튼을 띄우지 않는다).
+      expect(body.status).toBe(400);
+      expect(body.retryable).toBe(false);
+      expect(body.code).toBe(testCase.code);
+      expect(body.message).toContain(testCase.contains);
+      expectNoAddressInLogs();
+    });
+  }
+
+  it("승인키 문제는 503이지만 다시 시도해도 풀리지 않으므로 retryable=false다", async () => {
+    const body = await failWith("승인되지 않은 KEY 입니다.");
+    expect(body.status).toBe(503);
+    expect(body.code).toBe("JUSO_AUTH");
+    expect(body.retryable).toBe(false);
+  });
+
+  it("개발승인키 만료도 같은 승인 문제로 본다", async () => {
+    const body = await failWith(
+      "개발승인키 기간이 만료되어 서비스를 이용하실 수 없습니다",
+    );
+    expect(body.code).toBe("JUSO_AUTH");
+  });
+
+  it("표에 없는 응답은 재시도 가능한 503으로 둔다", async () => {
+    const body = await failWith("알 수 없는 무언가");
+    expect(body.status).toBe(503);
+    expect(body.code).toBe("JUSO_UNAVAILABLE");
+    expect(body.retryable).toBe(true);
+  });
+});
+
+// 계약(openapi.yaml)과 실제 응답이 어긋나면 소비자가 잘못된 retryable을 믿는다.
+// 라우트가 내보내는 code 집합과 각 code의 status·retryable을 계약 문서와 대조한다.
+describe("GET /api/v1/regions/search — 계약 동기화", () => {
+  const contract = readFileSync(
+    join(process.cwd(), "..", "..", "packages", "contracts", "openapi.yaml"),
+    "utf8",
+  );
+  /** 검색 엔드포인트 블록만 잘라 본다(다른 경로의 같은 코드에 속지 않게). */
+  const searchBlock = contract.slice(
+    contract.indexOf("/api/v1/regions/search:"),
+    contract.indexOf("/api/v1/regions/resolve:"),
+  );
+
+  const CODES = [
+    { code: "INVALID_QUERY", status: 400, retryable: false },
+    { code: "JUSO_TOO_BROAD", status: 400, retryable: false },
+    { code: "JUSO_TOO_MANY", status: 400, retryable: false },
+    { code: "JUSO_TOO_SHORT", status: 400, retryable: false },
+    { code: "JUSO_DIGITS_ONLY", status: 400, retryable: false },
+    { code: "JUSO_LONG_NUMBER", status: 400, retryable: false },
+    { code: "JUSO_TOO_LONG", status: 400, retryable: false },
+    { code: "JUSO_FORBIDDEN_CHARS", status: 400, retryable: false },
+    { code: "JUSO_EMPTY", status: 400, retryable: false },
+    { code: "JUSO_AUTH", status: 503, retryable: false },
+    { code: "JUSO_UNAVAILABLE", status: 503, retryable: true },
+  ] as const;
+
+  for (const entry of CODES) {
+    it(`${entry.code}가 계약에 적혀 있다`, () => {
+      expect(searchBlock).toContain(entry.code);
+    });
+  }
+
+  it("승인키 문제의 retryable=false가 계약 설명·예시에 드러나 있다", () => {
+    // 503을 전부 retryable=true로 적어두면 클라이언트가 헛된 '다시 시도'를 띄운다.
+    expect(searchBlock).toContain("retryable: false");
+    expect(searchBlock).toMatch(/승인키/);
+  });
+
+  it("빈 결과는 200이다(오류가 아니다)", async () => {
+    const body = JSON.stringify({
+      results: { common: { errorCode: "0", errorMessage: "정상" }, juso: [] },
+    });
+    const handler = createSearchHandler({
+      juso: { fetchImpl: async () => jusoResponse(body), apiKey: "k" },
+    });
+    const response = await handler(searchRequest(QUERY));
+    expect(response.status).toBe(200);
   });
 });

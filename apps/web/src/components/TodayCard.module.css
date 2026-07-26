@@ -57,26 +57,27 @@
   font-weight: 600;
 }
 
-/* 단계 텍스트 — 색으로만 단계를 구분하지 않으며(라벨 텍스트가 주 전달), fg 토큰으로 강조만. */
+/* 단계 텍스트 — 색으로만 단계를 구분하지 않으며(라벨 텍스트가 주 전달), 강조는 text 토큰으로.
+   글자는 시안 fg가 아니라 대비를 맞춘 text 토큰을 쓴다(globals.css 주석 참조). */
 /* 큰 값도 단계 색을 따른다(게이지 물 색과 같은 축). */
 .rateLine[data-stage="ok"] {
-  color: var(--ok-fg);
+  color: var(--ok-text);
 }
 
 .rateLine[data-stage="watch"] {
-  color: var(--watch-fg);
+  color: var(--watch-text);
 }
 
 .rateLine[data-stage="care"] {
-  color: var(--care-fg);
+  color: var(--care-text);
 }
 
 .rateLine[data-stage="alert"] {
-  color: var(--alert-fg);
+  color: var(--alert-text);
 }
 
 .rateLine[data-stage="crit"] {
-  color: var(--crit-fg);
+  color: var(--crit-text);
 }
 
 .stage {
@@ -84,23 +85,23 @@
 }
 
 .stage[data-stage="ok"] {
-  color: var(--ok-fg);
+  color: var(--ok-text);
 }
 
 .stage[data-stage="watch"] {
-  color: var(--watch-fg);
+  color: var(--watch-text);
 }
 
 .stage[data-stage="care"] {
-  color: var(--care-fg);
+  color: var(--care-text);
 }
 
 .stage[data-stage="alert"] {
-  color: var(--alert-fg);
+  color: var(--alert-text);
 }
 
 .stage[data-stage="crit"] {
-  color: var(--crit-fg);
+  color: var(--crit-text);
 }
 
 .rateLine {

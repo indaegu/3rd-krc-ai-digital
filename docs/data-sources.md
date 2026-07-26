@@ -114,6 +114,11 @@ GPS 거리나 “가장 가까운 저수지”를 계산하지 않는다.
 
 API와 UI의 명칭은 항상 **“우리 지역 대표 저수지”**다. 거리 필드는 계약에 넣지 않는다.
 
+도로명주소 API의 검색 실패는 [공식 오류표](https://business.juso.go.kr/jst/jstRoadNmAddrApiMobilePop)를
+따라 분류한다. 코드 번호는 공표되지 않아 `results.common.errorMessage` 문구로 맞추며, 분류표는
+`apps/web/src/lib/data/juso.ts`의 `JusoFailureReason`이 단일 출처다. 오류메시지·검색어 원문은
+어디에도 기록하지 않고 사유만 넘긴다.
+
 ## 정규화·품질 규칙
 
 - 외부 필드명은 `apps/web/src/lib/data`에서 내부 camelCase DTO로 변환한 뒤에만 사용한다.

@@ -33,7 +33,7 @@ import com.mulsigye.app.feature.status.domain.StageBand
 import kotlin.math.sin
 
 /** 비이커의 캔버스 내 왼쪽 여백·폭 비율. 막대를 살짝 오른쪽으로 밀어 카드 균형을 맞춘다. */
-private const val BeakerLeftFraction = 0.10f
+private const val BeakerLeftFraction = 0.16f
 private const val BeakerWidthFraction = 0.53f
 
 /**

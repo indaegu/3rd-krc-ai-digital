@@ -19,6 +19,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -26,6 +27,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.contentDescription
@@ -52,6 +54,9 @@ import com.mulsigye.app.feature.status.presentation.SourcesCard
 import com.mulsigye.app.feature.status.presentation.StatusUiState
 import com.mulsigye.app.feature.status.presentation.TodayCard
 import com.mulsigye.app.feature.status.presentation.mergeSources
+
+/** 당겨서 새로고침에서 본문(카드들)이 손끝을 따라 내려오는 최대 거리. */
+private val PullContentShift = 56.dp
 
 /**
  * 메인 화면 전체 조립 — 순수 컴포저블(3개 모듈 상태 + 콜백만).
@@ -85,12 +90,17 @@ fun MainScreen(
         if (statusState !is StatusUiState.Loading) pullRefreshing = false
     }
 
+    // 당겨서 새로고침 상태를 직접 들고 있는다 — 인디케이터만 내려오는 게 아니라
+    // **본문(카드들)도 손끝을 따라 내려오게** 하려면 당긴 거리를 알아야 한다.
+    val pullState = rememberPullToRefreshState()
+
     PullToRefreshBox(
         isRefreshing = pullRefreshing,
         onRefresh = {
             pullRefreshing = true
             onRefresh()
         },
+        state = pullState,
         modifier = modifier
             .fillMaxSize()
             // 온보딩·스플래시와 같은 브랜드 그라디언트를 화면 전체에 깐다(시안).
@@ -99,7 +109,13 @@ fun MainScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState()),
+                .verticalScroll(rememberScrollState())
+                // 당긴 만큼 본문을 함께 내린다(최대 [PullContentShift]). 새로고침이 돌아가는
+                // 동안에도 살짝 내려가 있어 "내용이 따라 나온" 느낌이 끊기지 않는다.
+                .graphicsLayer {
+                    val fraction = if (pullRefreshing) 1f else pullState.distanceFraction
+                    translationY = fraction.coerceIn(0f, 1f) * PullContentShift.toPx()
+                },
         ) {
         MainHeader(
             regionLabel = regionLabel,

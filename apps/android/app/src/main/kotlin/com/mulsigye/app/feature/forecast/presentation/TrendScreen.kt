@@ -499,7 +499,7 @@ private fun StageBadge(code: String, label: String) {
     val colors = stageColorFor(code)
     Text(
         text = label,
-        color = colors.fg,
+        color = colors.text,
         fontWeight = FontWeight.Bold,
         style = MaterialTheme.typography.bodyLarge,
         modifier = Modifier

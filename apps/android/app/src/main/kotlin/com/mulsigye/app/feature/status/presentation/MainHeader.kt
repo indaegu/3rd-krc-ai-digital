@@ -33,6 +33,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.mulsigye.app.core.designsystem.theme.Gray100
+import com.mulsigye.app.core.designsystem.theme.Surface
 import com.mulsigye.app.core.designsystem.theme.Gray200
 import com.mulsigye.app.core.designsystem.theme.Ink
 import com.mulsigye.app.core.designsystem.theme.Ink2
@@ -90,7 +91,7 @@ fun MainHeader(
         Row(
             modifier = Modifier
                 .clip(RoundedCornerShape(15.dp))
-                .background(Gray100)
+                .background(Surface)
                 .padding(horizontal = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -121,7 +122,8 @@ private fun HeaderIconButton(
             .padding(8.dp),
         contentAlignment = Alignment.Center,
     ) {
-        Canvas(modifier = Modifier.size(22.dp).clearAndSetSemantics { }) { icon() }
+        // 22 → 24dp: 헤더 아이콘을 조금 더 크게(터치 목표 48dp는 그대로).
+        Canvas(modifier = Modifier.size(24.dp).clearAndSetSemantics { }) { icon() }
     }
 }
 
@@ -144,29 +146,34 @@ private fun ChevronDown() {
     }
 }
 
-/** 알림 모아보기(벨) 아이콘. 배지·도트는 그리지 않는다(알림 유도 금지). */
+/**
+ * 알림 모아보기(벨) 아이콘. 배지·도트는 그리지 않는다(알림 유도 금지).
+ *
+ * 종전에는 캔버스의 0.15~0.88 구간만 써서 옆의 톱니(0.98까지 꽉 채움)보다 작아 보였다.
+ * 두 아이콘이 같은 크기로 읽히도록 벨도 캔버스를 거의 꽉 채우고 선도 같이 굵혔다.
+ */
 private fun DrawScope.drawBell(color: Color) {
     val w = size.width
     val h = size.height
-    val stroke = w * 0.1f
+    val stroke = w * 0.11f
     val body = Path().apply {
-        moveTo(w * 0.2f, h * 0.68f)
-        lineTo(w * 0.8f, h * 0.68f)
-        lineTo(w * 0.71f, h * 0.52f)
-        lineTo(w * 0.71f, h * 0.38f)
-        cubicTo(w * 0.71f, h * 0.15f, w * 0.29f, h * 0.15f, w * 0.29f, h * 0.38f)
-        lineTo(w * 0.29f, h * 0.52f)
+        moveTo(w * 0.14f, h * 0.70f)
+        lineTo(w * 0.86f, h * 0.70f)
+        lineTo(w * 0.752f, h * 0.52f)
+        lineTo(w * 0.752f, h * 0.35f)
+        cubicTo(w * 0.752f, h * 0.08f, w * 0.248f, h * 0.08f, w * 0.248f, h * 0.35f)
+        lineTo(w * 0.248f, h * 0.52f)
         close()
     }
-    drawPath(path = body, color = color, style = Stroke(width = stroke))
+    drawPath(path = body, color = color, style = Stroke(width = stroke, cap = StrokeCap.Round))
     // 종 아래 추(반원).
     drawArc(
         color = color,
         startAngle = 0f,
         sweepAngle = 180f,
         useCenter = false,
-        topLeft = Offset(w * 0.4f, h * 0.64f),
-        size = Size(w * 0.2f, h * 0.2f),
+        topLeft = Offset(w * 0.38f, h * 0.66f),
+        size = Size(w * 0.24f, h * 0.24f),
         style = Stroke(width = stroke, cap = StrokeCap.Round),
     )
 }
