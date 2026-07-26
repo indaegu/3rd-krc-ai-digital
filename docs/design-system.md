@@ -13,17 +13,17 @@
 
 ```css
 --ink:#191F28; --ink2:#4E5968; --ink3:#8B95A1; --ink4:#B0B8C1;
---bg:#FFFFFF; --gray50:#F9FAFB; --gray100:#F2F4F6; --gray200:#E5E8EB;
+--bg:#FFFFFF; --surface:#FCFDFE; --gray50:#F9FAFB; --gray100:#F2F4F6; --gray200:#E5E8EB;
 --blue:#2D83FF; --blue-deep:#1F6FE6; --blue-tint:#E8F3FF; --blue-soft:#D6E8FF;
 /* 브랜드 그라디언트(스플래시·온보딩·메인 헤더 배경): 시안→연블루→오프화이트 */
 --grad-top:#A6EEF9; --grad-mid:#C1E8FF; --grad-bottom:#F6F6F6;
 /* 공식 가뭄 단계 fg/bg */
 /* 단계가 나빠질수록 파랑 → 청록 → 노랑 → 주황 → 빨강 */
 --ok-fg:#2D83FF;    --ok-bg:#E8F3FF;
---watch-fg:#009398; --watch-bg:#E2F5F5;
---care-fg:#DEA92E;  --care-bg:#FDF3DE;
---alert-fg:#E36C22; --alert-bg:#FDEEE2;
---crit-fg:#E33922;  --crit-bg:#FDEAE7;
+--watch-fg:#11C3C9; --watch-bg:#E7F9FA;
+--care-fg:#FFC94B;  --care-bg:#FFF6E4;
+--alert-fg:#FF8032; --alert-bg:#FFF0E6;
+--crit-fg:#FC462D;  --crit-bg:#FFEBE8;
 --r-lg:24px; --r-md:18px; --r-sm:12px; --r-card:12px; /* 카드=12, 바텀시트=24 */
 ```
 
@@ -37,7 +37,7 @@
 
 ## 레이아웃·컴포넌트
 
-- 메인 모듈 간격 24px. 카드 `--gray50`, radius 24px, 내부 패딩 20px.
+- 메인 모듈 간격 24px. 카드 `--surface`(흰색에 가까운 표면), radius 24px, 내부 패딩 20px.
 - 주 CTA 높이 60px, **완전한 pill**(radius 999px/CircleShape), `--blue`, 글자 굵기 700. 비활성은 `--gray200`.
 - 비이커는 지역 평년 대비 저수율(`avgRatio`)을 물 높이로 보여주고, **물 색·큰 값·단계 텍스트·
   “이 추세라면” 강조색은 모두 현재(또는 도달 예정) 공인 단계 색을 쓴다**. 색만으로 단계를

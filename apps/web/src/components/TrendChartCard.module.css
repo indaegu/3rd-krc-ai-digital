@@ -9,7 +9,8 @@
 .titles {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  /* 제목과 설명이 붙어 보인다는 피드백 — 행간을 넓힌다. */
+  gap: 6px;
   min-width: 0;
 }
 
@@ -25,6 +26,7 @@
   color: var(--ink3);
   font-size: 0.875rem;
   font-weight: 500;
+  line-height: 1.5;
 }
 
 .moreLink {

@@ -68,13 +68,13 @@ private val SLIDES: List<OnboardingSlide> = listOf(
     ),
     OnboardingSlide(
         art = R.drawable.onboarding_2,
-        title = "지금 몇 %가 아니라\n'언제쯤'을 알려드려요",
-        body = "이 추세가 이어지면 언제 다음 단계인지 미리 계산해요.",
+        title = "지금 상태만 아니라\n앞으로 한 달을 보여드려요",
+        body = "이 추세가 이어지면 다음 단계가\n언제인지 함께 계산해요.",
     ),
     OnboardingSlide(
         art = R.drawable.onboarding_3,
         title = "오늘 해야 할 물관리,\n딱 3가지로 정리해 드려요.",
-        body = "어려운 그래프 대신, 지금 할 일부터 짚어드려요.",
+        body = "어려운 그래프 대신,\n지금 할 일부터 짚어드려요.",
     ),
 )
 

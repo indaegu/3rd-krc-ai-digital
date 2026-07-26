@@ -75,7 +75,9 @@ export function ReachCard({ forecast, currentStageCode }: ReachCardProps) {
         </>
       ) : (
         <>
-          <p className={styles.big} data-stage={currentStageCode ?? "ok"}>
+          {/* 숫자(2.8rem)와 달리 '안정'·'심각 지속'은 단어라 같은 크기로 쓰면 과하게 커 보인다.
+              단어 전용 크기를 따로 둔다(색·단계 강조는 그대로). */}
+          <p className={styles.bigWord} data-stage={currentStageCode ?? "ok"}>
             {noReach.headline}
           </p>
           <p className={styles.desc}>{noReach.detail}</p>

@@ -6,23 +6,28 @@
 }
 
 /* 큰 글자 = 도달 예정 단계 색(도달 없음이면 정상 색). */
-.big[data-stage="ok"] {
+.big[data-stage="ok"],
+.bigWord[data-stage="ok"] {
   color: var(--ok-fg);
 }
 
-.big[data-stage="watch"] {
+.big[data-stage="watch"],
+.bigWord[data-stage="watch"] {
   color: var(--watch-fg);
 }
 
-.big[data-stage="care"] {
+.big[data-stage="care"],
+.bigWord[data-stage="care"] {
   color: var(--care-fg);
 }
 
-.big[data-stage="alert"] {
+.big[data-stage="alert"],
+.bigWord[data-stage="alert"] {
   color: var(--alert-fg);
 }
 
-.big[data-stage="crit"] {
+.big[data-stage="crit"],
+.bigWord[data-stage="crit"] {
   color: var(--crit-fg);
 }
 
@@ -34,6 +39,17 @@
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.04em;
   line-height: 1.1;
+}
+
+/* 상태 단어(안정·심각 지속 등) — 숫자보다 작게. 숫자 2.8rem은 자릿수라 크게 두지만
+   단어는 같은 크기로 두면 카드를 압도한다. */
+.bigWord {
+  margin: 2px 0 0;
+  color: var(--blue);
+  font-size: 1.6rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.25;
 }
 
 .suffix {

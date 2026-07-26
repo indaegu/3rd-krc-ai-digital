@@ -91,10 +91,10 @@ describe("GET /api/v1/regions/search", () => {
     expectNoAddressInLogs();
   });
 
-  it("Juso errorCode가 0이 아니면 retryable=true 503을 돌려준다", async () => {
+  it("Juso 시스템 오류는 retryable=true 503을 돌려준다", async () => {
     const errorBody = JSON.stringify({
       results: {
-        common: { errorCode: "E0006", errorMessage: "시스템 오류" },
+        common: { errorCode: "E0001", errorMessage: "시스템에러" },
         juso: null,
       },
     });
@@ -171,5 +171,109 @@ describe("GET /api/v1/regions/search", () => {
       "utf8",
     );
     expect(routeSource + jusoSource).not.toMatch(/supabase/i);
+  });
+});
+
+// 도로명주소 공식 오류표(business.juso.go.kr) → 사용자 안내 매핑.
+// 종전에는 모든 실패가 하나의 503 "잠시 어려워요"로 뭉개져, "인천"처럼 시·도만 넣은
+// 경우에도 재시도하라는 엉뚱한 안내가 나갔다.
+describe("GET /api/v1/regions/search — 공식 오류표 안내", () => {
+  /** 오류메시지만 바꿔 같은 형태의 실패 응답을 만든다. */
+  async function failWith(
+    errorMessage: string,
+  ): Promise<ApiError & { status: number }> {
+    const body = JSON.stringify({
+      results: { common: { errorCode: "E9999", errorMessage }, juso: null },
+    });
+    const handler = createSearchHandler({
+      juso: { fetchImpl: async () => jusoResponse(body), apiKey: "k" },
+    });
+    const response = await handler(searchRequest(QUERY));
+    return {
+      ...((await response.json()) as ApiError),
+      status: response.status,
+    };
+  }
+
+  const CASES = [
+    {
+      official: "주소를 상세히 입력해 주시기 바랍니다.",
+      code: "JUSO_TOO_BROAD",
+      contains: "시·군·구",
+    },
+    {
+      official: "검색 범위를 초과하였습니다.",
+      code: "JUSO_TOO_MANY",
+      contains: "너무 많아요",
+    },
+    {
+      official: "검색어는 두글자 이상 입력되어야 합니다.",
+      code: "JUSO_TOO_SHORT",
+      contains: "두 글자",
+    },
+    {
+      official: "검색어는 문자와 숫자 같이 입력되어야 합니다.",
+      code: "JUSO_DIGITS_ONLY",
+      contains: "숫자만",
+    },
+    {
+      official: "검색어에 너무 긴 숫자가 포함되어 있습니다. (숫자 10자 이하)",
+      code: "JUSO_LONG_NUMBER",
+      contains: "10자리",
+    },
+    {
+      official: "검색어가 너무 깁니다.(한글40자, 영문, 숫자 80자 이하)",
+      code: "JUSO_TOO_LONG",
+      contains: "너무 길어요",
+    },
+    {
+      official: "특수문자+숫자만으로는 검색이 불가능합니다.",
+      code: "JUSO_FORBIDDEN_CHARS",
+      contains: "특수문자",
+    },
+    {
+      official:
+        "SQL 예약어 또는 특수문자(%,=, >, <, [, ])는 검색이 불가능합니다.",
+      code: "JUSO_FORBIDDEN_CHARS",
+      contains: "특수문자",
+    },
+    {
+      official: "검색어가 입력되지 않았습니다.",
+      code: "JUSO_EMPTY",
+      contains: "검색어",
+    },
+  ] as const;
+
+  for (const testCase of CASES) {
+    it(`"${testCase.official}" → 고칠 방법을 알려주는 400`, async () => {
+      const body = await failWith(testCase.official);
+      // 사용자가 고칠 수 있는 입력 문제라 400·retryable=false다(다시 시도 버튼을 띄우지 않는다).
+      expect(body.status).toBe(400);
+      expect(body.retryable).toBe(false);
+      expect(body.code).toBe(testCase.code);
+      expect(body.message).toContain(testCase.contains);
+      expectNoAddressInLogs();
+    });
+  }
+
+  it("승인키 문제는 503이지만 다시 시도해도 풀리지 않으므로 retryable=false다", async () => {
+    const body = await failWith("승인되지 않은 KEY 입니다.");
+    expect(body.status).toBe(503);
+    expect(body.code).toBe("JUSO_AUTH");
+    expect(body.retryable).toBe(false);
+  });
+
+  it("개발승인키 만료도 같은 승인 문제로 본다", async () => {
+    const body = await failWith(
+      "개발승인키 기간이 만료되어 서비스를 이용하실 수 없습니다",
+    );
+    expect(body.code).toBe("JUSO_AUTH");
+  });
+
+  it("표에 없는 응답은 재시도 가능한 503으로 둔다", async () => {
+    const body = await failWith("알 수 없는 무언가");
+    expect(body.status).toBe(503);
+    expect(body.code).toBe("JUSO_UNAVAILABLE");
+    expect(body.retryable).toBe(true);
   });
 });

@@ -41,6 +41,13 @@ import kotlin.math.roundToInt
 private const val COUNT_UP_MS = 600
 
 /**
+ * 카드 안 두 헤드라인("물이 …해요" / "올해 흐름 속 …")의 공통 타이포.
+ * 종전 titleMedium(18sp Bold)과 bodyLarge(17sp Normal)의 **중앙값**이다.
+ */
+private val HeadlineFontSize = 17.5.sp
+private val HeadlineFontWeight = FontWeight.SemiBold
+
+/**
  * 단계별 검토 완료 헤드라인 상수. 웹 TodayCard의 HEADLINE_BY_STAGE와 동일 문구(공통 SSOT).
  * ~해요체·짧은 문장, 예측을 사실로 단정하는 표현("내려가요/됩니다/위험합니다")은 쓰지 않는다.
  */
@@ -196,8 +203,13 @@ fun TodayCard(
                     )
                 }
                 Text(
+                    // 아래 "올해 흐름 속 …"과 **같은 굵기·크기**로 둔다. 종전에는 이 줄이
+                    // titleMedium(18sp Bold), 그쪽이 bodyLarge(17sp Normal)로 달라 보였다.
+                    // 두 값의 중앙(17.5sp · SemiBold)으로 맞춘다.
                     text = headline,
                     style = MaterialTheme.typography.titleMedium,
+                    fontSize = HeadlineFontSize,
+                    fontWeight = HeadlineFontWeight,
                     color = Ink,
                 )
                 // 원저수율(rate) — 작은 보조 줄. null이면 폴백 문구.
@@ -223,8 +235,11 @@ fun TodayCard(
                 val yearly = status.yearlyPosition
                 if (yearly != null) {
                     Text(
+                        // 위 headline과 같은 굵기·크기(두 값의 중앙).
                         text = YEARLY_HEADLINE_BY_BUCKET[yearly.bucket] ?: "",
-                        style = MaterialTheme.typography.bodyLarge,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontSize = HeadlineFontSize,
+                        fontWeight = HeadlineFontWeight,
                         color = Ink,
                     )
                     Text(

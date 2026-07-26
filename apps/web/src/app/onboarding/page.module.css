@@ -144,6 +144,10 @@
   margin: 0;
   color: var(--ink3);
   font-size: 1.02rem;
+  /* 본문도 
+을 살린다 — 문장이 어디서 끊기는지 카피가 정한다(자동 줄바꿈에 맡기지 않는다). */
+  white-space: pre-line;
+  line-height: 1.55;
 }
 
 .dots {

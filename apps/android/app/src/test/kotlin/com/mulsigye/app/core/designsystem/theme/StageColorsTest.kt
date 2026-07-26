@@ -15,10 +15,10 @@ class StageColorsTest {
     @Test
     fun mapsEachStageCodeToDesignSystemColors() {
         assertEquals(StageColorSet(Color(0xFF2D83FF), Color(0xFFE8F3FF)), stageColorFor("ok"))
-        assertEquals(StageColorSet(Color(0xFF009398), Color(0xFFE2F5F5)), stageColorFor("watch"))
-        assertEquals(StageColorSet(Color(0xFFDEA92E), Color(0xFFFDF3DE)), stageColorFor("care"))
-        assertEquals(StageColorSet(Color(0xFFE36C22), Color(0xFFFDEEE2)), stageColorFor("alert"))
-        assertEquals(StageColorSet(Color(0xFFE33922), Color(0xFFFDEAE7)), stageColorFor("crit"))
+        assertEquals(StageColorSet(Color(0xFF11C3C9), Color(0xFFE7F9FA)), stageColorFor("watch"))
+        assertEquals(StageColorSet(Color(0xFFFFC94B), Color(0xFFFFF6E4)), stageColorFor("care"))
+        assertEquals(StageColorSet(Color(0xFFFF8032), Color(0xFFFFF0E6)), stageColorFor("alert"))
+        assertEquals(StageColorSet(Color(0xFFFC462D), Color(0xFFFFEBE8)), stageColorFor("crit"))
     }
 
     @Test

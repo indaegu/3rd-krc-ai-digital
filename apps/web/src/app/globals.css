@@ -6,6 +6,8 @@
   --ink4: #b0b8c1;
   --bg: #ffffff;
   --gray50: #f9fafb;
+  /* 카드·헤더 pill 표면 — 브랜드 그라디언트 위에 얹히므로 gray50보다 흰색에 가깝게 둔다. */
+  --surface: #fcfdfe;
   --gray100: #f2f4f6;
   --gray200: #e5e8eb;
   --blue: #2d83ff;
@@ -20,14 +22,14 @@
      단계가 나빠질수록 파랑 → 청록 → 노랑 → 주황 → 빨강으로 넘어간다(디자인 지정). */
   --ok-fg: #2d83ff;
   --ok-bg: #e8f3ff;
-  --watch-fg: #009398;
-  --watch-bg: #e2f5f5;
-  --care-fg: #dea92e;
-  --care-bg: #fdf3de;
-  --alert-fg: #e36c22;
-  --alert-bg: #fdeee2;
-  --crit-fg: #e33922;
-  --crit-bg: #fdeae7;
+  --watch-fg: #11c3c9;
+  --watch-bg: #e7f9fa;
+  --care-fg: #ffc94b;
+  --care-bg: #fff6e4;
+  --alert-fg: #ff8032;
+  --alert-bg: #fff0e6;
+  --crit-fg: #fc462d;
+  --crit-bg: #ffebe8;
   --r-lg: 24px;
   --r-md: 18px;
   --r-sm: 12px;
