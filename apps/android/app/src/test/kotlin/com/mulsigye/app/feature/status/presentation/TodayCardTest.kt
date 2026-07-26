@@ -11,6 +11,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.mulsigye.app.core.designsystem.theme.MulsigyeTheme
 import com.mulsigye.app.core.testing.RobolectricComposeTest
 import com.mulsigye.app.core.testing.StatusFixtures
+import com.mulsigye.app.feature.status.domain.RegionEstimate
 import org.junit.Rule
 import org.junit.Test
 
@@ -117,6 +118,36 @@ class TodayCardTest : RobolectricComposeTest() {
                 .onAllNodesWithText(word, substring = true)
                 .assertCountEquals(0)
         }
+    }
+
+    @Test
+    fun hidesEstimateBadgeOnOfficialPayload() {
+        setCard("status.normal.json")
+        composeTestRule.onAllNodesWithText(ESTIMATE_BADGE).assertCountEquals(0)
+    }
+
+    @Test
+    fun showsEstimateBadgeWhenServerSaysEstimate() {
+        val base = StatusFixtures.success("status.normal.json")
+        composeTestRule.setContent {
+            MulsigyeTheme {
+                TodayCard(
+                    status = base.copy(
+                        region = base.region.copy(
+                            isEstimate = true,
+                            estimate = RegionEstimate(
+                                maePp = 0.65,
+                                reservoirCount = 25,
+                                capacityRatio = 1.0,
+                            ),
+                        ),
+                    ),
+                )
+            }
+        }
+        composeTestRule.onNodeWithText(ESTIMATE_BADGE).assertIsDisplayed()
+        // 배지가 대표 저수지명 라벨을 대체하지 않는다.
+        composeTestRule.onNodeWithText("탑정").assertIsDisplayed()
     }
 
     @Test

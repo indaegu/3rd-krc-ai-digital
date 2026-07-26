@@ -25,13 +25,26 @@ data class ReservoirStatus(
     val rateHistory: List<ReservoirRatePoint> = emptyList(),
 )
 
-/** 논가뭄지도 기준 지역 공식 값. */
+/**
+ * 서버가 저수지 실측으로 오늘 값을 계산했을 때의 근거(검증 오차·저수지 수·용량 비중).
+ * 클라이언트는 재계산하지 않고 그대로 표기만 한다. 공표값 경로에서는 null이다.
+ */
+data class RegionEstimate(
+    val maePp: Double,
+    val reservoirCount: Int,
+    val capacityRatio: Double,
+)
+
+/** 지역 값. 공표(논가뭄지도)이거나, 공표가 없는 날짜를 서버가 실측으로 계산한 추정이다. */
 data class RegionStatus(
     val observedOn: String,
     val regionalRate: Double?,
     val normalRate: Double?,
     val avgRatio: Double,
     val officialStage: DroughtStage,
+    /** 서버가 준 값이 추정인지 여부. 서버가 주지 않으면 false(공표값)로 본다. */
+    val isEstimate: Boolean = false,
+    val estimate: RegionEstimate? = null,
 )
 
 /**

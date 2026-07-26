@@ -2,11 +2,12 @@
 //
 // 공표 자료(논가뭄지도)는 연 1회만 갱신돼 오늘 값이 없다. 이 스크립트는 저수지 단위 실측으로
 // 시군 통합저수율을 다시 만들고, 공표값과 비교해 **지역별 보정계수와 사용 가능 여부(게이트)** 를
-// 확정한다. 학습(1~9월)과 검증(10~12월) 구간을 나눠 과적합을 배제한다.
+// 확정한다. 구간을 학습(1~8월)/검증(9~10월)/시험(11~12월)으로 3분할해 과적합을 배제한다.
 //
 // 산출물: data/snapshots/region-estimator.json
 //   - normals: 시군 → "MM-DD" → 평년 저수율(%)  (오늘 날짜의 평년값 조회용)
-//   - regions: 시군 → { factor, trainMae, testMae, sampleDays, reservoirCount, capacityShare, usable }
+//   - regions: 시군 → { factor, trainMae, validMae, testMae, sampleDays, validDays,
+//                       reservoirCount, capacityShare, usable }
 //
 // 실행: pnpm --filter @mulsigye/web build:estimator
 
@@ -24,20 +25,33 @@ const OUT = join(REPO_ROOT, "data", "snapshots", "region-estimator.json");
 const DROUGHT_CSV = "한국농어촌공사_논가뭄지도_20251231.csv";
 const DAILY_CSV = "한국농어촌공사_전국 저수지 일별 저수율_20251231.csv";
 
-/** 학습/검증 경계. 이 날짜까지는 보정계수 학습, 이후는 성능 검증에만 쓴다. */
-const TRAIN_END = "2025-09-30";
+// 구간은 3분할이다. 학습 구간으로만 보정계수를 정하고, **검증 구간으로 게이트를 판정**하며,
+// 시험 구간은 어느 결정에도 쓰지 않고 성능 보고에만 쓴다.
+//
+// 2분할(학습 게이트 + 시험 보고)이었을 때, 학습 MAE가 게이트 이하인데 시험 MAE가 게이트를
+// 넘는 지역이 88곳 중 13곳(제주시 0.67 → 5.33%p 포함) 나왔다. 학습 오차는 보정계수를 맞춘
+// 구간이라 낙관적이라 게이트 기준이 될 수 없다 — 그래서 게이트 전용 구간을 따로 뒀다.
+/** 학습(보정계수 적합) 구간의 끝. */
+const TRAIN_END = "2025-08-31";
+/** 검증(게이트 판정) 구간의 끝. 이후는 시험 구간으로 보고에만 쓴다. */
+const VALID_END = "2025-10-31";
 
-/** 학습 구간 평년대비 MAE가 이 값을 넘으면 추정을 쓰지 않고 공표값으로 폴백한다(%p). */
+/** 검증 구간 평년대비 MAE가 이 값을 넘으면 추정을 쓰지 않고 공표값으로 폴백한다(%p). */
 export const ESTIMATOR_GATE_MAE_PP = 2.0;
 
-/** 지역별 최소 학습 표본 일수. 이보다 적으면 판단하지 않고 폴백한다. */
+/** 지역별 최소 표본 일수. 이보다 적으면 판단하지 않고 폴백한다. */
 const MIN_TRAIN_DAYS = 60;
+const MIN_VALID_DAYS = 30;
 
 interface RegionModel {
   factor: number;
   trainMae: number;
+  /** 게이트를 판정한 구간의 오차. usable 여부는 오직 이 값으로 정한다. */
+  validMae: number;
+  /** 어떤 결정에도 쓰지 않은 구간의 오차 — 화면에 밝히는 값이다. */
   testMae: number | null;
   sampleDays: number;
+  validDays: number;
   reservoirCount: number;
   capacityShare: number;
   usable: boolean;
@@ -205,7 +219,7 @@ function main(): void {
 
   // ── 지역별 보정계수 + 게이트.
   const regions: Record<string, RegionModel> = {};
-  // 검증 구간 통계(게이트 통과 지역만). 문서에 싣는 수치는 전부 여기서 나온다.
+  // 시험 구간 통계(게이트 통과 지역만). 문서에 싣는 수치는 전부 여기서 나온다.
   const holdoutErrors: number[] = [];
   let holdoutSamples = 0;
   let stageMatches = 0;
@@ -216,6 +230,7 @@ function main(): void {
       normal: number;
       ratio: number;
     }[] = [];
+    const validRows: typeof trainRows = [];
     const testRows: typeof trainRows = [];
     for (const [date, [weighted, capacity]] of byDate) {
       if (capacity <= 0) continue;
@@ -223,16 +238,28 @@ function main(): void {
       if (record === undefined || record.normal <= 0) continue;
       const est = weighted / capacity;
       if (est <= 0) continue;
-      (date <= TRAIN_END ? trainRows : testRows).push({
+      const bucket =
+        date <= TRAIN_END
+          ? trainRows
+          : date <= VALID_END
+            ? validRows
+            : testRows;
+      bucket.push({
         est,
         rate: record.rate,
         normal: record.normal,
         ratio: record.ratio,
       });
     }
-    if (trainRows.length < MIN_TRAIN_DAYS) continue;
+    if (
+      trainRows.length < MIN_TRAIN_DAYS ||
+      validRows.length < MIN_VALID_DAYS
+    ) {
+      continue;
+    }
 
     // 보정계수는 "공표 저수율 / 원시 추정"의 중앙값. 보정이 오히려 나쁘면 1.0을 쓴다.
+    // 이 선택도 학습 구간만 보고 한다 — 검증·시험 구간은 들여다보지 않는다.
     const factorCandidate = median(trainRows.map((r) => r.rate / r.est));
     const maeWith = (k: number, rows: typeof trainRows) =>
       mean(rows.map((r) => Math.abs(((r.est * k) / r.normal) * 100 - r.ratio)));
@@ -240,22 +267,26 @@ function main(): void {
     const calMae = maeWith(factorCandidate, trainRows);
     const factor = rawMae <= calMae ? 1 : factorCandidate;
     const trainMae = Math.min(rawMae, calMae);
+    // 게이트는 검증 구간에서만 판정한다(학습 오차는 적합한 구간이라 낙관적이다).
+    const validMae = maeWith(factor, validRows);
     const testMae = testRows.length > 0 ? maeWith(factor, testRows) : null;
 
     const total = capacityBySigun.get(sigunCode) ?? 0;
     const covered = coveredCapacity.get(sigunCode) ?? 0;
-    const usableRegion = trainMae <= ESTIMATOR_GATE_MAE_PP;
+    const usableRegion = validMae <= ESTIMATOR_GATE_MAE_PP;
     regions[sigunCode] = {
       factor: Number(factor.toFixed(6)),
       trainMae: round(trainMae),
+      validMae: round(validMae),
       testMae: testMae === null ? null : round(testMae),
       sampleDays: trainRows.length,
+      validDays: validRows.length,
       reservoirCount: reservoirCount.get(sigunCode)?.size ?? 0,
       capacityShare: total > 0 ? round(covered / total) : 0,
       usable: usableRegion,
     };
 
-    // 검증 구간(학습에 쓰지 않은 날짜)의 표본을 모아 문서에 싣는 통계를 산출물에서 직접 계산한다.
+    // 시험 구간(적합에도 게이트 판정에도 쓰지 않은 날짜)의 표본만 모아 문서 수치를 만든다.
     // 게이트를 통과한 지역만 모아야 실제로 화면에 나갈 값의 성능이 된다.
     if (usableRegion) {
       for (const row of testRows) {
@@ -288,14 +319,16 @@ function main(): void {
     },
     params: {
       trainEnd: TRAIN_END,
+      validEnd: VALID_END,
       gateMaePp: ESTIMATOR_GATE_MAE_PP,
       minTrainDays: MIN_TRAIN_DAYS,
+      minValidDays: MIN_VALID_DAYS,
     },
     summary: {
       regionCount: Object.keys(regions).length,
       usableCount: usable.length,
       ambiguousJoinKeys: ambiguousKeys.size,
-      // 아래는 모두 "게이트 통과 지역 × 검증 구간" 표본에서 계산한다(문서 수치의 근거).
+      // 아래는 모두 "게이트 통과 지역 × 시험 구간" 표본에서 계산한다(문서 수치의 근거).
       holdoutSamples,
       holdoutMaePp: round(mean(holdoutErrors)),
       holdoutMedianPp: round(quantile(holdoutErrors, 0.5)),

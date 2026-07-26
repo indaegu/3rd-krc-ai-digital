@@ -5,6 +5,7 @@ import com.mulsigye.app.core.network.NetworkFailure
 import com.mulsigye.app.core.network.toApiFailure
 import com.mulsigye.app.feature.status.data.remote.StatusApi
 import com.mulsigye.app.feature.status.domain.DroughtStage
+import com.mulsigye.app.feature.status.domain.RegionEstimate
 import com.mulsigye.app.feature.status.domain.RegionStatus
 import com.mulsigye.app.feature.status.domain.ReservoirRatePoint
 import com.mulsigye.app.feature.status.domain.ReservoirStatus
@@ -54,6 +55,15 @@ class DefaultStatusRepository(
                                 code = body.region.officialStage.code,
                                 label = body.region.officialStage.label,
                             ),
+                            // 서버가 확정한 출처 구분 — 클라이언트가 다시 판정하지 않는다.
+                            isEstimate = body.region.basis == "estimate",
+                            estimate = body.region.estimate?.let {
+                                RegionEstimate(
+                                    maePp = it.maePp,
+                                    reservoirCount = it.reservoirCount,
+                                    capacityRatio = it.capacityRatio,
+                                )
+                            },
                         ),
                         highWaterNotice = body.highWaterNotice,
                         yearlyPosition = body.yearlyPosition?.let {

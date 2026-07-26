@@ -20,6 +20,8 @@ import com.mulsigye.app.core.designsystem.theme.Gray100
 import com.mulsigye.app.core.designsystem.theme.Ink
 import com.mulsigye.app.core.designsystem.theme.Ink2
 import com.mulsigye.app.core.designsystem.theme.WatchFg
+import com.mulsigye.app.feature.status.domain.RegionEstimate
+import java.util.Locale
 
 /**
  * 근거 고지에 쓸 sources를 합친다. status를 앞에 두고 forecast를 뒤에 붙이되 중복은
@@ -46,12 +48,23 @@ fun mergeSources(
  *   status가 로드되면 이 카드는 그대로 유지된다(웹 SourcesCard 결정과 동일).
  * - stale이면 화면 구조는 그대로 두고 지연 안내 문구만 덧붙인다(구조 불변).
  */
+/**
+ * 추정 고지 문구 — 서버가 준 근거 값만 넣는다(임계값·오차를 클라이언트가 만들지 않는다).
+ * 웹 SourcesCard와 같은 문장이며 순수 함수로 분리해 단위 테스트한다.
+ */
+fun estimateNotice(estimate: RegionEstimate): String =
+    "공표 자료가 아직 없는 날이라, 우리 지역 저수지 ${estimate.reservoirCount}곳의 실제 측정값을 " +
+        "모아 계산한 추정값이에요. 지난해 자료로 맞춰 본 오차는 평균 " +
+        "${String.format(Locale.KOREA, "%.1f", estimate.maePp)}%p였고, 단계 기준은 공인 기준 그대로예요."
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun SourcesCard(
     sources: List<String>,
     stale: Boolean,
     modifier: Modifier = Modifier,
+    /** 서버가 실측으로 계산한 날의 근거. 공표값 경로에서는 null이라 고지를 붙이지 않는다. */
+    estimate: RegionEstimate? = null,
 ) {
     MulsigyeCard(modifier = modifier) {
         Text(
@@ -67,6 +80,17 @@ fun SourcesCard(
             style = MaterialTheme.typography.bodyLarge,
             color = Ink2,
         )
+        if (estimate != null) {
+            Spacer(Modifier.height(12.dp))
+            Text(
+                text = estimateNotice(estimate),
+                style = MaterialTheme.typography.bodyMedium,
+                color = Ink2,
+                modifier = Modifier
+                    .background(Gray100, RoundedCornerShape(12.dp))
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
+            )
+        }
         if (stale) {
             Spacer(Modifier.height(12.dp))
             Text(

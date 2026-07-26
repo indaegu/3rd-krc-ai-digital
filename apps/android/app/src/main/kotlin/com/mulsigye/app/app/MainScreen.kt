@@ -183,6 +183,7 @@ fun MainScreen(
                 SourcesCard(
                     sources = mergeSources(statusState.data.sources, forecastSources),
                     stale = statusState.data.stale || forecastStale,
+                    estimate = statusState.data.region.estimate,
                 )
             }
 

@@ -17,6 +17,18 @@
   line-height: 1.6;
 }
 
+/* 추정 고지 — stale 안내와 같은 형태의 보조 블록. */
+.estimate {
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  color: var(--ink2);
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.6;
+  background: var(--gray100);
+  border-radius: var(--r-sm);
+}
+
 .stale {
   margin: 12px 0 0;
   padding: 10px 12px;

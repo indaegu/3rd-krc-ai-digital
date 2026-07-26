@@ -3,6 +3,8 @@
 // 임계값은 lib/data/drought-stage.ts 단일 출처에서만 가져온다(규칙 5, UI 복제 금지).
 // stale이면 화면 구조는 그대로 두고 지연 안내 문구만 덧붙인다(mode·stale로 구조 불변).
 
+import type { StatusResponse } from "@mulsigye/contracts";
+
 import { DROUGHT_STAGE_THRESHOLDS } from "../lib/data/drought-stage";
 import styles from "./SourcesCard.module.css";
 import { Card } from "./ui/Card";
@@ -18,9 +20,11 @@ const STAGE_THRESHOLD_TEXT = [
 interface SourcesCardProps {
   sources: string[];
   stale: boolean;
+  /** 추정으로 계산한 날이면 서버가 준 근거(오차·저수지 수). 공표값이면 null. */
+  estimate?: NonNullable<StatusResponse["region"]["estimate"]> | null;
 }
 
-export function SourcesCard({ sources, stale }: SourcesCardProps) {
+export function SourcesCard({ sources, stale, estimate }: SourcesCardProps) {
   return (
     <Card className={styles.card}>
       <h2 className={styles.title}>이 정보는 어디서 왔나요</h2>
@@ -29,6 +33,14 @@ export function SourcesCard({ sources, stale }: SourcesCardProps) {
         그대로 써요. ‘며칠 뒤’ 예측은 참고용이며, 공식 가뭄 예·경보가 항상
         우선이에요.
       </p>
+      {estimate != null ? (
+        <p className={styles.estimate}>
+          공표 자료가 아직 없는 날이라, 우리 지역 저수지{" "}
+          {estimate.reservoirCount}곳의 실제 측정값을 모아 계산한 추정값이에요.
+          지난해 자료로 맞춰 본 오차는 평균 {estimate.maePp.toFixed(1)}%p였고,
+          단계 기준({STAGE_THRESHOLD_TEXT}%)은 공인 기준 그대로예요.
+        </p>
+      ) : null}
       {stale ? (
         <p className={styles.stale}>
           일부 공공데이터가 지연되어, 마지막으로 받은 값을 보여주고 있어요.

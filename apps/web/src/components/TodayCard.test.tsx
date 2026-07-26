@@ -117,6 +117,30 @@ describe("TodayCard 관측 실패", () => {
   });
 });
 
+describe("TodayCard 추정 표기", () => {
+  it("basis가 estimate일 때만 '오늘 추정' 배지를 보여준다", () => {
+    // 공표값 경로(basis 없음/official)에는 배지가 없다.
+    const { rerender } = render(<TodayCard status={NORMAL} />);
+    expect(screen.queryByText("오늘 추정")).not.toBeInTheDocument();
+
+    rerender(
+      <TodayCard
+        status={{
+          ...NORMAL,
+          region: {
+            ...NORMAL.region,
+            basis: "estimate",
+            estimate: { maePp: 0.65, reservoirCount: 25, capacityRatio: 1 },
+          },
+        }}
+      />,
+    );
+    expect(screen.getByText("오늘 추정")).toBeInTheDocument();
+    // 대표 저수지명은 그대로 남는다(배지가 라벨을 대체하지 않는다).
+    expect(screen.getByText(NORMAL.reservoir.name)).toBeInTheDocument();
+  });
+});
+
 describe("TodayCard 게이지 단계 눈금 폴백", () => {
   it("stageBands가 없으면 게이지 단계 눈금 라벨을 그리지 않는다", () => {
     // stale 데모 픽스처에는 stageBands가 없다(구 페이로드).

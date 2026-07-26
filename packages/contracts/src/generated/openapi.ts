@@ -231,6 +231,20 @@ export interface components {
         /** @description 평년 대비 저수율 %. 100 초과 가능(실측 140.1). 일일 변화량은 %p */
         avgRatio: number;
         officialStage: components["schemas"]["DroughtStage"];
+        /**
+         * @description 이 지역 값의 출처. `official`은 논가뭄지도 공표값 그대로, `estimate`는 저수지 실측을 시군 통합저수율로 집계해 서버가 계산한 오늘 추정값이다(AGENTS.md 규칙 5 예외). 필드가 없으면 `official`로 본다. 단계 임계값(70/60/50/40)은 두 경우 모두 같다
+         * @enum {string}
+         */
+        basis?: "official" | "estimate";
+        /** @description `basis: estimate`일 때만 채워지는 근거. 화면은 이 값을 그대로 표기해야 하며 추정임을 숨기지 않는다 */
+        estimate?: {
+          /** @description 이 지역 모델의 검증 구간 평균 절대 오차(%p) */
+          maePp: number;
+          /** @description 집계에 들어간 저수지 수 */
+          reservoirCount: number;
+          /** @description 집계가 덮은 시군 유효저수량 비중(0~1) */
+          capacityRatio: number;
+        } | null;
       };
       /** @description 만수위 '참고' 안내 여부. 대표 저수지 원저수율 95% 이상 + 상승 추세일 때만 true이며 서버가 확정한다. 클라이언트는 이 값을 재판정하지 않는다(자체 임계값 복제 금지). 경보가 아니라 참고 표시 전용이다 */
       highWaterNotice: boolean;

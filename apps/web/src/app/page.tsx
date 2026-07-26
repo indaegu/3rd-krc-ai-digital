@@ -358,6 +358,7 @@ export default function HomePage() {
               status.data.stale ||
               (forecast.kind === "ready" && forecast.data.stale)
             }
+            estimate={status.data.region.estimate ?? null}
           />
         ) : null}
 

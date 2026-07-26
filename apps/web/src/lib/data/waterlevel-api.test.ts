@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  fetchCountyWaterLevels,
   fetchLatestWaterLevel,
   WATERLEVEL_ENDPOINT,
   type WaterLevelFetch,
@@ -147,6 +148,122 @@ describe("fetchLatestWaterLevel — 장애·경계 케이스", () => {
       apiKey: undefined,
       now: () => FIXED_NOW,
     });
+    expect(result.ok).toBe(false);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
+
+/** 시군 조회 응답 한 페이지를 만든다 — totalCount로 페이지 이어받기를 제어한다. */
+function countyXml(
+  items: { facCode: string; date: string; rate: number }[],
+  { pageNo, totalCount }: { pageNo: number; totalCount: number },
+): string {
+  const body = items
+    .map(
+      (item) =>
+        `<item><check_date>${item.date}</check_date><county>충청남도 아산시 </county>` +
+        `<fac_code>${item.facCode}</fac_code><fac_name>시설</fac_name>` +
+        `<rate>${String(item.rate)}</rate><water_level>1.0</water_level></item>`,
+    )
+    .join("");
+  return (
+    `<response><body>${body}<numOfRows>500</numOfRows><pageNo>${String(pageNo)}</pageNo>` +
+    `<totalCount>${String(totalCount)}</totalCount></body>` +
+    "<header><returnAuthMsg>NORMAL SERVICE</returnAuthMsg><returnReasonCode>00</returnReasonCode>" +
+    "</header></response>"
+  );
+}
+
+describe("fetchCountyWaterLevels", () => {
+  it("시군 이름·최근 7일 구간으로 조회하고 60분 캐시를 지정한다", async () => {
+    const fetchMock = vi.fn(async () =>
+      xmlResponse(
+        countyXml([{ facCode: "4420010001", date: "20260721", rate: 50 }], {
+          pageNo: 1,
+          totalCount: 1,
+        }),
+      ),
+    );
+    const result = await fetchCountyWaterLevels("아산시", makeDeps(fetchMock));
+
+    expect(result.ok).toBe(true);
+    const call = fetchMock.mock.calls[0] as unknown as [
+      string,
+      { next?: { revalidate?: number } } | undefined,
+    ];
+    expect(call[0]).toContain(`county=${encodeURIComponent("아산시")}`);
+    expect(call[0]).toContain(`serviceKey=${ENCODED_KEY}`);
+    expect(call[0]).not.toContain(RAW_KEY);
+    // 지역 조회는 최대 31일 제한 — 7일(20260715~20260721)만 본다.
+    expect(call[0]).toContain("date_s=20260715");
+    expect(call[0]).toContain("date_e=20260721");
+    expect(call[1]?.next?.revalidate).toBe(3600);
+    expectKeyNeverLogged();
+  });
+
+  it("totalCount에 도달할 때까지 페이지를 이어 받는다", async () => {
+    const fetchMock = vi
+      .fn<WaterLevelFetch>()
+      .mockResolvedValueOnce(
+        xmlResponse(
+          countyXml([{ facCode: "4420010001", date: "20260721", rate: 50 }], {
+            pageNo: 1,
+            totalCount: 2,
+          }),
+        ),
+      )
+      .mockResolvedValueOnce(
+        xmlResponse(
+          countyXml([{ facCode: "4420010002", date: "20260721", rate: 70 }], {
+            pageNo: 2,
+            totalCount: 2,
+          }),
+        ),
+      );
+
+    const result = await fetchCountyWaterLevels("아산시", makeDeps(fetchMock));
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error("성공이어야 한다");
+    expect(result.observations.map((o) => o.facCode)).toEqual([
+      "4420010001",
+      "4420010002",
+    ]);
+  });
+
+  it("중간 페이지가 실패하면 부분 집계 대신 전체를 버린다", async () => {
+    const fetchMock = vi
+      .fn<WaterLevelFetch>()
+      .mockResolvedValueOnce(
+        xmlResponse(
+          countyXml([{ facCode: "4420010001", date: "20260721", rate: 50 }], {
+            pageNo: 1,
+            totalCount: 2,
+          }),
+        ),
+      )
+      .mockResolvedValueOnce(xmlResponse("server error", 500));
+
+    const result = await fetchCountyWaterLevels("아산시", makeDeps(fetchMock));
+    expect(result.ok).toBe(false);
+    expectKeyNeverLogged();
+  });
+
+  it("NO_DATA(99) 응답이면 ok=false", async () => {
+    const fetchMock = vi.fn(async () =>
+      xmlResponse(
+        "<response><header><returnAuthMsg>NO_DATA</returnAuthMsg>" +
+          "<returnReasonCode>99</returnReasonCode></header></response>",
+      ),
+    );
+    const result = await fetchCountyWaterLevels("아산시", makeDeps(fetchMock));
+    expect(result.ok).toBe(false);
+  });
+
+  it("시군 이름이 비어 있으면 fetch를 호출하지 않는다", async () => {
+    const fetchMock = vi.fn(async () => xmlResponse(sampleXml));
+    const result = await fetchCountyWaterLevels("", makeDeps(fetchMock));
     expect(result.ok).toBe(false);
     expect(fetchMock).not.toHaveBeenCalled();
   });

@@ -304,9 +304,10 @@ describe("buildCoach — 만수위 참고", () => {
     ).toBe(false);
   });
 
-  it("만수위 판정은 status.highWaterNotice를 재사용한다 — 수위 API 호출 1회", async () => {
-    // 종전 rateSeriesFor는 같은 요청에서 수위 API를 한 번 더 불렀다.
-    // 이제 status가 확정한 highWaterNotice를 그대로 쓰므로 호출은 정확히 1회다.
+  it("만수위 판정은 status.highWaterNotice를 재사용한다 — 대표 저수지 조회 1회", async () => {
+    // 종전 rateSeriesFor는 같은 요청에서 대표 저수지 수위를 한 번 더 불렀다.
+    // 이제 status가 확정한 highWaterNotice를 그대로 쓰므로 fac_code 조회는 정확히 1회다.
+    // (status는 지역 추정용 county 조회를 따로 하므로 전체 호출 수로 세지 않는다.)
     const fetchSpy = vi.fn(okFetch(HIGH_WATER_XML));
     const deps = makeCoachDeps({ avgRatio: 68 });
     deps.status = {
@@ -315,7 +316,10 @@ describe("buildCoach — 만수위 참고", () => {
     };
     const body = await okBody(deps);
     expect(body.coach.actions[0]?.id).toBe(HIGH_WATER_ACTION.id);
-    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    const facCodeCalls = fetchSpy.mock.calls.filter(([url]) =>
+      String(url).includes("fac_code="),
+    );
+    expect(facCodeCalls).toHaveLength(1);
   });
 });
 

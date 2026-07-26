@@ -55,6 +55,9 @@ private val HEADLINE_BY_STAGE: Map<String, String> = mapOf(
 /** 만수위 참고(서버 확정 highWaterNotice)일 때의 헤드라인. 웹과 동일. */
 private const val HIGH_WATER_HEADLINE = "비가 많아 물은 충분해요"
 
+/** 공표값이 아니라 서버가 실측으로 계산한 날에만 붙는 배지(웹 TodayCard와 같은 문구). */
+const val ESTIMATE_BADGE = "오늘 추정"
+
 /**
  * 올해 흐름 속 현재 위치 카피(서버 확정 yearlyPosition.bucket). 웹 TodayCard와 동일 문구(공통 SSOT).
  * 스냅샷에 없는 지역(yearlyPosition == null)은 렌더하지 않는다.
@@ -118,18 +121,34 @@ fun TodayCard(
 
     MulsigyeCard(modifier = modifier) {
         // 대표 저수지명 탭 라벨(서버값). 시안 §4의 카드 좌측 상단 탭 모양.
-        Text(
-            text = status.reservoir.name,
-            style = MaterialTheme.typography.labelMedium,
-            color = Ink2,
-            modifier = Modifier
-                .semantics { heading() }
-                .background(
-                    Gray100,
-                    RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp, bottomEnd = 10.dp),
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(
+                text = status.reservoir.name,
+                style = MaterialTheme.typography.labelMedium,
+                color = Ink2,
+                modifier = Modifier
+                    .semantics { heading() }
+                    .background(
+                        Gray100,
+                        RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp, bottomEnd = 10.dp),
+                    )
+                    .padding(horizontal = 14.dp, vertical = 6.dp),
+            )
+            // 공표 자료가 없는 날짜를 실측으로 계산한 값이면 그 사실을 숨기지 않는다(규칙 5 예외).
+            if (status.region.isEstimate) {
+                Text(
+                    text = ESTIMATE_BADGE,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = Ink2,
+                    modifier = Modifier
+                        .background(Gray100, RoundedCornerShape(10.dp))
+                        .padding(horizontal = 12.dp, vertical = 6.dp),
                 )
-                .padding(horizontal = 14.dp, vertical = 6.dp),
-        )
+            }
+        }
         Spacer(Modifier.height(12.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(

@@ -20,6 +20,14 @@ const DEFAULT_TIMEOUT_MS = 5_000;
 const PAGE_SIZE = 100;
 const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
 
+/** 시군 조회 기간(지역 조회는 최대 31일 제한 — docs/data-sources.md). */
+export const COUNTY_LOOKBACK_DAYS = 7;
+/** 시군 조회 페이지 크기·최대 페이지. 최대 시군(나주 161곳)×7일=1,127행이 3페이지에 들어온다. */
+const COUNTY_PAGE_SIZE = 500;
+const COUNTY_MAX_PAGES = 6;
+/** 시군 조회는 응답이 커서 시설코드 조회보다 여유를 둔다. */
+const COUNTY_TIMEOUT_MS = 8_000;
+
 export type WaterLevelFetchInit = RequestInit & {
   next?: { revalidate: number };
 };
@@ -45,6 +53,9 @@ export type WaterLevelFetchResult =
       observations: WaterLevelObservation[];
     }
   | { ok: false };
+
+export type CountyWaterLevelResult =
+  { ok: true; observations: WaterLevelObservation[] } | { ok: false };
 
 /** KST 달력일 `YYYYMMDD` — API date_s/date_e 형식. */
 function kstYmd(date: Date): string {
@@ -114,4 +125,71 @@ export async function fetchLatestWaterLevel(
     // 네트워크 오류·timeout — serviceKey가 담긴 URL이 오류에 섞일 수 있어 로그를 찍지 않는다.
     return { ok: false };
   }
+}
+
+/**
+ * 시군 이름(`county`)으로 최근 7일 관측을 전부 조회한다 — 지역 평년 대비 추정의 재료다.
+ * `county`는 코드가 아니라 시군 **이름**을 받는다(실측: `50110`은 NO_DATA, `제주시`는 정상).
+ *
+ * 한 시군이 7일이면 최대 1,127행이라 페이지를 이어 받는다. 도중에 한 페이지라도 실패하면
+ * 부분 집계로 통합저수율이 편향되므로 전체를 { ok: false }로 버린다 — 폴백은 호출자 몫.
+ */
+export async function fetchCountyWaterLevels(
+  countyName: string,
+  deps: WaterLevelApiDeps = {},
+): Promise<CountyWaterLevelResult> {
+  const fetchImpl: WaterLevelFetch = deps.fetchImpl ?? fetch;
+  const apiKey = deps.apiKey ?? process.env["DATA_GO_KR_API_KEY"];
+  if (apiKey === undefined || apiKey === "" || countyName === "") {
+    return { ok: false };
+  }
+
+  const now = (deps.now ?? (() => new Date()))();
+  const dateE = kstYmd(now);
+  const dateS = kstYmd(
+    new Date(now.getTime() - (COUNTY_LOOKBACK_DAYS - 1) * 24 * 60 * 60 * 1000),
+  );
+
+  const observations: WaterLevelObservation[] = [];
+  try {
+    for (let pageNo = 1; pageNo <= COUNTY_MAX_PAGES; pageNo += 1) {
+      const query = [
+        `serviceKey=${encodeURIComponent(apiKey)}`,
+        `county=${encodeURIComponent(countyName)}`,
+        `date_s=${dateS}`,
+        `date_e=${dateE}`,
+        `pageNo=${String(pageNo)}`,
+        `numOfRows=${COUNTY_PAGE_SIZE}`,
+      ].join("&");
+
+      const response = await fetchImpl(`${WATERLEVEL_ENDPOINT}?${query}`, {
+        next: { revalidate: WATERLEVEL_REVALIDATE_SECONDS },
+        signal: AbortSignal.timeout(deps.timeoutMs ?? COUNTY_TIMEOUT_MS),
+      });
+      if (!response.ok) {
+        return { ok: false };
+      }
+
+      const parsed = parseWaterLevelXml(await response.text());
+      if (!parsed.ok) {
+        // NO_DATA(99)도 여기로 온다 — 추정 불가로 보고 폴백시킨다.
+        return { ok: false };
+      }
+
+      observations.push(...parsed.page.observations);
+      if (
+        parsed.page.observations.length === 0 ||
+        observations.length >= parsed.page.totalCount
+      ) {
+        break;
+      }
+    }
+  } catch {
+    return { ok: false };
+  }
+
+  if (observations.length === 0) {
+    return { ok: false };
+  }
+  return { ok: true, observations };
 }

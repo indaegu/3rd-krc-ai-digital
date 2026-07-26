@@ -198,6 +198,62 @@ describe("status contract fixtures", () => {
     expect((statusOk as StatusResponse).stageBands).toBeUndefined();
   });
 
+  it("keeps region.basis/estimate optional with the official|estimate enum (v1 additive)", () => {
+    const base: StatusResponse = {
+      schemaVersion: "1",
+      sigunCode: "44230",
+      sigunName: "논산시",
+      reservoir: {
+        facCode: "4423010045",
+        name: "탑정",
+        rate: 87.5,
+        waterLevel: 32.1,
+        observedOn: "2026-07-20",
+      },
+      region: {
+        observedOn: "2026-07-20",
+        regionalRate: 82.4,
+        normalRate: 88.1,
+        avgRatio: 93.5,
+        officialStage: { code: "ok", label: "정상" },
+      },
+      highWaterNotice: false,
+      asOf: "2026-07-21T00:00:00.000Z",
+      sources: ["논가뭄지도"],
+      stale: false,
+    };
+
+    // 필드가 없어도 계약에 정합해야 한다 — 없으면 official로 본다.
+    expectTypeOf({
+      ...base,
+    } satisfies StatusResponse).toMatchTypeOf<StatusResponse>();
+    expect((statusOk as StatusResponse).region.basis).toBeUndefined();
+
+    // 추정 경로는 근거(오차·저수지 수·용량 비중)를 함께 싣는다.
+    const estimated = {
+      ...base,
+      region: {
+        ...base.region,
+        basis: "estimate" as const,
+        estimate: { maePp: 1.05, reservoirCount: 18, capacityRatio: 1 },
+      },
+    } satisfies StatusResponse;
+    expect(estimated.region.estimate.reservoirCount).toBe(18);
+
+    // 공표 경로는 근거가 null이다.
+    const official = {
+      ...base,
+      region: { ...base.region, basis: "official" as const, estimate: null },
+    } satisfies StatusResponse;
+    expect(official.region.estimate).toBeNull();
+  });
+
+  it("limits region.basis to the official|estimate tokens", () => {
+    type Basis = NonNullable<StatusResponse["region"]["basis"]>;
+    const values = ["official", "estimate"] as const;
+    expectTypeOf<(typeof values)[number]>().toEqualTypeOf<Basis>();
+  });
+
   it("limits stageBands.code to the five UI tokens", () => {
     type BandCode = NonNullable<StatusResponse["stageBands"]>[number]["code"];
     const codes = ["ok", "watch", "care", "alert", "crit"] as const;

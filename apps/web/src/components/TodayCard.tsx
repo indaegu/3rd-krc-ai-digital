@@ -101,7 +101,13 @@ export function TodayCard({ status }: TodayCardProps) {
 
   return (
     <Card className={styles.card}>
-      <span className={styles.tab}>{status.reservoir.name}</span>
+      <div className={styles.tabRow}>
+        <span className={styles.tab}>{status.reservoir.name}</span>
+        {/* 공표 자료가 없는 날짜를 실측으로 계산한 값이면 그 사실을 숨기지 않는다. */}
+        {status.region.basis === "estimate" && (
+          <span className={styles.estimateBadge}>오늘 추정</span>
+        )}
+      </div>
       <div className={styles.hero}>
         <div className={styles.info}>
           <p className={styles.valueLabel}>
