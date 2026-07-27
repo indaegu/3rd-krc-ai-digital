@@ -156,6 +156,41 @@ export function setPrimaryRegion(sigunCode: string): RegionStore {
   return next;
 }
 
+/**
+ * 지역 순서 변경. 드래그의 접근성 대체(위로/아래로 이동)와 같은 연산이다.
+ *
+ * 목록 맨 위(index 0)가 기본 주소지이므로 순서 변경은 곧 대표 지역 변경이기도 하다.
+ * 선택 지역은 "어느 칸"이 아니라 "어느 지역"을 따라가야 하므로 currentIndex를 함께 옮긴다.
+ * 범위를 벗어난 인덱스는 끝으로 자른다(맨 위에서 위로 눌러도 아무 일이 없다).
+ */
+export function moveRegion(from: number, to: number): RegionStore {
+  const store = loadRegionStore();
+  const length = store.regions.length;
+  const source = clampIndex(from, length);
+  const target = clampIndex(to, length);
+  if (length === 0 || source === target) {
+    return store;
+  }
+  const selected = store.regions[store.currentIndex];
+  const regions = [...store.regions];
+  const [moved] = regions.splice(source, 1);
+  if (moved === undefined) {
+    return store;
+  }
+  regions.splice(target, 0, moved);
+  const nextIndex =
+    selected === undefined
+      ? 0
+      : regions.findIndex((region) => region.sigunCode === selected.sigunCode);
+  const next: RegionStore = {
+    ...store,
+    regions,
+    currentIndex: clampIndex(nextIndex < 0 ? 0 : nextIndex, regions.length),
+  };
+  saveRegionStore(next);
+  return next;
+}
+
 /** 지역 삭제. 현재 선택이 삭제되거나 앞당겨지면 currentIndex를 보정한다. */
 export function removeRegion(sigunCode: string): RegionStore {
   const store = loadRegionStore();

@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
 import {
+  moveRegion,
   addRegion,
   createEmptyRegionStore,
   loadRegionStore,
@@ -172,5 +173,68 @@ describe("region-store 개인정보 최소화", () => {
 
     expect(window.localStorage.length).toBe(1);
     expect(window.localStorage.key(0)).toBe(REGION_STORE_KEY);
+  });
+});
+
+// 드래그의 접근성 대체(위로/아래로 이동)와 같은 연산이다. 맨 위가 기본 주소지이므로
+// 순서 변경은 곧 대표 지역 변경이기도 하다.
+describe("moveRegion", () => {
+  const SANCHEONG: StoredRegion = {
+    sigunCode: "48860",
+    facCode: "4886010001",
+  };
+
+  function seedThree() {
+    addRegion(NONSAN);
+    addRegion(JEJU);
+    addRegion(SANCHEONG);
+  }
+
+  it("항목을 위로 올린다", () => {
+    seedThree();
+
+    const store = moveRegion(2, 1);
+
+    expect(store.regions.map((region) => region.sigunCode)).toEqual([
+      NONSAN.sigunCode,
+      SANCHEONG.sigunCode,
+      JEJU.sigunCode,
+    ]);
+  });
+
+  it("선택은 칸이 아니라 지역을 따라간다", () => {
+    seedThree();
+    selectRegion(0); // 논산을 보고 있다
+
+    const store = moveRegion(2, 0);
+
+    expect(store.regions[0]?.sigunCode).toBe(SANCHEONG.sigunCode);
+    // 논산이 한 칸 밀렸으니 선택 인덱스도 함께 밀려야 계속 논산을 본다.
+    expect(store.currentIndex).toBe(1);
+  });
+
+  it("범위를 벗어난 이동은 끝으로 자른다", () => {
+    seedThree();
+
+    const store = moveRegion(0, -3);
+
+    expect(store.regions[0]?.sigunCode).toBe(NONSAN.sigunCode);
+  });
+
+  it("같은 자리로 옮기면 아무 것도 바뀌지 않는다", () => {
+    seedThree();
+    const before = loadRegionStore();
+
+    const store = moveRegion(1, 1);
+
+    expect(store.regions).toEqual(before.regions);
+    expect(store.currentIndex).toBe(before.currentIndex);
+  });
+
+  it("빈 목록에서도 안전하다", () => {
+    const store = moveRegion(0, 1);
+
+    expect(store.regions).toEqual([]);
+    expect(store.currentIndex).toBe(0);
   });
 });
