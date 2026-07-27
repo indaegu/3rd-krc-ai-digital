@@ -362,11 +362,18 @@ function defaultProvider(env: CoachLlmEnv): CoachProvider {
 export async function buildCoach(
   sigunCode: string,
   deps: CoachServiceDeps = {},
+  /**
+   * 사용자가 저수지 이름으로 직접 고른 시설코드. **status와 반드시 같은 시설을 봐야 한다** —
+   * 만수위 참고(highWaterNotice)와 그에 딸린 행동(hw_check_drain)이 시설별로 갈리기 때문이다.
+   * 이걸 넘기지 않으면 메인 배너는 선택 저수지, 코치 행동은 시군 기본 저수지 기준이 된다.
+   * 예측(forecast)은 지역 단위 지표라 시설코드를 쓰지 않는다.
+   */
+  requestedFacCode?: string | null,
 ): Promise<CoachResult> {
   const now = deps.now ?? (() => new Date());
   // 하위 서비스 deps에 now가 없으면 코치의 now를 물려준다(동일 기준시각).
   const [statusResult, forecastResult] = await Promise.all([
-    buildStatus(sigunCode, { now, ...(deps.status ?? {}) }),
+    buildStatus(sigunCode, { now, ...(deps.status ?? {}) }, requestedFacCode),
     buildForecast(sigunCode, { now, ...(deps.forecast ?? {}) }),
   ]);
 

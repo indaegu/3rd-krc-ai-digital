@@ -227,7 +227,11 @@ export default function HomePage() {
     });
     // 코치는 비차단 페치 — 실패해도 이 모듈만 오류 카드가 되고 나머지는 유지된다.
     // 반복 조회는 캐시(TTL 30분)에서 재사용하고, 새로고침(force)만 다시 부른다.
-    void getCoach(sigunCode, { force }).then((result) => {
+    // 코치도 같은 저수지를 봐야 만수위 배너와 행동이 어긋나지 않는다.
+    void getCoach(sigunCode, {
+      force,
+      ...(facCode === undefined ? {} : { facCode }),
+    }).then((result) => {
       if (!mountedRef.current) {
         return;
       }

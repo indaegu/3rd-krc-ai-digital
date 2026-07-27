@@ -20,21 +20,27 @@ class DefaultCoachRepository(
     private val cache: CoachCache = CoachCache(),
 ) : CoachRepository {
 
-    override suspend fun load(sigunCode: String, forceRefresh: Boolean): CoachResult {
+    override suspend fun load(
+        sigunCode: String,
+        forceRefresh: Boolean,
+        facCode: String?,
+    ): CoachResult {
+        // 캐시 키에도 시설코드를 넣는다 — 저수지를 바꿨는데 이전 코치가 나오면 안 된다.
+        val key = if (facCode.isNullOrBlank()) sigunCode else "$sigunCode:$facCode"
         if (!forceRefresh) {
-            cache.get(sigunCode)?.let { return it }
+            cache.get(key)?.let { return it }
         }
-        val result = fetch(sigunCode)
+        val result = fetch(sigunCode, facCode)
         // 성공만 캐시한다(오류는 절대 캐시하지 않는다). force여도 신선 성공은 캐시를 갱신한다.
         if (result is CoachResult.Success) {
-            cache.put(sigunCode, result)
+            cache.put(key, result)
         }
         return result
     }
 
-    private suspend fun fetch(sigunCode: String): CoachResult =
+    private suspend fun fetch(sigunCode: String, facCode: String?): CoachResult =
         try {
-            val response = api.getCoach(sigunCode)
+            val response = api.getCoach(sigunCode, facCode?.takeIf { it.isNotBlank() })
             val body = response.body()
             if (response.isSuccessful && body != null) {
                 if (body.schemaVersion != "1") {

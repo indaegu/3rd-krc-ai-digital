@@ -30,6 +30,8 @@ class CoachViewModel(
     private val repository: CoachRepository,
     private val sigunCode: String,
     private val dispatcher: CoroutineDispatcher = Dispatchers.IO,
+    /** 사용자가 고른 저수지. status와 같은 시설을 봐야 만수위 행동이 어긋나지 않는다. */
+    private val facCode: String? = null,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow<CoachUiState>(CoachUiState.Loading)
     val uiState: StateFlow<CoachUiState> = _uiState.asStateFlow()
@@ -50,7 +52,9 @@ class CoachViewModel(
     private fun load(forceRefresh: Boolean) {
         _uiState.value = CoachUiState.Loading
         viewModelScope.launch(dispatcher) {
-            _uiState.value = when (val result = repository.load(sigunCode, forceRefresh)) {
+            _uiState.value = when (
+                val result = repository.load(sigunCode, forceRefresh, facCode)
+            ) {
                 is CoachResult.Success -> CoachUiState.Ready(result)
                 is CoachResult.Failure -> CoachUiState.Error(
                     message = result.message,
@@ -63,11 +67,13 @@ class CoachViewModel(
     class Factory(
         private val repository: CoachRepository,
         private val sigunCode: String,
+        /** 저장된 선택 저수지. 없으면 서버가 규칙대로 대표지를 고른다. */
+        private val facCode: String? = null,
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             require(modelClass.isAssignableFrom(CoachViewModel::class.java))
-            return CoachViewModel(repository, sigunCode) as T
+            return CoachViewModel(repository, sigunCode, facCode = facCode) as T
         }
     }
 }

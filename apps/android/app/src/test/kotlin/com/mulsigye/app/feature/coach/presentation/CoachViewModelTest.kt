@@ -107,6 +107,18 @@ class CoachViewModelTest {
         assertEquals(listOf(false, true), repo.forceRefreshCalls)
     }
 
+    // 선택 저수지는 status와 코치 양쪽에 실려야 만수위 배너와 행동이 어긋나지 않는다.
+    @Test
+    fun passesSelectedFacCodeToRepository() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val repo = QueueCoachRepository(mutableListOf(success()))
+
+        CoachViewModel(repo, "44230", dispatcher, facCode = "4423010046")
+        advanceUntilIdle()
+
+        assertEquals("4423010046", repo.lastFacCode)
+    }
+
     @Test
     fun refreshIsIgnoredWhileLoading() = runTest {
         val dispatcher = StandardTestDispatcher(testScheduler)
@@ -134,9 +146,18 @@ private class QueueCoachRepository(
     /** load 호출마다 전달된 forceRefresh 값을 순서대로 기록한다. */
     val forceRefreshCalls = mutableListOf<Boolean>()
 
-    override suspend fun load(sigunCode: String, forceRefresh: Boolean): CoachResult {
+    /** 마지막 호출에 실린 선택 저수지. status와 같은 시설을 보는지 확인한다. */
+    var lastFacCode: String? = null
+        private set
+
+    override suspend fun load(
+        sigunCode: String,
+        forceRefresh: Boolean,
+        facCode: String?,
+    ): CoachResult {
         callCount += 1
         forceRefreshCalls += forceRefresh
+        lastFacCode = facCode
         return results.removeAt(0)
     }
 }
