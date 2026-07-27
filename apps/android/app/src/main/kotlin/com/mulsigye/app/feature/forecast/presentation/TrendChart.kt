@@ -258,6 +258,7 @@ fun TrendChart(
             forecast = forecast.forecast,
             reservoirHistory = reservoirHistory,
             reveal = reveal,
+            showDates = showDates,
         )
 
         // x축 날짜 라벨(상세 전용, 정적) — observedOn에서만 유도한다.
@@ -266,6 +267,18 @@ fun TrendChart(
         }
     }
 }
+
+/** 축 글자 크기(dp). 날짜 라벨과 오른쪽 눈금이 같은 크기를 써야 서로의 자리를 계산할 수 있다. */
+private const val AXIS_TEXT_SIZE_DP = 11f
+
+/** x축 날짜 라벨의 베이스라인 y. */
+private fun DrawScope.dateLabelBaselineY(): Float = size.height - 6.dp.toPx()
+
+/**
+ * 날짜 라벨이 차지하는 띠의 윗선. 세로 눈금선이 여기서 멈추고, 오른쪽 눈금 라벨도
+ * 이 위로만 그린다.
+ */
+private fun DrawScope.dateLabelBandTop(): Float = dateLabelBaselineY() - 15.dp.toPx()
 
 /** 눈금 간격으로 쓸 '보기 좋은' 일수 사다리. 필요한 최소 간격 이상인 첫 값을 쓴다. */
 private val NICE_STEP_DAYS = listOf(1, 2, 3, 7, 14, 21, 28, 35, 42, 56)
@@ -309,11 +322,11 @@ private fun DrawScope.drawDateLabels(
 ) {
     val paint = Paint().apply {
         color = Ink3.toArgb()
-        textSize = 11.dp.toPx()
+        textSize = AXIS_TEXT_SIZE_DP.dp.toPx()
         isAntiAlias = true
     }
-    val baselineY = size.height - 6.dp.toPx()
-    val tickTop = baselineY - 15.dp.toPx()
+    val baselineY = dateLabelBaselineY()
+    val tickTop = dateLabelBandTop()
 
     // 실측 + 예측을 한 줄로 이어 인덱스를 매긴다(기하 계산과 같은 순서).
     val dates = history.map { it.observedOn } + forecast.map { it.observedOn }
@@ -420,6 +433,32 @@ private fun formatRatio(value: Double): String =
     if (value % 1.0 == 0.0) value.toLong().toString() else (Math.round(value * 10.0) / 10.0).toString()
 
 /**
+ * 오른쪽 축(저수지 %)이 끝나는 y — 순수 함수(테스트 대상).
+ *
+ * 이 축의 아래 끝은 원래 왼쪽 축과 같은 plotBottom이었는데, 그 좌표는 x축 날짜 라벨이
+ * 차지하는 띠 안이다. lo 눈금 라벨이 늘 축의 아래 끝에 놓이므로 "62%"와 "8/24"가 같은
+ * 자리(둘 다 오른쪽 정렬, 같은 x)에 겹쳐 둘 다 읽히지 않았다.
+ *
+ * 라벨만 위로 올리면 "62%"가 62% 자리가 아닌 곳에 놓여 눈금이 거짓말이 된다. 그래서
+ * **축 자체를** 날짜 띠 위에서 끝낸다. 오른쪽 축은 왼쪽 축과 값·단위가 다른 별개의
+ * 참고 축이라 세로 범위가 조금 짧아져도 의미가 어긋나지 않는다.
+ *
+ * [dateBandTop]이 null이면 날짜 라벨이 없는 화면(미니 차트)이므로 그대로 둔다.
+ */
+internal fun reservoirAxisBottom(
+    plotTop: Float,
+    plotBottom: Float,
+    textSize: Float,
+    dateBandTop: Float?,
+): Float {
+    if (dateBandTop == null) return plotBottom
+    val limit = dateBandTop - textSize * 0.35f
+    // 축이 뒤집히거나 납작해지지 않게 최소 높이는 남긴다(아주 낮은 차트 방어).
+    val floor = plotTop + textSize * 2f
+    return kotlin.math.max(floor, kotlin.math.min(plotBottom, limit))
+}
+
+/**
  * "함께 보기" 참고선 — 대표 저수지 원저수율을 **오른쪽 축**에 얹는다.
  *
  * 지역 평년 대비(왼쪽 축)와 값의 의미가 달라 축을 따로 둔다. 오른쪽 눈금(최소·최대 %)을
@@ -431,6 +470,7 @@ private fun DrawScope.drawReservoirReference(
     forecast: List<ForecastBandPoint>,
     reservoirHistory: List<ReservoirRatePoint>,
     reveal: Float,
+    showDates: Boolean,
 ) {
     if (reservoirHistory.size < 2) return
 
@@ -448,10 +488,19 @@ private fun DrawScope.drawReservoirReference(
     val hi = ceil(rates.max() + RANGE_PADDING)
     val span = if (hi <= lo) 1.0 else hi - lo
 
+    val textSize = AXIS_TEXT_SIZE_DP.dp.toPx()
+    // 날짜 라벨과 같은 x(오른쪽 끝)를 쓰므로, 축이 날짜 띠 안에서 끝나면 눈금과 날짜가 겹친다.
+    val axisBottom = reservoirAxisBottom(
+        plotTop = geo.plotTop,
+        plotBottom = geo.plotBottom,
+        textSize = textSize,
+        dateBandTop = if (showDates) dateLabelBandTop() else null,
+    )
+
     fun xAt(index: Int): Float =
         geo.plotLeft + (geo.plotRight - geo.plotLeft) * (index.toFloat() / max(1, total - 1))
     fun yAt(value: Double): Float =
-        geo.plotTop + (geo.plotBottom - geo.plotTop) * (1f - ((value - lo) / span).toFloat())
+        geo.plotTop + (axisBottom - geo.plotTop) * (1f - ((value - lo) / span).toFloat())
 
     val path = Path()
     onAxis.forEachIndexed { i, (index, rate) ->
@@ -467,9 +516,10 @@ private fun DrawScope.drawReservoirReference(
     )
 
     // 오른쪽 눈금 — 참고선의 값 범위를 밝힌다(클립 밖이라 항상 보인다).
+    // 라벨은 각자의 눈금 자리에 붙는다. hi는 선 아래, lo는 선 위로 살짝 띄운다.
     val paint = Paint().apply {
         color = Ink3.toArgb()
-        textSize = 11.dp.toPx()
+        this.textSize = textSize
         isAntiAlias = true
         textAlign = Paint.Align.RIGHT
     }
@@ -477,13 +527,13 @@ private fun DrawScope.drawReservoirReference(
     drawContext.canvas.nativeCanvas.drawText(
         "${hi.toInt()}%",
         right,
-        yAt(hi) + 10.dp.toPx(),
+        yAt(hi) + textSize,
         paint,
     )
     drawContext.canvas.nativeCanvas.drawText(
         "${lo.toInt()}%",
         right,
-        yAt(lo) - 3.dp.toPx(),
+        yAt(lo) - textSize * 0.3f,
         paint,
     )
 }

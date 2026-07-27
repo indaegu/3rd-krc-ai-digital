@@ -184,4 +184,74 @@ class TrendChartTest : RobolectricComposeTest() {
             .onAllNodesWithContentDescription("기간은", substring = true)
             .assertCountEquals(0)
     }
+
+    // "함께 보기"에서 오른쪽 눈금(저수지 %)은 축의 아래 끝에 놓이는데, 그 좌표는 x축 날짜
+    // 라벨이 차지하는 띠 안이었다. 둘 다 오른쪽 정렬·같은 x라 겹쳐서 둘 다 읽히지 않았다.
+    //
+    // 라벨만 위로 옮기면 "62%"가 62% 자리가 아닌 곳에 놓여 눈금이 거짓말이 되므로,
+    // 축 자체를 날짜 띠 위에서 끝낸다.
+    @Test
+    fun `오른쪽 축은 날짜 라벨 띠 위에서 끝난다`() {
+        val textSize = 33f // 11dp @3x
+        val dateBandTop = 597f
+
+        val bottom = reservoirAxisBottom(
+            plotTop = 14f,
+            plotBottom = 634f, // 날짜 띠 안쪽 — 예전에는 여기까지 축을 그렸다
+            textSize = textSize,
+            dateBandTop = dateBandTop,
+        )
+
+        assertTrue("축이 날짜 띠 위에서 끝나야 한다", bottom < dateBandTop)
+        // lo 라벨은 축 끝 위로 띄우므로 날짜 라벨(베이스라인 642)과 글자 높이만큼 떨어진다.
+        val loBaseline = bottom - textSize * 0.3f
+        assertTrue("lo 라벨과 날짜 라벨이 겹치면 안 된다", 642f - loBaseline > textSize)
+    }
+
+    @Test
+    fun `날짜 라벨이 없으면 오른쪽 축은 그대로 아래 끝까지 쓴다`() {
+        val plotBottom = 634f
+
+        val bottom = reservoirAxisBottom(
+            plotTop = 14f,
+            plotBottom = plotBottom,
+            textSize = 33f,
+            dateBandTop = null,
+        )
+
+        // 미니 차트에는 날짜가 없으므로 자리를 비켜 줄 이유가 없다.
+        assertEquals(plotBottom, bottom, 0.01f)
+    }
+
+    @Test
+    fun `날짜 띠가 축보다 아래면 축을 늘리지 않는다`() {
+        val plotBottom = 400f
+
+        val bottom = reservoirAxisBottom(
+            plotTop = 14f,
+            plotBottom = plotBottom,
+            textSize = 33f,
+            dateBandTop = 900f,
+        )
+
+        assertEquals(plotBottom, bottom, 0.01f)
+    }
+
+    // 차트가 아주 낮으면 축이 뒤집히거나 납작해질 수 있다 — 최소 높이는 남긴다.
+    @Test
+    fun `차트가 낮아도 오른쪽 축이 뒤집히지 않는다`() {
+        val plotTop = 10f
+        val textSize = 33f
+
+        val bottom = reservoirAxisBottom(
+            plotTop = plotTop,
+            plotBottom = 60f,
+            textSize = textSize,
+            dateBandTop = 12f,
+        )
+
+        assertTrue("축 아래 끝이 위 끝보다 아래여야 한다", bottom > plotTop)
+        assertEquals(plotTop + textSize * 2f, bottom, 0.01f)
+    }
+
 }
