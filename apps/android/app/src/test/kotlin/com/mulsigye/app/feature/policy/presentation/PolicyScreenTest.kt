@@ -90,6 +90,32 @@ class PolicyScreenTest : RobolectricComposeTest() {
         assertNoText("이 정보는 회사 서버로 보내지 않아요")
     }
 
+    // 검색어는 GET 질의문자열에 실려 호스팅(Vercel) 접속 기록에 남는다.
+    // "어디에도 저장하지 않아요" 같은 절대 표현으로 되돌아가면 사실과 어긋난다.
+    @Test
+    fun `위치 폴리시는 호스팅 접속 기록 예외를 밝힌다`() {
+        setPolicy(PolicyKind.LOCATION)
+        assertHasText("접속 기록")
+        assertHasText("IP 주소")
+        assertNoText("어디에도 저장하지 않아요")
+    }
+
+    @Test
+    fun `개인정보 처리방침은 호스팅 접속 기록 예외를 밝힌다`() {
+        setPolicy(PolicyKind.PRIVACY)
+        assertHasText("접속 기록")
+        assertHasText("IP 주소")
+        assertNoText("어디에도 저장하지 않아요")
+    }
+
+    // 오프라인 대비로 기기에 응답을 남기므로 방침이 그 사실을 밝혀야 한다.
+    @Test
+    fun `개인정보 처리방침은 오프라인 저장본을 밝힌다`() {
+        setPolicy(PolicyKind.PRIVACY)
+        assertHasText("이 기기에만 잠시 남겨요")
+        assertHasText("주소·검색어는 담기지 않아요")
+    }
+
     private fun assertNoText(text: String) {
         composeTestRule.onAllNodesWithText(text, substring = true)
             .fetchSemanticsNodes().isEmpty().let { assertEquals(true, it) }

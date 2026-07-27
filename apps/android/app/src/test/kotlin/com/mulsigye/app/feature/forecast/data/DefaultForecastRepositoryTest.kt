@@ -1,7 +1,10 @@
 package com.mulsigye.app.feature.forecast.data
 
 import com.mulsigye.app.core.network.ApiClient
+import com.mulsigye.app.core.storage.LastGoodStore
+import com.mulsigye.app.core.testing.FailingPreferencesDataStore
 import com.mulsigye.app.core.testing.Fixtures
+import com.mulsigye.app.core.testing.InMemoryPreferencesDataStore
 import com.mulsigye.app.feature.forecast.data.remote.ForecastApi
 import com.mulsigye.app.feature.forecast.domain.ForecastResult
 import kotlinx.coroutines.test.runTest
@@ -16,6 +19,9 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
+/** 저장 시각 고정값. status 쪽 테스트와 같은 기준을 쓴다. */
+private const val CACHED_AT_MILLIS = 1_753_056_000_000L
+
 class DefaultForecastRepositoryTest {
     private lateinit var server: MockWebServer
     private lateinit var repository: DefaultForecastRepository
@@ -29,7 +35,11 @@ class DefaultForecastRepositoryTest {
             explicitNulls = false
         }
         val api = ApiClient.create(server.url("/").toString(), json).create(ForecastApi::class.java)
-        repository = DefaultForecastRepository(api, json)
+        repository = DefaultForecastRepository(
+            api,
+            json,
+            LastGoodStore(InMemoryPreferencesDataStore(), clock = { CACHED_AT_MILLIS }),
+        )
     }
 
     @After
@@ -105,4 +115,59 @@ class DefaultForecastRepositoryTest {
         val r = repository.load("44230") as ForecastResult.Failure
         assertEquals("NETWORK_UNAVAILABLE", r.code)
     }
+
+    // 통신이 끊기면 흐름 카드도 오류로 바뀌지 않고 직전 예측을 그대로 유지한다.
+    @Test
+    fun fallsBackToLastGoodWhenNetworkFails() = runTest {
+        enqueue(200, Fixtures.read("forecast.ok.json"))
+        val fresh = repository.load("44230") as ForecastResult.Success
+        assertNull(fresh.cachedAt)
+
+        server.shutdown()
+        val cached = repository.load("44230") as ForecastResult.Success
+
+        assertEquals(fresh.basis.avgRatio, cached.basis.avgRatio, 0.0)
+        assertEquals(fresh.forecast.size, cached.forecast.size)
+        assertEquals(CACHED_AT_MILLIS, cached.cachedAt?.toEpochMilli())
+    }
+
+    @Test
+    fun noCacheYieldsOriginalFailure() = runTest {
+        server.shutdown()
+        val r = repository.load("44230") as ForecastResult.Failure
+        assertEquals("NETWORK_UNAVAILABLE", r.code)
+    }
+
+
+    // 저장소 쓰기 실패가 정상 응답을 버리면 안 된다(status와 같은 규칙).
+    @Test
+    fun storageFailureDoesNotDiscardFreshResponse() = runTest {
+        val json = Json {
+            ignoreUnknownKeys = false
+            explicitNulls = false
+        }
+        val api = ApiClient.create(server.url("/").toString(), json).create(ForecastApi::class.java)
+        val failing = DefaultForecastRepository(api, json, LastGoodStore(FailingPreferencesDataStore()))
+
+        enqueue(200, Fixtures.read("forecast.ok.json"))
+        val r = failing.load("44230") as ForecastResult.Success
+
+        assertNull(r.cachedAt)
+    }
+
+    @Test
+    fun storageReadFailureFallsBackToOriginalFailure() = runTest {
+        val json = Json {
+            ignoreUnknownKeys = false
+            explicitNulls = false
+        }
+        val api = ApiClient.create(server.url("/").toString(), json).create(ForecastApi::class.java)
+        val failing = DefaultForecastRepository(api, json, LastGoodStore(FailingPreferencesDataStore()))
+
+        server.shutdown()
+        val r = failing.load("44230") as ForecastResult.Failure
+
+        assertEquals("NETWORK_UNAVAILABLE", r.code)
+    }
+
 }

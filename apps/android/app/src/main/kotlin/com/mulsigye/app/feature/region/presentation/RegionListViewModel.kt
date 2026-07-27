@@ -3,9 +3,11 @@ package com.mulsigye.app.feature.region.presentation
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.mulsigye.app.core.storage.LastGoodStore
 import com.mulsigye.app.core.storage.RegionStore
 import com.mulsigye.app.feature.status.domain.StatusRepository
 import com.mulsigye.app.feature.status.domain.StatusResult
+import java.io.IOException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
@@ -51,6 +53,8 @@ class RegionListViewModel(
     private val regionStore: RegionStore,
     private val statusRepository: StatusRepository,
     private val dispatcher: CoroutineDispatcher = Dispatchers.IO,
+    /** 오프라인 대비 저장본. 지역을 지울 때 그 지역 값도 함께 지운다(폴리시 약속). */
+    private val lastGoodStore: LastGoodStore? = null,
 ) : ViewModel() {
 
     // 시군 코드 → 이름 표시 상태. 원자적 update만 하므로 병렬 로드에도 안전하다.
@@ -128,7 +132,10 @@ class RegionListViewModel(
     }
 
     fun remove(sigunCode: String) {
-        viewModelScope.launch(dispatcher) { regionStore.removeRegion(sigunCode) }
+        viewModelScope.launch(dispatcher) {
+            regionStore.removeRegion(sigunCode)
+            clearCached(setOf(sigunCode))
+        }
     }
 
     /** 지역 순서 변경. 관리 모드의 드래그 재정렬·접근성 위/아래 이동에 쓴다. */
@@ -159,17 +166,39 @@ class RegionListViewModel(
         val codes = selected.value
         if (codes.isEmpty()) return
         selected.value = emptySet()
-        viewModelScope.launch(dispatcher) { regionStore.removeRegions(codes) }
+        viewModelScope.launch(dispatcher) {
+            regionStore.removeRegions(codes)
+            clearCached(codes)
+        }
+    }
+
+    /**
+     * 지운 지역의 오프라인 저장본을 함께 정리한다.
+     *
+     * 저장소 쓰기 실패로 화면이 죽으면 안 된다 — 지역 삭제 자체는 이미 끝났고, 남은 저장본은
+     * 다음 삭제나 앱 데이터 초기화 때 정리된다.
+     */
+    private suspend fun clearCached(codes: Set<String>) {
+        try {
+            lastGoodStore?.removeRegions(codes)
+        } catch (_: IOException) {
+            // 저장본 정리는 최선 노력이다.
+        }
     }
 
     class Factory(
         private val regionStore: RegionStore,
         private val statusRepository: StatusRepository,
+        private val lastGoodStore: LastGoodStore? = null,
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             require(modelClass.isAssignableFrom(RegionListViewModel::class.java))
-            return RegionListViewModel(regionStore, statusRepository) as T
+            return RegionListViewModel(
+                regionStore,
+                statusRepository,
+                lastGoodStore = lastGoodStore,
+            ) as T
         }
     }
 }

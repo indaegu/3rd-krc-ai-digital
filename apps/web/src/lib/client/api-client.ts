@@ -154,21 +154,33 @@ export function getForecast(
 
 export async function getCoach(
   sigunCode: string,
-  options?: RequestOptions & { force?: boolean },
+  options?: RequestOptions & {
+    force?: boolean;
+    /** 선택 저수지. status와 같은 시설을 봐야 만수위 행동이 어긋나지 않는다. */
+    facCode?: string;
+  },
 ): Promise<ApiResult<CoachResponse>> {
+  const facCode = options?.facCode;
+  // 클라이언트 캐시 키에도 시설코드를 넣는다 — 저수지를 바꿨는데 이전 코치가 나오면 안 된다.
+  const cacheKey =
+    facCode === undefined ? sigunCode : `${sigunCode}:${facCode}`;
   if (!options?.force) {
-    const cached = coachCache.get(sigunCode);
+    const cached = coachCache.get(cacheKey);
     if (cached && Date.now() - cached.fetchedAtMillis < COACH_CACHE_TTL_MS) {
       return { kind: "ok", data: cached.response };
     }
   }
+  const query =
+    facCode === undefined || facCode === ""
+      ? `?sigunCode=${encodeURIComponent(sigunCode)}`
+      : `?sigunCode=${encodeURIComponent(sigunCode)}&facCode=${encodeURIComponent(facCode)}`;
   const result = await requestJson<CoachResponse>(
-    `/api/v1/coach?sigunCode=${encodeURIComponent(sigunCode)}`,
+    `/api/v1/coach${query}`,
     baseInit(options),
   );
   // 성공만 캐시한다(오류는 절대 캐시하지 않는다). force여도 신선 성공은 캐시를 갱신한다.
   if (result.kind === "ok") {
-    coachCache.set(sigunCode, {
+    coachCache.set(cacheKey, {
       response: result.data,
       fetchedAtMillis: Date.now(),
     });

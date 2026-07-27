@@ -62,6 +62,9 @@
 | Android 릴리스 APK | `.\apps\android\gradlew.bat -p .\apps\android :app:assembleRelease -PMULSIGYE_API_BASE_URL=https://3rd-krc-ai-digital-web.vercel.app/` | 사람 Task 9: `apps/android/keystore.properties` 작성 후 서명(없으면 debug 폴백) |
 | Play AAB | `.\apps\android\gradlew.bat -p .\apps\android :app:bundleRelease -PMULSIGYE_API_BASE_URL=https://3rd-krc-ai-digital-web.vercel.app/` | 사람 Task 9: 동일 |
 
+배포용 서명 확인·해시·GitHub Release 발행 절차는 [android-release.md](android-release.md)에 있다.
+디버그 APK는 배포하지 않는다.
+
 ## 단위 테스트 최소 범위
 
 1. 예측 모델: 고정 `avgRatio` 입력에 대한 naive/ma7/linear/ses 수치 테스트.

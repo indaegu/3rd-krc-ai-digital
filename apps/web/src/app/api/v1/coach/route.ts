@@ -15,6 +15,7 @@ export const dynamic = "force-dynamic";
 const NO_STORE_HEADERS = { "Cache-Control": "no-store" } as const;
 
 const SIGUN_CODE_PATTERN = /^[0-9]{5}$/;
+const FAC_CODE_PATTERN = /^[0-9]{10}$/;
 
 function errorResponse(status: number, error: ApiError): Response {
   return Response.json(error, { status, headers: NO_STORE_HEADERS });
@@ -30,7 +31,14 @@ function unavailableResponse(): Response {
 
 export function createCoachHandler(deps: CoachServiceDeps = {}) {
   return async function handleCoach(request: Request): Promise<Response> {
-    const sigunCode = new URL(request.url).searchParams.get("sigunCode") ?? "";
+    const params = new URL(request.url).searchParams;
+    const sigunCode = params.get("sigunCode") ?? "";
+    // 선택 저수지. 형식이 어긋나면 오류로 막지 않고 무시한다(코치 조회 자체는 계속돼야 한다).
+    const rawFacCode = params.get("facCode");
+    const facCode =
+      rawFacCode !== null && FAC_CODE_PATTERN.test(rawFacCode)
+        ? rawFacCode
+        : null;
     if (!SIGUN_CODE_PATTERN.test(sigunCode)) {
       return errorResponse(400, {
         code: "INVALID_SIGUN_CODE",
@@ -40,7 +48,7 @@ export function createCoachHandler(deps: CoachServiceDeps = {}) {
     }
 
     try {
-      const result = await buildCoach(sigunCode, deps);
+      const result = await buildCoach(sigunCode, deps, facCode);
       if (result.kind === "not_prepared") {
         return errorResponse(404, {
           code: "REGION_NOT_PREPARED",

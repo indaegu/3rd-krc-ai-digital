@@ -62,6 +62,52 @@ class AsOfStampTest {
         )
     }
 
+    // 오프라인 안내는 "언제 받은 값인지"가 핵심이다. 오늘이면 시각, 그 전이면 며칠 전으로 쓴다.
+    @Test
+    fun offlineTextUsesClockTimeOnSameDay() {
+        assertEquals(
+            "오늘 오전 9:05 받은 정보예요 · 연결되면 새로 받아요",
+            AsOfStamp.offlineText(
+                cachedAt = Instant.parse("2026-07-21T00:05:00Z"),
+                now = Instant.parse("2026-07-21T05:00:00Z"),
+            ),
+        )
+    }
+
+    @Test
+    fun offlineTextSaysYesterdayForOneDayOld() {
+        assertEquals(
+            "어제 받은 정보예요 · 연결되면 새로 받아요",
+            AsOfStamp.offlineText(
+                cachedAt = Instant.parse("2026-07-20T00:05:00Z"),
+                now = Instant.parse("2026-07-21T05:00:00Z"),
+            ),
+        )
+    }
+
+    @Test
+    fun offlineTextCountsDaysForOlderCache() {
+        assertEquals(
+            "5일 전 받은 정보예요 · 연결되면 새로 받아요",
+            AsOfStamp.offlineText(
+                cachedAt = Instant.parse("2026-07-16T00:05:00Z"),
+                now = Instant.parse("2026-07-21T05:00:00Z"),
+            ),
+        )
+    }
+
+    // 기기 시계가 뒤로 가 저장 시각이 미래가 돼도 "−1일 전" 같은 문구가 나오면 안 된다.
+    @Test
+    fun offlineTextFallsBackToClockTimeWhenCacheIsAhead() {
+        assertEquals(
+            "오늘 오후 2:00 받은 정보예요 · 연결되면 새로 받아요",
+            AsOfStamp.offlineText(
+                cachedAt = Instant.parse("2026-07-22T05:00:00Z"),
+                now = Instant.parse("2026-07-21T05:00:00Z"),
+            ),
+        )
+    }
+
     @Test
     fun loadingTextMatchesSpec() {
         assertEquals("불러오는 중…", AsOfStamp.LOADING_TEXT)

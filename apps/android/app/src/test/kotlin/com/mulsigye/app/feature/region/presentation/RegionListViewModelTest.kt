@@ -1,7 +1,9 @@
 package com.mulsigye.app.feature.region.presentation
 
+import com.mulsigye.app.core.storage.LastGoodStore
 import com.mulsigye.app.core.storage.RegionStore
 import com.mulsigye.app.core.storage.StoredRegion
+import com.mulsigye.app.core.testing.FailingPreferencesDataStore
 import com.mulsigye.app.core.testing.InMemoryPreferencesDataStore
 import com.mulsigye.app.feature.region.FakeStatusRepository
 import com.mulsigye.app.feature.status.domain.DroughtStage
@@ -19,6 +21,7 @@ import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -258,4 +261,52 @@ class RegionListViewModelTest {
 
         assertEquals(listOf("46170", "44230"), vm.uiState.value.items.map { it.sigunCode })
     }
+
+    // 지운 지역의 저장본도 함께 사라져야 한다 — 폴리시에 그렇게 적어 두었다.
+    @Test
+    fun removingRegionClearsItsCachedResponses() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val storeInstance = store()
+        storeInstance.addRegion(naju)
+        storeInstance.addRegion(nonsan)
+        val lastGood = LastGoodStore(InMemoryPreferencesDataStore())
+        lastGood.save(LastGoodStore.KIND_STATUS, "46170:4617010001", "status")
+        lastGood.save(LastGoodStore.KIND_FORECAST, "46170", "forecast")
+        lastGood.save(LastGoodStore.KIND_FORECAST, "44230", "keep")
+
+        val statusRepo = FakeStatusRepository().apply {
+            put("46170", statusSuccess("46170", "나주시", "나주호"))
+            put("44230", statusSuccess("44230", "논산시", "탑정"))
+        }
+        val vm = RegionListViewModel(storeInstance, statusRepo, dispatcher, lastGoodStore = lastGood)
+        vm.remove("46170")
+        advanceUntilIdle()
+
+        assertNull(lastGood.load(LastGoodStore.KIND_STATUS, "46170:4617010001"))
+        assertNull(lastGood.load(LastGoodStore.KIND_FORECAST, "46170"))
+        assertEquals("keep", lastGood.load(LastGoodStore.KIND_FORECAST, "44230")?.payload)
+    }
+
+    // 저장본 정리는 최선 노력이다. 저장소가 실패해도 지역 삭제는 끝났고 앱이 죽으면 안 된다.
+    @Test
+    fun cacheCleanupFailureDoesNotBreakRemoval() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val storeInstance = store()
+        storeInstance.addRegion(naju)
+
+        val statusRepo = FakeStatusRepository().apply {
+            put("46170", statusSuccess("46170", "나주시", "나주호"))
+        }
+        val vm = RegionListViewModel(
+            storeInstance,
+            statusRepo,
+            dispatcher,
+            lastGoodStore = LastGoodStore(FailingPreferencesDataStore()),
+        )
+        vm.remove("46170")
+        advanceUntilIdle()
+
+        assertTrue(vm.uiState.value.items.isEmpty())
+    }
+
 }

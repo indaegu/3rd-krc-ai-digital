@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -36,7 +37,11 @@ import androidx.compose.ui.unit.dp
 import com.mulsigye.app.core.designsystem.component.CtaButton
 import com.mulsigye.app.core.designsystem.component.MulsigyeCard
 import com.mulsigye.app.core.designsystem.component.Shimmer
+import androidx.compose.ui.text.font.FontWeight
+import java.time.Instant
 import com.mulsigye.app.core.designsystem.theme.brandGradientBrush
+import com.mulsigye.app.core.designsystem.theme.CareBg
+import com.mulsigye.app.core.designsystem.theme.CareText
 import com.mulsigye.app.core.designsystem.theme.Ink
 import com.mulsigye.app.core.designsystem.theme.Ink2
 import com.mulsigye.app.core.ui.AsOfStamp
@@ -146,6 +151,9 @@ fun MainScreen(
             modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
+            // ①-a 오프라인 안내 — 저장해 둔 값을 보고 있음을 먼저 알린다.
+            OfflineBanner(cachedAt = offlineCachedAt(statusState, forecastState))
+
             // ① 오늘 우리 저수지.
             when (statusState) {
                 is StatusUiState.Loading -> TodayCardSkeleton()
@@ -217,12 +225,66 @@ private fun stampText(state: StatusUiState): String? = when (state) {
     is StatusUiState.Error -> null
     is StatusUiState.Ready -> {
         val data = state.data
-        if (data.stale) {
+        val cachedAt = data.cachedAt
+        if (cachedAt != null) {
+            // 저장본은 서버 asOf가 아니라 "언제 받았는지"가 기준이다.
+            AsOfStamp.offlineText(cachedAt, Instant.now())
+        } else if (data.stale) {
             val observedOn = data.reservoir.observedOn ?: data.region.observedOn
             AsOfStamp.delayedText(observedOn)
         } else {
             AsOfStamp.freshText(data.asOf)
         }
+    }
+}
+
+/**
+ * 둘 중 먼저 받은(= 가장 오래된) 저장 시각. 둘 다 생중계면 null.
+ *
+ * status만 오프라인이고 forecast는 방금 받았을 수 있다. 사용자에게는 화면에 섮인 가장
+ * 오래된 값이 중요하므로 더 이전 시각을 알린다 — 실제보다 새것처럼 보이지 않게.
+ */
+internal fun offlineCachedAt(
+    statusState: StatusUiState,
+    forecastState: ForecastUiState,
+): Instant? {
+    val statusCachedAt = (statusState as? StatusUiState.Ready)?.data?.cachedAt
+    val forecastCachedAt = (forecastState as? ForecastUiState.Ready)?.data?.cachedAt
+    return listOfNotNull(statusCachedAt, forecastCachedAt).minOrNull()
+}
+
+/**
+ * 통신이 끊겼을 때 띄우는 안내. 화면을 오류로 바꾸지 않고 직전 값을 그대로 둔다.
+ *
+ * 저수지 옆은 음영지역이 많아 "인터넷 연결을 확인해 주세요"만 남으면 정작 볼 것을 못 본다.
+ * 다만 오래된 값을 오늘 값으로 오해하면 더 위험하므로, 언제 받은 값인지를 함께 적는다.
+ */
+@Composable
+internal fun OfflineBanner(cachedAt: Instant?, modifier: Modifier = Modifier) {
+    if (cachedAt == null) {
+        return
+    }
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(CareBg, RoundedCornerShape(18.dp))
+            .padding(horizontal = 16.dp, vertical = 14.dp)
+            .semantics { contentDescription = "오프라인 안내" },
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = "오프라인",
+            color = CareText,
+            fontWeight = FontWeight.Bold,
+            style = MaterialTheme.typography.labelMedium,
+        )
+        Spacer(Modifier.width(8.dp))
+        Text(
+            text = "지금은 인터넷이 연결되지 않아 " +
+                AsOfStamp.offlineText(cachedAt, Instant.now()) + ".",
+            color = Ink2,
+            style = MaterialTheme.typography.bodyMedium,
+        )
     }
 }
 

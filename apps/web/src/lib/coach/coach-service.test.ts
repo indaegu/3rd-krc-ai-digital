@@ -12,7 +12,10 @@ import {
 } from "@mulsigye/llm";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import type { RegionResolverDeps } from "../data/region-resolver.ts";
-import type { StatusSupabaseClient } from "../data/status-service.ts";
+import {
+  buildStatus,
+  type StatusSupabaseClient,
+} from "../data/status-service.ts";
 import type { WaterLevelFetch } from "../data/waterlevel-api.ts";
 import type { ForecastSupabaseClient } from "../prediction/forecast-service.ts";
 import { buildCoach, type CoachServiceDeps } from "./coach-service.ts";
@@ -673,5 +676,125 @@ describe("buildCoach live — provider 오류 → fallbackReason", () => {
   it("모든 실패에서 실 @anthropic-ai/sdk는 0회다(주입 provider만 사용)", () => {
     expect(anthropicSdkCalls.constructed).toBe(0);
     expect(anthropicSdkCalls.messagesCreated).toBe(0);
+  });
+});
+
+// 사용자가 시군 대표지가 아닌 저수지를 직접 고르면, 메인 상태와 코치가 **같은 시설**을 봐야 한다.
+// 만수위 참고(highWaterNotice)와 그에 딸린 행동(hw_check_drain)이 시설별로 갈리기 때문이다.
+// facCode를 흘리면 배너는 선택 저수지, 코치 행동은 시군 기본 저수지 기준이 되어 어긋난다.
+describe("buildCoach — 선택 저수지 일치", () => {
+  /** 시군에 저수지 둘: 기본(탑정, 수혜면적 최대)과 사용자가 고른 소규모(아곡). */
+  const AGOK = "4423010046";
+
+  const twoReservoirResolver: RegionResolverDeps = {
+    createClient: () => ({
+      from: () => ({
+        select: () => ({
+          eq: () =>
+            Promise.resolve({
+              data: [
+                { fac_code: TAPJEONG, name: "탑정", beneficiary_area: 5713 },
+                { fac_code: AGOK, name: "아곡", beneficiary_area: 44.6 },
+              ],
+              error: null,
+            }),
+        }),
+      }),
+    }),
+  };
+
+  /** 시설코드별 XML — fetchLatestWaterLevel이 fac_code로 거르므로 코드를 맞춰야 한다. */
+  function xmlFor(
+    facCode: string,
+    rows: readonly { date: string; rate: number }[],
+  ) {
+    const items = rows
+      .map(
+        (row) =>
+          `<item><check_date>${row.date}</check_date><county>충청남도 논산시 </county>` +
+          `<fac_code>${facCode}</fac_code><fac_name>시설</fac_name>` +
+          `<rate>${String(row.rate)}</rate><water_level>27.4</water_level></item>`,
+      )
+      .join("");
+    return (
+      "<response><body>" +
+      `${items}<numOfRows>10</numOfRows><pageNo>1</pageNo>` +
+      `<totalCount>${String(rows.length)}</totalCount></body>` +
+      "<header><returnAuthMsg>NORMAL SERVICE</returnAuthMsg>" +
+      "<returnReasonCode>00</returnReasonCode></header></response>"
+    );
+  }
+
+  /** 아곡만 만수위(96%, 상승)이고 탑정은 평범하다. */
+  const perFacilityFetch: WaterLevelFetch = async (url) => {
+    const isAgok = String(url).includes(`fac_code=${AGOK}`);
+    const xml = isAgok
+      ? xmlFor(AGOK, [
+          { date: "20260719", rate: 95.2 },
+          { date: "20260720", rate: 96 },
+        ])
+      : xmlFor(TAPJEONG, [
+          { date: "20260719", rate: 58.4 },
+          { date: "20260720", rate: 60.4 },
+        ]);
+    return new Response(xml, {
+      status: 200,
+      headers: { "content-type": "application/xml" },
+    });
+  };
+
+  function statusDeps() {
+    return {
+      waterLevel: {
+        fetchImpl: perFacilityFetch,
+        apiKey: "test-key",
+        now: () => FIXED_NOW,
+      },
+      createClient: () => makeStatusClient(68),
+      resolver: twoReservoirResolver,
+    };
+  }
+
+  function deps(): CoachServiceDeps {
+    return {
+      status: statusDeps(),
+      forecast: {
+        createClient: () => makeForecastClient(regionalRows(68, -0.45)),
+        resolver: twoReservoirResolver,
+      },
+      now: () => FIXED_NOW,
+    };
+  }
+
+  it("facCode를 주면 코치가 그 저수지의 만수위를 기준으로 행동을 고른다", async () => {
+    const result = await buildCoach(NONSAN, deps(), AGOK);
+    if (result.kind !== "ok") throw new Error(`ok를 기대했는데 ${result.kind}`);
+    // 아곡이 만수위라 만수위 행동이 맨 앞에 온다.
+    expect(result.body.coach.actions[0]?.id).toBe(HIGH_WATER_ACTION.id);
+  });
+
+  it("facCode가 없으면 시군 기본 저수지(탑정) 기준이다", async () => {
+    const result = await buildCoach(NONSAN, deps());
+    if (result.kind !== "ok") throw new Error(`ok를 기대했는데 ${result.kind}`);
+    expect(
+      result.body.coach.actions.some(
+        (action) => action.id === HIGH_WATER_ACTION.id,
+      ),
+    ).toBe(false);
+  });
+
+  it("status 배너와 코치 행동이 같은 시설을 근거로 한다", async () => {
+    const statusResult = await buildStatus(
+      NONSAN,
+      { ...statusDeps(), now: () => FIXED_NOW },
+      AGOK,
+    );
+    if (statusResult.kind !== "ok") throw new Error("status ok여야 한다");
+    const coachResult = await buildCoach(NONSAN, deps(), AGOK);
+    if (coachResult.kind !== "ok") throw new Error("coach ok여야 한다");
+
+    expect(statusResult.body.reservoir.facCode).toBe(AGOK);
+    expect(statusResult.body.highWaterNotice).toBe(true);
+    expect(coachResult.body.coach.actions[0]?.id).toBe(HIGH_WATER_ACTION.id);
   });
 });

@@ -207,7 +207,11 @@ private fun RegionsRoute(
     onStart: () -> Unit,
 ) {
     val vm: RegionListViewModel = viewModel(
-        factory = RegionListViewModel.Factory(container.regionStore, container.statusRepository),
+        factory = RegionListViewModel.Factory(
+            container.regionStore,
+            container.statusRepository,
+            container.lastGoodStore,
+        ),
     )
     val state by vm.uiState.collectAsStateWithLifecycle()
 
@@ -287,8 +291,13 @@ private fun MainRoute(container: AppContainer, store: RegionStoreState, backStac
         factory = ForecastViewModel.Factory(container.forecastRepository, regionCode),
     )
     val coachVm: CoachViewModel = viewModel(
-        key = "coach-$regionCode",
-        factory = CoachViewModel.Factory(container.coachRepository, regionCode),
+        // 키에 시설코드를 포함한다 — status와 같은 이유(저수지만 바꾸면 이전 VM이 재사용된다).
+        key = "coach-$regionCode-${regionFacCode ?: "-"}",
+        factory = CoachViewModel.Factory(
+            container.coachRepository,
+            regionCode,
+            regionFacCode,
+        ),
     )
     val nearbyVm: NearbyViewModel = viewModel(
         key = "nearby-$regionCode",
