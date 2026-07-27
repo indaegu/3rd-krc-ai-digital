@@ -1,8 +1,13 @@
 // GET /api/v1/regions/search — 주소 검색으로 지역 후보 목록 조회.
 // 사용자별 검색이므로 캐시하지 않는다(no-store). 검색어·주소 원문은 응답으로만
 // 흘려보내고 로그·저장소에 남기지 않는다(플랜 Global Constraints).
-import type { ApiError, RegionSearchResponse } from "@mulsigye/contracts";
+import type { RegionSearchResponse } from "@mulsigye/contracts";
 import { z } from "zod";
+import {
+  beginRequest,
+  errorJson,
+  okJson,
+} from "../../../../../lib/api/respond.ts";
 import {
   searchJusoAddresses,
   type JusoDeps,
@@ -11,17 +16,11 @@ import {
 
 export const dynamic = "force-dynamic";
 
-const NO_STORE_HEADERS = { "Cache-Control": "no-store" } as const;
-
 const querySchema = z.string().trim().min(2).max(100);
 
 type SearchHandlerDeps = {
   juso?: JusoDeps;
 };
-
-function errorResponse(status: number, error: ApiError): Response {
-  return Response.json(error, { status, headers: NO_STORE_HEADERS });
-}
 
 /**
  * 도로명주소 실패 사유 → 사용자 안내. 종전에는 모든 실패가 하나의 503 "잠시 어려워요"로
@@ -109,10 +108,11 @@ const FAILURE_RESPONSE: Record<
 
 export function createSearchHandler(deps: SearchHandlerDeps = {}) {
   return async function handleSearch(request: Request): Promise<Response> {
+    const context = beginRequest("/api/v1/regions/search");
     const rawQuery = new URL(request.url).searchParams.get("q") ?? "";
     const parsedQuery = querySchema.safeParse(rawQuery);
     if (!parsedQuery.success) {
-      return errorResponse(400, {
+      return errorJson(context, 400, {
         code: "INVALID_QUERY",
         message: "검색어를 두 글자 이상 입력해 주세요.",
         retryable: false,
@@ -122,7 +122,7 @@ export function createSearchHandler(deps: SearchHandlerDeps = {}) {
     const result = await searchJusoAddresses(parsedQuery.data, deps.juso);
     if (!result.ok) {
       const mapped = FAILURE_RESPONSE[result.reason];
-      return errorResponse(mapped.status, {
+      return errorJson(context, mapped.status, {
         code: mapped.code,
         message: mapped.message,
         retryable: mapped.retryable,
@@ -136,7 +136,7 @@ export function createSearchHandler(deps: SearchHandlerDeps = {}) {
       sources: ["도로명주소 API"],
       stale: false,
     };
-    return Response.json(body, { status: 200, headers: NO_STORE_HEADERS });
+    return okJson(context, body);
   };
 }
 

@@ -331,3 +331,48 @@ describe("GET /api/v1/regions/search — 계약 동기화", () => {
     expect(response.status).toBe(200);
   });
 });
+
+// 관측성: 라우트가 구조화 로그를 남기되 검색어·주소는 절대 넣지 않는다.
+describe("구조화 로그", () => {
+  it("성공 응답에 requestId·경로·원천이 담긴 한 줄을 남긴다", async () => {
+    const fetchImpl = vi.fn(async () =>
+      Promise.resolve(jusoResponse(jusoFixture)),
+    );
+    const handler = createSearchHandler({
+      juso: { fetchImpl, apiKey: "test-key" },
+    });
+
+    const response = await handler(searchRequest(QUERY));
+
+    expect(response.headers.get("X-Request-Id")).toMatch(/^[0-9a-f]{16}$/);
+    const logged = consoleSpies
+      .flatMap((spy) => spy.mock.calls)
+      .map((call) => String(call[0]))
+      .filter((line) => line.includes("api_request"));
+    expect(logged).toHaveLength(1);
+    const record = JSON.parse(logged[0] ?? "") as Record<string, unknown>;
+    expect(record.route).toBe("/api/v1/regions/search");
+    expect(record.status).toBe(200);
+    expect(record.source).toBe("juso");
+    // 경로만 남기고 질의문자열은 남기지 않는다 — 질의문자열에 검색어가 들어 있다.
+    expectNoAddressInLogs();
+  });
+
+  it("입력 오류도 사유 코드만 남기고 검색어는 남기지 않는다", async () => {
+    const handler = createSearchHandler({
+      juso: { fetchImpl: vi.fn(), apiKey: "test-key" },
+    });
+
+    await handler(searchRequest(QUERY.slice(0, 1)));
+
+    const logged = consoleSpies
+      .flatMap((spy) => spy.mock.calls)
+      .map((call) => String(call[0]))
+      .filter((line) => line.includes("api_request"));
+    const record = JSON.parse(logged[0] ?? "") as Record<string, unknown>;
+    expect(record.status).toBe(400);
+    expect(record.outcome).toBe("client_error");
+    expect(record.fallback).toBe("INVALID_QUERY");
+    expectNoAddressInLogs();
+  });
+});

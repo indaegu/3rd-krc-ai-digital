@@ -1,5 +1,7 @@
 import type { HealthResponse } from "@mulsigye/contracts";
 
+import { beginRequest, okJson } from "../../../../lib/api/respond.ts";
+
 export const dynamic = "force-dynamic";
 
 export function createHealthResponse(now: Date): HealthResponse {
@@ -14,10 +16,6 @@ export function createHealthResponse(now: Date): HealthResponse {
 }
 
 export function GET(): Response {
-  return Response.json(createHealthResponse(new Date()), {
-    status: 200,
-    headers: {
-      "Cache-Control": "no-store",
-    },
-  });
+  const context = beginRequest("/api/v1/health");
+  return okJson(context, createHealthResponse(new Date()));
 }
