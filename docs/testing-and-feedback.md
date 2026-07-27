@@ -105,6 +105,23 @@ Android `Stage5GateTest`가 각각 검증한다. 아래 항목 중 375px·큰 �
 ## 보안·관측성
 
 - Vercel 런타임 로그에는 `{ source, status, fallback, requestId }`만 남기고 비밀값·주소 원문은 남기지 않는다.
+  구현은 `apps/web/src/lib/observability/api-log.ts`(허용 필드만 받는 타입)와
+  `apps/web/src/lib/api/respond.ts`(모든 공개 응답이 지나는 한 곳)다. 라우트는 로그를 직접
+  찍지 않는다 — 자유 문자열을 넣을 자리가 없어야 검색어·주소가 새지 않는다.
+  `source`는 응답의 `sources`를 짧은 슬러그로 압축한 값이라(`waterlevel_api+drought_map`)
+  KRC API 실패율을 별도 계측 없이 읽을 수 있다. `requestId`는 요청마다 만드는 무작위 값이며
+  응답의 `X-Request-Id` 헤더로도 나가 사용자 제보와 로그 줄을 이을 수 있다.
+- 보안 헤더는 `apps/web/next.config.ts`가 모든 경로에 붙인다: CSP(외부 출처 전면 차단),
+  `X-Content-Type-Options: nosniff`, `Referrer-Policy`, `X-Frame-Options: DENY` +
+  `frame-ancestors 'none'`, `Permissions-Policy`(위치·카메라·마이크 차단), HSTS.
+  CSP의 `script-src`에는 `'unsafe-inline'`이 남아 있다 — Next App Router가 하이드레이션
+  데이터를 인라인 스크립트로 심기 때문이다. nonce로 없애려면 미들웨어가 모든 문서 요청을
+  가로채 동적 렌더링을 강제해야 하는데, 정적 페이지 위주인 이 앱에서는 비용이 더 크다.
+- 외부 키를 태우는 경로(`/api/v1/regions/search` 30회/분, `/api/v1/coach` 20회/분)와
+  `/api/v1/health`(60회/분)에는
+  IP 기준 속도 제한이 있다. 계수는 **인스턴스마다 따로** 세므로 전역 상한이 아니라 한
+  클라이언트의 폭주를 눌러 주는 완충이다. IP는 프로세스별 소금을 섞어 해시한 값으로만
+  메모리에 있고 로그·저장소로 나가지 않는다.
 - Supabase 적재 리포트에서 원천 기준일, 행 수, 격리 행, 최신 정상 스냅샷을 확인한다.
 - Android 로그에는 HTTP 상태·도메인 오류 코드·재시도 여부만 남긴다.
 - `.env*`, `local.properties`, keystore, 서명 설정이 git 추적 대상이 아닌지 릴리스 전에 확인한다.

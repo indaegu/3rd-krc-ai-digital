@@ -156,6 +156,41 @@ export function setPrimaryRegion(sigunCode: string): RegionStore {
   return next;
 }
 
+/**
+ * 지역 순서 변경. 드래그의 접근성 대체(위로/아래로 이동)와 같은 연산이다.
+ *
+ * 목록 맨 위(index 0)가 기본 주소지이므로 순서 변경은 곧 대표 지역 변경이기도 하다.
+ * 선택 지역은 "어느 칸"이 아니라 "어느 지역"을 따라가야 하므로 currentIndex를 함께 옮긴다.
+ * 범위를 벗어난 인덱스는 끝으로 자른다(맨 위에서 위로 눌러도 아무 일이 없다).
+ */
+export function moveRegion(from: number, to: number): RegionStore {
+  const store = loadRegionStore();
+  const length = store.regions.length;
+  const source = clampIndex(from, length);
+  const target = clampIndex(to, length);
+  if (length === 0 || source === target) {
+    return store;
+  }
+  const selected = store.regions[store.currentIndex];
+  const regions = [...store.regions];
+  const [moved] = regions.splice(source, 1);
+  if (moved === undefined) {
+    return store;
+  }
+  regions.splice(target, 0, moved);
+  const nextIndex =
+    selected === undefined
+      ? 0
+      : regions.findIndex((region) => region.sigunCode === selected.sigunCode);
+  const next: RegionStore = {
+    ...store,
+    regions,
+    currentIndex: clampIndex(nextIndex < 0 ? 0 : nextIndex, regions.length),
+  };
+  saveRegionStore(next);
+  return next;
+}
+
 /** 지역 삭제. 현재 선택이 삭제되거나 앞당겨지면 currentIndex를 보정한다. */
 export function removeRegion(sigunCode: string): RegionStore {
   const store = loadRegionStore();
@@ -172,6 +207,40 @@ export function removeRegion(sigunCode: string): RegionStore {
   store.currentIndex = clampIndex(store.currentIndex, store.regions.length);
   saveRegionStore(store);
   return store;
+}
+
+/**
+ * 여러 지역을 한 번에 삭제한다(관리 모드의 체크박스 다중 선택).
+ *
+ * 한 건씩 removeRegion을 반복하면 저장·로드가 그만큼 반복되고, 중간 상태에서 선택
+ * 인덱스가 두 번 보정돼 엉뚱한 지역이 선택될 수 있다. 한 번에 걸러내고 선택은
+ * "어느 지역"을 기준으로 다시 찾는다.
+ */
+export function removeRegions(sigunCodes: readonly string[]): RegionStore {
+  const store = loadRegionStore();
+  const doomed = new Set(sigunCodes);
+  if (doomed.size === 0) {
+    return store;
+  }
+  const selected = store.regions[store.currentIndex];
+  const regions = store.regions.filter(
+    (region) => !doomed.has(region.sigunCode),
+  );
+  if (regions.length === store.regions.length) {
+    return store;
+  }
+  // 보던 지역이 남아 있으면 계속 그 지역을 본다. 사라졌으면 맨 위(기본 주소지)로 간다.
+  const keptIndex =
+    selected === undefined
+      ? 0
+      : regions.findIndex((region) => region.sigunCode === selected.sigunCode);
+  const next: RegionStore = {
+    ...store,
+    regions,
+    currentIndex: clampIndex(keptIndex < 0 ? 0 : keptIndex, regions.length),
+  };
+  saveRegionStore(next);
+  return next;
 }
 
 export function selectRegion(index: number): RegionStore {

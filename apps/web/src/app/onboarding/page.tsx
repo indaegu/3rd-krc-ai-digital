@@ -4,9 +4,11 @@
 // CTA "내 지역 설정하기" → /regions(동의 바텀시트가 그곳에서 자동으로 열린다).
 // 로그인·회원가입이 없음을 "가입 없이 바로 시작해요"로 안내한다.
 
+import { useCallback, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { CtaButton } from "../../components/ui/CtaButton";
+import { activeSlideIndex } from "./carousel-position";
 import styles from "./page.module.css";
 
 interface Slide {
@@ -36,6 +38,46 @@ const SLIDES: Slide[] = [
 
 export default function OnboardingPage() {
   const router = useRouter();
+  const carouselRef = useRef<HTMLUListElement | null>(null);
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  // 스크롤 위치에서 지금 보이는 장을 다시 계산한다. 표시점이 항상 첫 장에 멈춰 있으면
+  // 몇 장이 남았는지 알 수 없어 캐러셀을 끝까지 넘겨보지 않는다.
+  const syncActiveIndex = useCallback(() => {
+    const carousel = carouselRef.current;
+    if (carousel === null) return;
+    const slides = Array.from(carousel.children).map((child) => {
+      const element = child as HTMLElement;
+      return {
+        offsetLeft: element.offsetLeft,
+        offsetWidth: element.offsetWidth,
+      };
+    });
+    setActiveIndex(
+      activeSlideIndex(carousel.scrollLeft, carousel.clientWidth, slides),
+    );
+  }, []);
+
+  // 표시점을 눌러 이동 — 캐러셀을 밀지 못하는(또는 밀 줄 모르는) 사용자의 유일한 이동 수단이다.
+  const goToSlide = (index: number) => {
+    const carousel = carouselRef.current;
+    const slide = carousel?.children.item(index) as HTMLElement | null;
+    if (carousel === null || slide === null) return;
+    // 움직임 줄이기를 켠 사용자에게는 부드러운 스크롤을 쓰지 않는다.
+    const reduceMotion =
+      typeof window.matchMedia === "function" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (typeof carousel.scrollTo === "function") {
+      carousel.scrollTo({
+        left: slide.offsetLeft,
+        behavior: reduceMotion ? "auto" : "smooth",
+      });
+    } else {
+      // jsdom 등 scrollTo가 없는 환경 — 위치만 옮긴다.
+      carousel.scrollLeft = slide.offsetLeft;
+    }
+    setActiveIndex(index);
+  };
 
   return (
     <main className={styles.main}>
@@ -53,7 +95,12 @@ export default function OnboardingPage() {
         />
       </header>
 
-      <ul className={styles.carousel} aria-label="수신호 소개">
+      <ul
+        className={styles.carousel}
+        aria-label="수신호 소개"
+        ref={carouselRef}
+        onScroll={syncActiveIndex}
+      >
         {SLIDES.map((slide, index) => (
           <li key={index} className={styles.slide}>
             {/* eslint-disable-next-line @next/next/no-img-element -- public 정적 온보딩 일러스트 */}
@@ -71,16 +118,30 @@ export default function OnboardingPage() {
         ))}
       </ul>
 
-      <div className={styles.dots} aria-hidden="true">
-        {SLIDES.map((_, index) => (
-          <span
-            key={index}
-            className={
-              index === 0 ? `${styles.dot} ${styles.dotOn}` : styles.dot
-            }
-          />
+      <ol className={styles.dots} aria-label="소개 슬라이드 이동">
+        {SLIDES.map((slide, index) => (
+          <li key={slide.image}>
+            <button
+              type="button"
+              className={styles.dotButton}
+              // 스크린리더가 "현재 위치"를 읽도록 한다. 시각적 표시(dotOn)와 같은 근거다.
+              aria-current={index === activeIndex ? "true" : undefined}
+              aria-label={`${String(index + 1)}번째 소개 보기`}
+              onClick={() => {
+                goToSlide(index);
+              }}
+            >
+              <span
+                className={
+                  index === activeIndex
+                    ? `${styles.dot} ${styles.dotOn}`
+                    : styles.dot
+                }
+              />
+            </button>
+          </li>
         ))}
-      </div>
+      </ol>
 
       <div className={styles.ctaWrap}>
         <CtaButton onClick={() => router.push("/regions")}>

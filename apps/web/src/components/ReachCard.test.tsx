@@ -86,9 +86,9 @@ describe("ReachCard 예측 오차 캡션 — model 메타 실값(하드코딩 �
   it("픽스처의 mae7/mae14 값을 소수 1자리로 보여준다", () => {
     const { container } = render(<ReachCard forecast={WATCH} />);
 
-    // pred-v1: mae7 1.9168 → ±1.9%p, mae14 2.8337 → ±2.8%p
-    expect(container.textContent).toContain("7일 ±1.9%p");
-    expect(container.textContent).toContain("14일 ±2.8%p");
+    // pred-v1: mae7 1.8493 → ±1.8%p, mae14 3.0463 → ±3.0%p
+    expect(container.textContent).toContain("7일 ±1.8%p");
+    expect(container.textContent).toContain("14일 ±3.0%p");
   });
 
   it("model 값이 바뀌면 캡션도 함께 바뀐다(하드코딩 검사)", () => {
@@ -100,7 +100,7 @@ describe("ReachCard 예측 오차 캡션 — model 메타 실값(하드코딩 �
 
     expect(container.textContent).toContain("7일 ±4.7%p");
     expect(container.textContent).toContain("14일 ±6.3%p");
-    expect(container.textContent).not.toContain("±1.9%p");
-    expect(container.textContent).not.toContain("±2.8%p");
+    expect(container.textContent).not.toContain("±1.8%p");
+    expect(container.textContent).not.toContain("±3.0%p");
   });
 });

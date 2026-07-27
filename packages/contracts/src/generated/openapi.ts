@@ -533,7 +533,19 @@ export interface components {
       stale: boolean;
     };
   };
-  responses: never;
+  responses: {
+    /** @description 같은 클라이언트의 호출이 잦아 잠시 막았음. `Retry-After` 초 뒤에 다시 부르면 된다. 외부 승인키·LLM 예산을 태우는 경로를 지키기 위한 것이며, 계수는 서버 인스턴스마다 따로 세므로 전역 상한이 아니라 폭주 완충이다. 클라이언트는 `retryable=true`를 보고 재시도 안내를 띄운다. */
+    TooManyRequests: {
+      headers: {
+        /** @description 다시 시도할 수 있을 때까지 남은 초 */
+        "Retry-After"?: number;
+        [name: string]: unknown;
+      };
+      content: {
+        "application/json": components["schemas"]["ApiError"];
+      };
+    };
+  };
   parameters: never;
   requestBodies: never;
   headers: never;
@@ -559,6 +571,7 @@ export interface operations {
           "application/json": components["schemas"]["HealthResponse"];
         };
       };
+      429: components["responses"]["TooManyRequests"];
       /** @description API 프로세스가 요청을 처리할 수 없음 */
       503: {
         headers: {
@@ -573,7 +586,7 @@ export interface operations {
   searchRegions: {
     parameters: {
       query: {
-        /** @description 사용자가 입력한 주소 검색어. 원문은 응답 후 폐기하며 저장하지 않는다. */
+        /** @description 사용자가 입력한 주소 검색어. 원문은 응답 후 폐기하며 저장하지 않는다. 앞뒤 공백을 걷어낸 길이가 2자 미만이면 `INVALID_QUERY`, 40자를 넘으면 `JUSO_TOO_LONG`으로 400을 준다. 40자는 도로명주소가 넘길 일이 없는 길이이며, 그보다 긴 문자열을 상류로 보내면 승인키만 태운다. */
         q: string;
       };
       header?: never;
@@ -593,7 +606,7 @@ export interface operations {
       };
       /**
        * @description 사용자가 고칠 수 있는 검색어 문제 (모두 `retryable=false`). 도로명주소 공식 오류표를 사유별로 옮긴 것이며, `message`가 무엇을 바꿔야 하는지 알려준다. 분류의 단일 출처는 `apps/web/src/lib/data/juso.ts`의 `JusoFailureReason`다.
-       *     | code | 사유(공식 오류메시지) | |---|---| | `INVALID_QUERY` | 서버 자체 검증 — 검색어 없음·두 글자 미만·100자 초과 | | `JUSO_TOO_BROAD` | 주소를 상세히 입력해 주시기 바랍니다(시도명 검색 불가) | | `JUSO_TOO_MANY` | 검색 범위를 초과하였습니다(9천건 초과) | | `JUSO_TOO_SHORT` | 검색어는 두글자 이상 입력되어야 합니다 | | `JUSO_DIGITS_ONLY` | 검색어는 문자와 숫자 같이 입력되어야 합니다 | | `JUSO_LONG_NUMBER` | 검색어에 너무 긴 숫자가 포함되어 있습니다 | | `JUSO_TOO_LONG` | 검색어가 너무 깁니다 | | `JUSO_FORBIDDEN_CHARS` | 특수문자+숫자만 / SQL 예약어·특수문자 | | `JUSO_EMPTY` | 검색어가 입력되지 않았습니다 |
+       *     | code | 사유(공식 오류메시지) | |---|---| | `INVALID_QUERY` | 서버 자체 검증 — 검색어 없음·두 글자 미만 | | `JUSO_TOO_BROAD` | 주소를 상세히 입력해 주시기 바랍니다(시도명 검색 불가) | | `JUSO_TOO_MANY` | 검색 범위를 초과하였습니다(9천건 초과) | | `JUSO_TOO_SHORT` | 검색어는 두글자 이상 입력되어야 합니다 | | `JUSO_DIGITS_ONLY` | 검색어는 문자와 숫자 같이 입력되어야 합니다 | | `JUSO_LONG_NUMBER` | 검색어에 너무 긴 숫자가 포함되어 있습니다 | | `JUSO_TOO_LONG` | 검색어가 너무 깁니다 (공식 오류표 + 서버 자체 검증 40자 초과) | | `JUSO_FORBIDDEN_CHARS` | 특수문자+숫자만 / SQL 예약어·특수문자 | | `JUSO_EMPTY` | 검색어가 입력되지 않았습니다 |
        */
       400: {
         headers: {
@@ -603,6 +616,7 @@ export interface operations {
           "application/json": components["schemas"]["ApiError"];
         };
       };
+      429: components["responses"]["TooManyRequests"];
       /** @description 도로명주소 API 쪽 문제. **`retryable`이 사유에 따라 다르다** — 일시 장애(`JUSO_UNAVAILABLE`)는 `true`지만, 승인키 문제(`JUSO_AUTH`: 승인되지 않은 KEY·개발승인키 만료·비정상 경로)는 다시 눌러도 풀리지 않으므로 `false`다. 클라이언트는 `retryable`을 보고 '다시 시도' 버튼을 결정한다. */
       503: {
         headers: {
@@ -693,6 +707,8 @@ export interface operations {
       query: {
         /** @description KRC 시군 코드 5자리 */
         sigunCode: string;
+        /** @description 사용자가 **저수지 이름으로 직접 고른** 시설코드. 주어지면 그 시설을 대표 저수지로 쓴다(같은 시군 후보일 때만). 없거나 형식이 어긋나면 무시하고 규칙대로 고른다 — 지역 조회 자체는 실패시키지 않는다 */
+        facCode?: string;
       };
       header?: never;
       path?: never;
@@ -793,6 +809,8 @@ export interface operations {
       query: {
         /** @description KRC 시군 코드 5자리 */
         sigunCode: string;
+        /** @description 사용자가 저수지 이름으로 직접 고른 시설코드. **status와 같은 시설을 봐야 한다** — 만수위 참고와 그에 딸린 행동(`hw_check_drain`)이 시설별로 갈리기 때문이다. 없거나 형식이 어긋나면 무시하고 규칙대로 대표지를 고른다. 서버 캐시 키에는 넣지 않는다 — 키는 비식별 팩트(단계·계절·버킷·만수위·행동 ID)로만 만들며, 저수지가 바뀌면 그 팩트가 이미 함께 바뀐다 */
+        facCode?: string;
       };
       header?: never;
       path?: never;
@@ -827,6 +845,7 @@ export interface operations {
           "application/json": components["schemas"]["ApiError"];
         };
       };
+      429: components["responses"]["TooManyRequests"];
       /** @description 상태·예측 조회와 커밋 스냅샷 폴백이 모두 실패함 (retryable=true) */
       503: {
         headers: {

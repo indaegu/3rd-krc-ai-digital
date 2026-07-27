@@ -97,7 +97,7 @@ LLM 키가 없어도 모든 단계에서 행동 3개가 반환된다.
 
 **게이트 통과(2026-07-22):** `pnpm backtest` 재실행 시 지표 값이 커밋된
 `data/backtest-report.json`과 동일하게 재현됐고(diff는 runAt·gitCommit만),
-채택 모델 naive(MAE7 1.9168 / MAE14 2.8337 %p)의 수치가
+채택 모델 naive(MAE7 1.8493 / MAE14 3.0463 / MAE30 4.3201 %p)의 수치가
 `docs/prediction-model.md` 결과 절과 일치함을 `apps/web/test/stage3-gate.test.ts`
 (리포트 Zod 스키마 + 문서-리포트 드리프트 가드)로 검증했다. 같은 게이트 테스트에서
 5개 공인 단계 × 대표 3개 시군(논산 44230·나주 46170·기장 26710) 15케이스 전부

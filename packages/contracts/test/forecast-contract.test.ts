@@ -1,5 +1,6 @@
 import { describe, expect, expectTypeOf, it } from "vitest";
 
+import backtestReport from "../../../data/backtest-report.json" with { type: "json" };
 import forecastFloodDemo from "../examples/forecast.flood-demo.json" with { type: "json" };
 import forecastNormalDemo from "../examples/forecast.normal-demo.json" with { type: "json" };
 import forecastOk from "../examples/forecast.ok.json" with { type: "json" };
@@ -68,12 +69,19 @@ const buildNaiveForecast = (
     high: round2(basisValue + p75),
   }));
 
-/** data/backtest-report.json selectedModel 실측값 */
+/**
+ * 채택 모델 메타데이터. 지표는 리터럴로 적지 않고 커밋된 리포트에서 읽는다 —
+ * 손으로 옮겨 적던 탓에 예시·문서·픽스처가 서로 다른 수치를 갖게 된 전례가 있다.
+ * 예시를 다시 맞추려면 `node scripts/sync-model-metrics.mjs`를 돌린다.
+ */
 const backtestedModel = {
-  name: "naive",
+  // 리포트의 name은 JSON이라 string으로 읽힌다 — 계약의 모델 이름 유니온으로 좁힌다.
+  // 값이 유니온에 없으면 계약 테스트가 곧바로 실패하므로 조용히 넘어가지 않는다.
+  name: backtestReport.selectedModel.name as ForecastResponse["model"]["name"],
   version: "pred-v1",
-  mae7: 1.9168,
-  mae14: 2.8337,
+  mae7: backtestReport.selectedModel.mae7,
+  mae14: backtestReport.selectedModel.mae14,
+  mae30: backtestReport.selectedModel.mae30,
   bandMethod: "residual_quantile_p25_p75_regional",
 } as const;
 
@@ -131,9 +139,19 @@ describe("forecast contract fixtures", () => {
   });
 
   it("keeps model metadata equal to the committed backtest report", () => {
-    // data/backtest-report.json selectedModel: naive, mae7 1.9168, mae14 2.8337
     expect(forecastOk.model).toEqual(backtestedModel);
     expect(forecastStable.model).toEqual(backtestedModel);
+    // 시나리오 예시도 같은 리포트를 따라야 한다 — 여기가 어긋나면 화면마다 다른 오차를 말한다.
+    for (const demo of [
+      forecastWatchDemo,
+      forecastSevereDemo,
+      forecastNormalDemo,
+      forecastFloodDemo,
+    ]) {
+      expect(demo.model.mae7).toBe(backtestReport.selectedModel.mae7);
+      expect(demo.model.mae14).toBe(backtestReport.selectedModel.mae14);
+      expect(demo.model.mae30).toBe(backtestReport.selectedModel.mae30);
+    }
   });
 
   it("keeps forecast band points ordered as low <= avgRatio prediction axis", () => {

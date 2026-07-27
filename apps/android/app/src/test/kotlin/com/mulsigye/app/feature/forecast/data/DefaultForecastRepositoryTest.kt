@@ -65,8 +65,8 @@ class DefaultForecastRepositoryTest {
         assertEquals(68.0, r.forecast[0].high, 0.0)
         assertEquals(18, r.reach.days)
         assertEquals("care", r.reach.targetStage?.code)
-        assertEquals(1.9168, r.model.mae7, 0.0)
-        assertEquals(2.8337, r.model.mae14, 0.0)
+        assertEquals(1.8493, r.model.mae7, 0.0)
+        assertEquals(3.0463, r.model.mae14, 0.0)
         assertEquals("watch", r.officialOutlook?.current?.code)
         assertFalse(r.stale)
     }

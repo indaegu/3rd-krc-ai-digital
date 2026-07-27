@@ -5,6 +5,7 @@ import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import type { ApiError, RegionSearchResponse } from "@mulsigye/contracts";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { createRateLimiter } from "../../../../../lib/api/rate-limit.ts";
 import { createSearchHandler } from "./route";
 
 const jusoFixture = readFileSync(
@@ -329,5 +330,124 @@ describe("GET /api/v1/regions/search — 계약 동기화", () => {
     });
     const response = await handler(searchRequest(QUERY));
     expect(response.status).toBe(200);
+  });
+});
+
+// 관측성: 라우트가 구조화 로그를 남기되 검색어·주소는 절대 넣지 않는다.
+describe("구조화 로그", () => {
+  it("성공 응답에 requestId·경로·원천이 담긴 한 줄을 남긴다", async () => {
+    const fetchImpl = vi.fn(async () =>
+      Promise.resolve(jusoResponse(jusoFixture)),
+    );
+    const handler = createSearchHandler({
+      juso: { fetchImpl, apiKey: "test-key" },
+    });
+
+    const response = await handler(searchRequest(QUERY));
+
+    expect(response.headers.get("X-Request-Id")).toMatch(/^[0-9a-f]{16}$/);
+    const logged = consoleSpies
+      .flatMap((spy) => spy.mock.calls)
+      .map((call) => String(call[0]))
+      .filter((line) => line.includes("api_request"));
+    expect(logged).toHaveLength(1);
+    const record = JSON.parse(logged[0] ?? "") as Record<string, unknown>;
+    expect(record.route).toBe("/api/v1/regions/search");
+    expect(record.status).toBe(200);
+    expect(record.source).toBe("juso");
+    // 경로만 남기고 질의문자열은 남기지 않는다 — 질의문자열에 검색어가 들어 있다.
+    expectNoAddressInLogs();
+  });
+
+  it("입력 오류도 사유 코드만 남기고 검색어는 남기지 않는다", async () => {
+    const handler = createSearchHandler({
+      juso: { fetchImpl: vi.fn(), apiKey: "test-key" },
+    });
+
+    await handler(searchRequest(QUERY.slice(0, 1)));
+
+    const logged = consoleSpies
+      .flatMap((spy) => spy.mock.calls)
+      .map((call) => String(call[0]))
+      .filter((line) => line.includes("api_request"));
+    const record = JSON.parse(logged[0] ?? "") as Record<string, unknown>;
+    expect(record.status).toBe(400);
+    expect(record.outcome).toBe("client_error");
+    expect(record.fallback).toBe("INVALID_QUERY");
+    expectNoAddressInLogs();
+  });
+});
+
+// 로그인이 없는 공개 경로라 누구나 부를 수 있다. 반복 호출로 도로명주소 승인키를
+// 태우면 다른 사용자가 지역을 등록하지 못한다.
+describe("속도 제한", () => {
+  it("상한을 넘으면 상류를 부르지 않고 429로 막는다", async () => {
+    const fetchImpl = vi.fn(async () =>
+      Promise.resolve(jusoResponse(jusoFixture)),
+    );
+    const handler = createSearchHandler({
+      juso: { fetchImpl, apiKey: "test-key" },
+      rateLimiter: createRateLimiter({ limit: 2, windowMs: 60_000 }),
+    });
+
+    await handler(searchRequest(QUERY));
+    await handler(searchRequest(QUERY));
+    const blocked = await handler(searchRequest(QUERY));
+
+    expect(blocked.status).toBe(429);
+    // 상류 호출은 두 번뿐이다 — 막힌 요청은 승인키를 쓰지 않는다.
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+    const body = (await blocked.json()) as ApiError;
+    expect(body.code).toBe("TOO_MANY_REQUESTS");
+    expect(body.retryable).toBe(true);
+    // 실제 시계라 남은 초는 창 안 위치에 따라 다르다 — 유효 범위만 확인한다.
+    const retryAfter = Number(blocked.headers.get("Retry-After"));
+    expect(retryAfter).toBeGreaterThanOrEqual(1);
+    expect(retryAfter).toBeLessThanOrEqual(60);
+  });
+
+  it("검색어가 40자를 넘으면 상류로 보내지 않고 '너무 길다'고 알려준다", async () => {
+    const fetchImpl = vi.fn();
+    const handler = createSearchHandler({
+      juso: { fetchImpl, apiKey: "test-key" },
+    });
+
+    const response = await handler(searchRequest("가".repeat(41)));
+
+    expect(response.status).toBe(400);
+    expect(fetchImpl).not.toHaveBeenCalled();
+    // 너무 짧은 것과 너무 긴 것은 고칠 방법이 반대다. 긴 주소를 넣은 사람에게
+    // "두 글자 이상 넣으라"고 하면 무엇을 바꿔야 할지 알 수 없다.
+    const body = (await response.json()) as ApiError;
+    expect(body.code).toBe("JUSO_TOO_LONG");
+    expect(body.message).toContain("너무 길어요");
+    expect(body.retryable).toBe(false);
+  });
+
+  it("정확히 40자는 통과시킨다(계약 maxLength와 같은 경계)", async () => {
+    const fetchImpl = vi.fn(async () =>
+      Promise.resolve(jusoResponse(jusoFixture)),
+    );
+    const handler = createSearchHandler({
+      juso: { fetchImpl, apiKey: "test-key" },
+    });
+
+    const response = await handler(searchRequest("가".repeat(40)));
+
+    expect(response.status).toBe(200);
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+
+  it("두 글자 미만은 그대로 INVALID_QUERY다", async () => {
+    const fetchImpl = vi.fn();
+    const handler = createSearchHandler({
+      juso: { fetchImpl, apiKey: "test-key" },
+    });
+
+    const response = await handler(searchRequest("가"));
+
+    const body = (await response.json()) as ApiError;
+    expect(body.code).toBe("INVALID_QUERY");
+    expect(fetchImpl).not.toHaveBeenCalled();
   });
 });

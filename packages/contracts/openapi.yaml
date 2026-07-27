@@ -3,6 +3,9 @@ info:
   title: Mulsigye API
   version: 1.0.0
   description: 수신호 웹과 Android가 함께 소비하는 버전 고정 API 계약
+  license:
+    name: MIT
+    identifier: MIT
 paths:
   /api/v1/health:
     get:
@@ -24,6 +27,8 @@ paths:
                     asOf: "2026-07-19T00:00:00.000Z"
                     sources: []
                     stale: false
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         "503":
           description: API 프로세스가 요청을 처리할 수 없음
           content:
@@ -38,10 +43,15 @@ paths:
         - name: q
           in: query
           required: true
-          description: 사용자가 입력한 주소 검색어. 원문은 응답 후 폐기하며 저장하지 않는다.
+          description: >-
+            사용자가 입력한 주소 검색어. 원문은 응답 후 폐기하며 저장하지 않는다.
+            앞뒤 공백을 걷어낸 길이가 2자 미만이면 `INVALID_QUERY`, 40자를 넘으면
+            `JUSO_TOO_LONG`으로 400을 준다. 40자는 도로명주소가 넘길 일이 없는 길이이며,
+            그보다 긴 문자열을 상류로 보내면 승인키만 태운다.
           schema:
             type: string
-            minLength: 1
+            minLength: 2
+            maxLength: 40
       responses:
         "200":
           description: 주소 후보 목록. 후보가 없으면 빈 배열
@@ -69,13 +79,13 @@ paths:
 
             | code | 사유(공식 오류메시지) |
             |---|---|
-            | `INVALID_QUERY` | 서버 자체 검증 — 검색어 없음·두 글자 미만·100자 초과 |
+            | `INVALID_QUERY` | 서버 자체 검증 — 검색어 없음·두 글자 미만 |
             | `JUSO_TOO_BROAD` | 주소를 상세히 입력해 주시기 바랍니다(시도명 검색 불가) |
             | `JUSO_TOO_MANY` | 검색 범위를 초과하였습니다(9천건 초과) |
             | `JUSO_TOO_SHORT` | 검색어는 두글자 이상 입력되어야 합니다 |
             | `JUSO_DIGITS_ONLY` | 검색어는 문자와 숫자 같이 입력되어야 합니다 |
             | `JUSO_LONG_NUMBER` | 검색어에 너무 긴 숫자가 포함되어 있습니다 |
-            | `JUSO_TOO_LONG` | 검색어가 너무 깁니다 |
+            | `JUSO_TOO_LONG` | 검색어가 너무 깁니다 (공식 오류표 + 서버 자체 검증 40자 초과) |
             | `JUSO_FORBIDDEN_CHARS` | 특수문자+숫자만 / SQL 예약어·특수문자 |
             | `JUSO_EMPTY` | 검색어가 입력되지 않았습니다 |
           content:
@@ -95,12 +105,20 @@ paths:
                     code: JUSO_TOO_MANY
                     message: 결과가 너무 많아요. 읍·면·동이나 도로명까지 넣으면 찾을 수 있어요.
                     retryable: false
+                tooLong:
+                  summary: 서버 자체 검증(40자 초과)
+                  value:
+                    code: JUSO_TOO_LONG
+                    message: 검색어가 너무 길어요. 조금 짧게 줄여 주세요.
+                    retryable: false
                 invalidQuery:
                   summary: 서버 자체 검증(두 글자 미만 등)
                   value:
                     code: INVALID_QUERY
                     message: 검색어를 두 글자 이상 입력해 주세요.
                     retryable: false
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         "503":
           description: >-
             도로명주소 API 쪽 문제. **`retryable`이 사유에 따라 다르다** —
@@ -500,8 +518,9 @@ paths:
                     model:
                       name: naive
                       version: pred-v1
-                      mae7: 1.9168
-                      mae14: 2.8337
+                      mae7: 1.8493
+                      mae14: 3.0463
+                      mae30: 4.3201
                       bandMethod: residual_quantile_p25_p75_regional
                     officialOutlook:
                       publishedOn: "2026-07-10"
@@ -661,8 +680,9 @@ paths:
                     model:
                       name: naive
                       version: pred-v1
-                      mae7: 1.9168
-                      mae14: 2.8337
+                      mae7: 1.8493
+                      mae14: 3.0463
+                      mae30: 4.3201
                       bandMethod: residual_quantile_p25_p75_regional
                     officialOutlook: null
                     stageGuide:
@@ -796,6 +816,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         "503":
           description: 상태·예측 조회와 커밋 스냅샷 폴백이 모두 실패함 (retryable=true)
           content:
@@ -862,6 +884,29 @@ paths:
               schema:
                 $ref: "#/components/schemas/ApiError"
 components:
+  responses:
+    TooManyRequests:
+      description: >-
+        같은 클라이언트의 호출이 잦아 잠시 막았음. `Retry-After` 초 뒤에 다시 부르면 된다.
+        외부 승인키·LLM 예산을 태우는 경로를 지키기 위한 것이며, 계수는 서버 인스턴스마다
+        따로 세므로 전역 상한이 아니라 폭주 완충이다. 클라이언트는 `retryable=true`를 보고
+        재시도 안내를 띄운다.
+      headers:
+        Retry-After:
+          description: 다시 시도할 수 있을 때까지 남은 초
+          schema:
+            type: integer
+            minimum: 1
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ApiError"
+          examples:
+            tooManyRequests:
+              value:
+                code: TOO_MANY_REQUESTS
+                message: 요청이 너무 잦아요. 잠시 뒤 다시 시도해 주세요.
+                retryable: true
   schemas:
     HealthResponse:
       type: object

@@ -5,19 +5,22 @@
 // 후보가 없거나 준비되지 않은 지역도 HTTP 200 + prepared=false로 응답한다
 // (클라이언트 카피: "이 지역은 준비 중이에요").
 import type {
-  ApiError,
   RegionResolveRequest,
   RegionResolveResponse,
 } from "@mulsigye/contracts";
 import { z } from "zod";
+import {
+  beginRequest,
+  errorJson,
+  okJson,
+  type RequestContext,
+} from "../../../../../lib/api/respond.ts";
 import {
   resolveRegion,
   type RegionResolverDeps,
 } from "../../../../../lib/data/region-resolver.ts";
 
 export const dynamic = "force-dynamic";
-
-const NO_STORE_HEADERS = { "Cache-Control": "no-store" } as const;
 
 const CODE_PATTERN = /^[0-9]{10}$/;
 
@@ -31,12 +34,8 @@ const bodySchema = z.strictObject({
   facCode: z.string().regex(CODE_PATTERN).optional(),
 });
 
-function errorResponse(status: number, error: ApiError): Response {
-  return Response.json(error, { status, headers: NO_STORE_HEADERS });
-}
-
-function invalidBodyResponse(): Response {
-  return errorResponse(400, {
+function invalidBodyResponse(context: RequestContext): Response {
+  return errorJson(context, 400, {
     code: "INVALID_REGION_CODES",
     message: "선택한 주소 정보가 올바르지 않아요. 주소를 다시 선택해 주세요.",
     retryable: false,
@@ -45,15 +44,16 @@ function invalidBodyResponse(): Response {
 
 export function createResolveHandler(deps: RegionResolverDeps = {}) {
   return async function handleResolve(request: Request): Promise<Response> {
+    const context = beginRequest("/api/v1/regions/resolve");
     let rawBody: unknown;
     try {
       rawBody = await request.json();
     } catch {
-      return invalidBodyResponse();
+      return invalidBodyResponse(context);
     }
     const parsed = bodySchema.safeParse(rawBody);
     if (!parsed.success) {
-      return invalidBodyResponse();
+      return invalidBodyResponse(context);
     }
     // exactOptionalPropertyTypes — 없는 값은 키 자체를 넣지 않는다.
     const resolveRequest: RegionResolveRequest = {
@@ -73,10 +73,10 @@ export function createResolveHandler(deps: RegionResolverDeps = {}) {
         ...resolution,
         asOf: new Date().toISOString(),
       };
-      return Response.json(body, { status: 200, headers: NO_STORE_HEADERS });
+      return okJson(context, body);
     } catch {
       // 커밋 스냅샷 폴백까지 실패한 예외 상황 — 주소·코드를 로그에 남기지 않는다.
-      return errorResponse(503, {
+      return errorJson(context, 503, {
         code: "REGION_RESOLVE_UNAVAILABLE",
         message:
           "지역 정보를 지금 불러오지 못했어요. 잠시 뒤 다시 시도해 주세요.",

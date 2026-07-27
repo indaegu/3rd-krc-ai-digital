@@ -1,8 +1,19 @@
 // GET /api/v1/regions/search — 주소 검색으로 지역 후보 목록 조회.
 // 사용자별 검색이므로 캐시하지 않는다(no-store). 검색어·주소 원문은 응답으로만
 // 흘려보내고 로그·저장소에 남기지 않는다(플랜 Global Constraints).
-import type { ApiError, RegionSearchResponse } from "@mulsigye/contracts";
+import type { RegionSearchResponse } from "@mulsigye/contracts";
 import { z } from "zod";
+import {
+  beginRequest,
+  errorJson,
+  okJson,
+  tooManyRequestsJson,
+} from "../../../../../lib/api/respond.ts";
+import {
+  clientKey,
+  createRateLimiter,
+  type RateLimiter,
+} from "../../../../../lib/api/rate-limit.ts";
 import {
   searchJusoAddresses,
   type JusoDeps,
@@ -11,17 +22,27 @@ import {
 
 export const dynamic = "force-dynamic";
 
-const NO_STORE_HEADERS = { "Cache-Control": "no-store" } as const;
+// 검색어 상한을 100 → 40으로 줄였다. 도로명주소는 40자를 넘길 일이 없고, 긴 문자열을
+// 그대로 상류로 보내면 승인키만 태운다. 계약(openapi.yaml q 파라미터)에도 같은 값을 적었다.
+const MAX_QUERY_LENGTH = 40;
+const querySchema = z.string().trim().min(2).max(MAX_QUERY_LENGTH);
 
-const querySchema = z.string().trim().min(2).max(100);
+/**
+ * 한 사람이 1분에 부를 수 있는 횟수. 디바운스(300ms) 뒤에도 한 번의 검색 세션에서
+ * 10~20회면 충분하므로 30회면 정상 사용을 막지 않는다.
+ */
+const SEARCH_LIMIT_PER_MINUTE = 30;
+
+const defaultLimiter = createRateLimiter({
+  limit: SEARCH_LIMIT_PER_MINUTE,
+  windowMs: 60_000,
+});
 
 type SearchHandlerDeps = {
   juso?: JusoDeps;
+  /** 테스트에서 갈아 끼운다. 기본은 모듈 수명 동안 유지되는 인스턴스별 계수기다. */
+  rateLimiter?: RateLimiter;
 };
-
-function errorResponse(status: number, error: ApiError): Response {
-  return Response.json(error, { status, headers: NO_STORE_HEADERS });
-}
 
 /**
  * 도로명주소 실패 사유 → 사용자 안내. 종전에는 모든 실패가 하나의 503 "잠시 어려워요"로
@@ -109,10 +130,30 @@ const FAILURE_RESPONSE: Record<
 
 export function createSearchHandler(deps: SearchHandlerDeps = {}) {
   return async function handleSearch(request: Request): Promise<Response> {
+    const context = beginRequest("/api/v1/regions/search");
+
+    // 승인키를 태우는 상류 호출 앞에서 먼저 막는다.
+    const verdict = (deps.rateLimiter ?? defaultLimiter).check(
+      clientKey(request),
+    );
+    if (!verdict.allowed) {
+      return tooManyRequestsJson(context, verdict.retryAfterSeconds);
+    }
+
     const rawQuery = new URL(request.url).searchParams.get("q") ?? "";
     const parsedQuery = querySchema.safeParse(rawQuery);
     if (!parsedQuery.success) {
-      return errorResponse(400, {
+      // 너무 짧은 것과 너무 긴 것은 고칠 방법이 반대다. 둘을 한 문구로 뭉개면
+      // 긴 주소를 넣은 사람에게 "두 글자 이상 넣으라"는 엉뚱한 안내가 나간다.
+      if (rawQuery.trim().length > MAX_QUERY_LENGTH) {
+        const tooLong = FAILURE_RESPONSE.too_long;
+        return errorJson(context, tooLong.status, {
+          code: tooLong.code,
+          message: tooLong.message,
+          retryable: tooLong.retryable,
+        });
+      }
+      return errorJson(context, 400, {
         code: "INVALID_QUERY",
         message: "검색어를 두 글자 이상 입력해 주세요.",
         retryable: false,
@@ -122,7 +163,7 @@ export function createSearchHandler(deps: SearchHandlerDeps = {}) {
     const result = await searchJusoAddresses(parsedQuery.data, deps.juso);
     if (!result.ok) {
       const mapped = FAILURE_RESPONSE[result.reason];
-      return errorResponse(mapped.status, {
+      return errorJson(context, mapped.status, {
         code: mapped.code,
         message: mapped.message,
         retryable: mapped.retryable,
@@ -136,7 +177,7 @@ export function createSearchHandler(deps: SearchHandlerDeps = {}) {
       sources: ["도로명주소 API"],
       stale: false,
     };
-    return Response.json(body, { status: 200, headers: NO_STORE_HEADERS });
+    return okJson(context, body);
   };
 }
 
