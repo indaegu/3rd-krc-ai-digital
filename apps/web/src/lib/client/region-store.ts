@@ -209,6 +209,40 @@ export function removeRegion(sigunCode: string): RegionStore {
   return store;
 }
 
+/**
+ * 여러 지역을 한 번에 삭제한다(관리 모드의 체크박스 다중 선택).
+ *
+ * 한 건씩 removeRegion을 반복하면 저장·로드가 그만큼 반복되고, 중간 상태에서 선택
+ * 인덱스가 두 번 보정돼 엉뚱한 지역이 선택될 수 있다. 한 번에 걸러내고 선택은
+ * "어느 지역"을 기준으로 다시 찾는다.
+ */
+export function removeRegions(sigunCodes: readonly string[]): RegionStore {
+  const store = loadRegionStore();
+  const doomed = new Set(sigunCodes);
+  if (doomed.size === 0) {
+    return store;
+  }
+  const selected = store.regions[store.currentIndex];
+  const regions = store.regions.filter(
+    (region) => !doomed.has(region.sigunCode),
+  );
+  if (regions.length === store.regions.length) {
+    return store;
+  }
+  // 보던 지역이 남아 있으면 계속 그 지역을 본다. 사라졌으면 맨 위(기본 주소지)로 간다.
+  const keptIndex =
+    selected === undefined
+      ? 0
+      : regions.findIndex((region) => region.sigunCode === selected.sigunCode);
+  const next: RegionStore = {
+    ...store,
+    regions,
+    currentIndex: clampIndex(keptIndex < 0 ? 0 : keptIndex, regions.length),
+  };
+  saveRegionStore(next);
+  return next;
+}
+
 export function selectRegion(index: number): RegionStore {
   const store = loadRegionStore();
   store.currentIndex = clampIndex(index, store.regions.length);

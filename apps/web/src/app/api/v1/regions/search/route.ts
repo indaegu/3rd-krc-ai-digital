@@ -23,8 +23,9 @@ import {
 export const dynamic = "force-dynamic";
 
 // 검색어 상한을 100 → 40으로 줄였다. 도로명주소는 40자를 넘길 일이 없고, 긴 문자열을
-// 그대로 상류로 보내면 승인키만 태운다.
-const querySchema = z.string().trim().min(2).max(40);
+// 그대로 상류로 보내면 승인키만 태운다. 계약(openapi.yaml q 파라미터)에도 같은 값을 적었다.
+const MAX_QUERY_LENGTH = 40;
+const querySchema = z.string().trim().min(2).max(MAX_QUERY_LENGTH);
 
 /**
  * 한 사람이 1분에 부를 수 있는 횟수. 디바운스(300ms) 뒤에도 한 번의 검색 세션에서
@@ -142,6 +143,16 @@ export function createSearchHandler(deps: SearchHandlerDeps = {}) {
     const rawQuery = new URL(request.url).searchParams.get("q") ?? "";
     const parsedQuery = querySchema.safeParse(rawQuery);
     if (!parsedQuery.success) {
+      // 너무 짧은 것과 너무 긴 것은 고칠 방법이 반대다. 둘을 한 문구로 뭉개면
+      // 긴 주소를 넣은 사람에게 "두 글자 이상 넣으라"는 엉뚱한 안내가 나간다.
+      if (rawQuery.trim().length > MAX_QUERY_LENGTH) {
+        const tooLong = FAILURE_RESPONSE.too_long;
+        return errorJson(context, tooLong.status, {
+          code: tooLong.code,
+          message: tooLong.message,
+          retryable: tooLong.retryable,
+        });
+      }
       return errorJson(context, 400, {
         code: "INVALID_QUERY",
         message: "검색어를 두 글자 이상 입력해 주세요.",

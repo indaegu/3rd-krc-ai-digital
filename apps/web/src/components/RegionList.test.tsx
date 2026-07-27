@@ -333,3 +333,100 @@ describe("RegionList 관리 모드", () => {
     expect(readStore().currentIndex).toBe(0);
   });
 });
+
+// product.md #3b: 관리 모드에서 체크박스로 여러 곳을 골라 한 번에 지운다.
+// 한 줄씩 열고 확인하기를 반복하면 지역을 여럿 등록한 사용자가 정리를 포기한다.
+describe("RegionList 다중 선택 삭제", () => {
+  it("일반 모드에는 체크박스가 없다", async () => {
+    seedStore([REGION_A, REGION_B], 0);
+    stubStatusFetch();
+
+    render(<RegionList />);
+    await screen.findByRole("button", { name: /탑정/ });
+
+    expect(screen.queryAllByRole("checkbox")).toHaveLength(0);
+  });
+
+  it("고른 것이 없으면 '고른 지역 지우기'를 누를 수 없다", async () => {
+    seedStore([REGION_A, REGION_B], 0);
+    stubStatusFetch();
+
+    render(<RegionList />);
+    await enterManageMode();
+
+    expect(
+      screen.getByRole("button", { name: "고른 지역 지우기" }),
+    ).toBeDisabled();
+  });
+
+  it("여러 곳을 골라 한 번의 확인으로 지운다", async () => {
+    seedStore([REGION_A, REGION_B], 0);
+    stubStatusFetch();
+
+    render(<RegionList />);
+    await enterManageMode();
+
+    const boxes = screen.getAllByRole("checkbox");
+    fireEvent.click(boxes[0] as HTMLElement);
+    fireEvent.click(boxes[1] as HTMLElement);
+    expect(screen.getByText("2곳을 골랐어요.")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "고른 지역 지우기" }));
+    // 무엇이 사라지는지 눈으로 확인하게 한다 — 체크를 잘못 눌렀을 수 있다.
+    expect(screen.getByText("2곳을 지울까요?")).toBeInTheDocument();
+    expect(screen.getByText("논산시, 산청군")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "지우기" }));
+
+    await waitFor(() => expect(readStore().regions).toEqual([]));
+  });
+
+  it("다중 삭제도 확인 전에는 지우지 않는다", async () => {
+    seedStore([REGION_A, REGION_B], 0);
+    stubStatusFetch();
+
+    render(<RegionList />);
+    await enterManageMode();
+
+    fireEvent.click(screen.getAllByRole("checkbox")[0] as HTMLElement);
+    fireEvent.click(screen.getByRole("button", { name: "고른 지역 지우기" }));
+    fireEvent.click(screen.getByRole("button", { name: "그대로 두기" }));
+
+    expect(readStore().regions).toEqual([REGION_A, REGION_B]);
+  });
+
+  it("남은 지역이 있으면 보던 지역을 계속 본다", async () => {
+    seedStore([REGION_A, REGION_B], 1); // 산청을 보고 있다
+    stubStatusFetch();
+
+    render(<RegionList />);
+    await enterManageMode();
+
+    // 논산만 지운다 — 보던 산청은 남는다.
+    fireEvent.click(screen.getAllByRole("checkbox")[0] as HTMLElement);
+    fireEvent.click(screen.getByRole("button", { name: "고른 지역 지우기" }));
+    fireEvent.click(screen.getByRole("button", { name: "지우기" }));
+
+    await waitFor(() => {
+      const stored = readStore();
+      expect(stored.regions).toEqual([REGION_B]);
+      expect(stored.currentIndex).toBe(0);
+    });
+  });
+
+  it("관리 모드를 나가면 골라 둔 선택을 비운다", async () => {
+    seedStore([REGION_A, REGION_B], 0);
+    stubStatusFetch();
+
+    render(<RegionList />);
+    await enterManageMode();
+
+    fireEvent.click(screen.getAllByRole("checkbox")[0] as HTMLElement);
+    fireEvent.click(screen.getByRole("button", { name: "완료" }));
+    await enterManageMode();
+
+    expect(
+      screen.getByRole("button", { name: "고른 지역 지우기" }),
+    ).toBeDisabled();
+  });
+});

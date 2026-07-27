@@ -9,6 +9,9 @@
 //
 // 드래그 대신 위로/아래로 버튼을 쓴다. 드래그는 키보드·스크린리더로 못 하고, 손이 떨리는
 // 사용자에게도 어렵다. 순서 변경의 결과는 드래그와 같다(맨 위가 기본 주소지).
+//
+// 관리 모드에서는 체크박스로 여러 곳을 골라 한 번에 지울 수 있다. 지역을 여럿 등록한
+// 사용자가 정리할 때 한 줄씩 열고 확인하기를 반복하지 않게 한다.
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -16,7 +19,7 @@ import { getStatus } from "../lib/client/api-client";
 import {
   loadRegionStore,
   moveRegion,
-  removeRegion,
+  removeRegions,
   selectRegion,
   setPrimaryRegion,
   type RegionStore,
@@ -45,7 +48,10 @@ export function RegionList({ onStoreChange }: RegionListProps) {
   const [store, setStore] = useState<RegionStore | null>(null);
   const [names, setNames] = useState<Record<string, NameState>>({});
   const [manageMode, setManageMode] = useState(false);
-  const [pendingDelete, setPendingDelete] = useState<string | null>(null);
+  /** 관리 모드에서 체크한 시군 코드. 관리 모드를 나가면 비운다. */
+  const [selected, setSelected] = useState<string[]>([]);
+  /** 확인 시트가 지울 대상. null이면 시트가 닫혀 있다. 한 건도 여러 건도 같은 흐름을 쓴다. */
+  const [pendingDelete, setPendingDelete] = useState<string[] | null>(null);
   const onStoreChangeRef = useRef(onStoreChange);
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // 길게 눌러 관리 모드로 들어간 직후의 click은 선택으로 치지 않는다.
@@ -129,14 +135,28 @@ export function RegionList({ onStoreChange }: RegionListProps) {
     return state.kind === "ready" ? state.sigunName : sigunCode;
   };
 
+  const closeManageMode = () => {
+    setManageMode(false);
+    setSelected([]);
+  };
+
+  const toggleSelection = (sigunCode: string) => {
+    setSelected((prev) =>
+      prev.includes(sigunCode)
+        ? prev.filter((code) => code !== sigunCode)
+        : [...prev, sigunCode],
+    );
+  };
+
   const confirmDelete = () => {
     if (pendingDelete === null) return;
-    const next = removeRegion(pendingDelete);
+    const next = removeRegions(pendingDelete);
+    setSelected((prev) => prev.filter((code) => !pendingDelete.includes(code)));
     setPendingDelete(null);
     applyStore(next);
     // 마지막 한 줄까지 지우면 관리할 것이 없다.
     if (next.regions.length === 0) {
-      setManageMode(false);
+      closeManageMode();
     }
   };
 
@@ -145,17 +165,29 @@ export function RegionList({ onStoreChange }: RegionListProps) {
       {manageMode ? (
         <div className={styles.manageBar}>
           <p className={styles.manageHint} role="status">
-            순서를 바꾸거나 지울 수 있어요.
+            {selected.length === 0
+              ? "순서를 바꾸거나 지울 수 있어요."
+              : `${String(selected.length)}곳을 골랐어요.`}
           </p>
-          <button
-            type="button"
-            className={styles.manageDone}
-            onClick={() => {
-              setManageMode(false);
-            }}
-          >
-            완료
-          </button>
+          <span className={styles.manageActions}>
+            <button
+              type="button"
+              className={styles.manageDelete}
+              disabled={selected.length === 0}
+              onClick={() => {
+                setPendingDelete(selected);
+              }}
+            >
+              고른 지역 지우기
+            </button>
+            <button
+              type="button"
+              className={styles.manageDone}
+              onClick={closeManageMode}
+            >
+              완료
+            </button>
+          </span>
         </div>
       ) : null}
 
@@ -173,6 +205,19 @@ export function RegionList({ onStoreChange }: RegionListProps) {
                 isCurrent ? `${styles.item} ${styles.itemCurrent}` : styles.item
               }
             >
+              {manageMode ? (
+                <label className={styles.checkCell}>
+                  <input
+                    type="checkbox"
+                    className={styles.checkbox}
+                    checked={selected.includes(region.sigunCode)}
+                    onChange={() => {
+                      toggleSelection(region.sigunCode);
+                    }}
+                  />
+                  <span className={styles.srOnlyText}>{displayName} 선택</span>
+                </label>
+              ) : null}
               <button
                 type="button"
                 className={styles.selectButton}
@@ -255,7 +300,7 @@ export function RegionList({ onStoreChange }: RegionListProps) {
                     className={styles.deleteButton}
                     aria-label={`${displayName} 삭제`}
                     onClick={() => {
-                      setPendingDelete(region.sigunCode);
+                      setPendingDelete([region.sigunCode]);
                     }}
                   >
                     <span aria-hidden="true">×</span>
@@ -289,8 +334,16 @@ export function RegionList({ onStoreChange }: RegionListProps) {
           <div className={styles.confirmSheet}>
             {/* 되돌릴 수 없는 삭제라 한 번 묻는다. 잘못 눌러 지운 지역은 주소부터 다시 찾아야 한다. */}
             <h2 className={styles.confirmTitle}>
-              {nameOf(pendingDelete)}을(를) 지울까요?
+              {pendingDelete.length === 1
+                ? `${nameOf(pendingDelete[0] ?? "")}을(를) 지울까요?`
+                : `${String(pendingDelete.length)}곳을 지울까요?`}
             </h2>
+            {pendingDelete.length > 1 ? (
+              // 무엇이 사라지는지 눈으로 확인하게 한다 — 체크를 잘못 눌렀을 수 있다.
+              <p className={styles.confirmList}>
+                {pendingDelete.map((code) => nameOf(code)).join(", ")}
+              </p>
+            ) : null}
             <p className={styles.confirmHint}>
               지우면 이 기기에 남은 지역 정보도 함께 사라져요. 다시 등록하려면
               주소나 저수지 이름으로 찾아야 해요.

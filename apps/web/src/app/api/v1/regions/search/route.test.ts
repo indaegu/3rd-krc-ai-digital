@@ -406,7 +406,7 @@ describe("속도 제한", () => {
     expect(retryAfter).toBeLessThanOrEqual(60);
   });
 
-  it("검색어가 40자를 넘으면 상류로 보내지 않는다", async () => {
+  it("검색어가 40자를 넘으면 상류로 보내지 않고 '너무 길다'고 알려준다", async () => {
     const fetchImpl = vi.fn();
     const handler = createSearchHandler({
       juso: { fetchImpl, apiKey: "test-key" },
@@ -415,6 +415,39 @@ describe("속도 제한", () => {
     const response = await handler(searchRequest("가".repeat(41)));
 
     expect(response.status).toBe(400);
+    expect(fetchImpl).not.toHaveBeenCalled();
+    // 너무 짧은 것과 너무 긴 것은 고칠 방법이 반대다. 긴 주소를 넣은 사람에게
+    // "두 글자 이상 넣으라"고 하면 무엇을 바꿔야 할지 알 수 없다.
+    const body = (await response.json()) as ApiError;
+    expect(body.code).toBe("JUSO_TOO_LONG");
+    expect(body.message).toContain("너무 길어요");
+    expect(body.retryable).toBe(false);
+  });
+
+  it("정확히 40자는 통과시킨다(계약 maxLength와 같은 경계)", async () => {
+    const fetchImpl = vi.fn(async () =>
+      Promise.resolve(jusoResponse(jusoFixture)),
+    );
+    const handler = createSearchHandler({
+      juso: { fetchImpl, apiKey: "test-key" },
+    });
+
+    const response = await handler(searchRequest("가".repeat(40)));
+
+    expect(response.status).toBe(200);
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+
+  it("두 글자 미만은 그대로 INVALID_QUERY다", async () => {
+    const fetchImpl = vi.fn();
+    const handler = createSearchHandler({
+      juso: { fetchImpl, apiKey: "test-key" },
+    });
+
+    const response = await handler(searchRequest("가"));
+
+    const body = (await response.json()) as ApiError;
+    expect(body.code).toBe("INVALID_QUERY");
     expect(fetchImpl).not.toHaveBeenCalled();
   });
 });

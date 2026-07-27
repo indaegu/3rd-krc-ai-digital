@@ -586,7 +586,7 @@ export interface operations {
   searchRegions: {
     parameters: {
       query: {
-        /** @description 사용자가 입력한 주소 검색어. 원문은 응답 후 폐기하며 저장하지 않는다. */
+        /** @description 사용자가 입력한 주소 검색어. 원문은 응답 후 폐기하며 저장하지 않는다. 앞뒤 공백을 걷어낸 길이가 2자 미만이면 `INVALID_QUERY`, 40자를 넘으면 `JUSO_TOO_LONG`으로 400을 준다. 40자는 도로명주소가 넘길 일이 없는 길이이며, 그보다 긴 문자열을 상류로 보내면 승인키만 태운다. */
         q: string;
       };
       header?: never;
@@ -606,7 +606,7 @@ export interface operations {
       };
       /**
        * @description 사용자가 고칠 수 있는 검색어 문제 (모두 `retryable=false`). 도로명주소 공식 오류표를 사유별로 옮긴 것이며, `message`가 무엇을 바꿔야 하는지 알려준다. 분류의 단일 출처는 `apps/web/src/lib/data/juso.ts`의 `JusoFailureReason`다.
-       *     | code | 사유(공식 오류메시지) | |---|---| | `INVALID_QUERY` | 서버 자체 검증 — 검색어 없음·두 글자 미만·100자 초과 | | `JUSO_TOO_BROAD` | 주소를 상세히 입력해 주시기 바랍니다(시도명 검색 불가) | | `JUSO_TOO_MANY` | 검색 범위를 초과하였습니다(9천건 초과) | | `JUSO_TOO_SHORT` | 검색어는 두글자 이상 입력되어야 합니다 | | `JUSO_DIGITS_ONLY` | 검색어는 문자와 숫자 같이 입력되어야 합니다 | | `JUSO_LONG_NUMBER` | 검색어에 너무 긴 숫자가 포함되어 있습니다 | | `JUSO_TOO_LONG` | 검색어가 너무 깁니다 | | `JUSO_FORBIDDEN_CHARS` | 특수문자+숫자만 / SQL 예약어·특수문자 | | `JUSO_EMPTY` | 검색어가 입력되지 않았습니다 |
+       *     | code | 사유(공식 오류메시지) | |---|---| | `INVALID_QUERY` | 서버 자체 검증 — 검색어 없음·두 글자 미만 | | `JUSO_TOO_BROAD` | 주소를 상세히 입력해 주시기 바랍니다(시도명 검색 불가) | | `JUSO_TOO_MANY` | 검색 범위를 초과하였습니다(9천건 초과) | | `JUSO_TOO_SHORT` | 검색어는 두글자 이상 입력되어야 합니다 | | `JUSO_DIGITS_ONLY` | 검색어는 문자와 숫자 같이 입력되어야 합니다 | | `JUSO_LONG_NUMBER` | 검색어에 너무 긴 숫자가 포함되어 있습니다 | | `JUSO_TOO_LONG` | 검색어가 너무 깁니다 (공식 오류표 + 서버 자체 검증 40자 초과) | | `JUSO_FORBIDDEN_CHARS` | 특수문자+숫자만 / SQL 예약어·특수문자 | | `JUSO_EMPTY` | 검색어가 입력되지 않았습니다 |
        */
       400: {
         headers: {

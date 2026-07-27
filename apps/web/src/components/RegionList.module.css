@@ -183,3 +183,62 @@
   font-size: 1.0625rem;
   cursor: pointer;
 }
+
+.manageActions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* 되돌릴 수 없는 동작이라 강조하되, 고른 것이 없으면 눌리지 않게 둔다. */
+.manageDelete {
+  min-height: 44px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: none;
+  color: var(--crit-text);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.manageDelete:disabled {
+  color: var(--ink4);
+  cursor: default;
+}
+
+/* 체크박스 칸 — 보이는 상자는 22px이지만 누를 수 있는 영역은 48px로 넓힌다. */
+.checkCell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 48px;
+  min-height: 48px;
+  cursor: pointer;
+}
+
+.checkbox {
+  width: 22px;
+  height: 22px;
+  accent-color: var(--blue);
+}
+
+.srOnlyText {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.confirmList {
+  margin: 0;
+  color: var(--ink);
+  font-size: 1.0625rem;
+  font-weight: 600;
+  line-height: 1.5;
+}
