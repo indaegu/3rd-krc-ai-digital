@@ -86,4 +86,20 @@ class LastGoodStoreTest {
         assertNull(store.load(LastGoodStore.KIND_STATUS, "44230"))
         assertNull(store.load(LastGoodStore.KIND_FORECAST, "44230"))
     }
+
+    // 폴리시에 "지역을 지우면 기기에 남은 기록이 사라져요"라고 적었다. 저장본도 함께 지워야 한다.
+    @Test
+    fun removeRegionsDropsBothKeyShapes() = runTest {
+        val store = store(InMemoryPreferencesDataStore())
+        store.save(LastGoodStore.KIND_STATUS, "44230:4423010046", "status")
+        store.save(LastGoodStore.KIND_FORECAST, "44230", "forecast")
+        store.save(LastGoodStore.KIND_STATUS, "50130", "other-region")
+
+        store.removeRegions(setOf("44230"))
+
+        assertNull(store.load(LastGoodStore.KIND_STATUS, "44230:4423010046"))
+        assertNull(store.load(LastGoodStore.KIND_FORECAST, "44230"))
+        // 다른 지역은 그대로 남는다.
+        assertEquals("other-region", store.load(LastGoodStore.KIND_STATUS, "50130")?.payload)
+    }
 }

@@ -3,6 +3,7 @@ package com.mulsigye.app.feature.region.presentation
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.mulsigye.app.core.storage.LastGoodStore
 import com.mulsigye.app.core.storage.RegionStore
 import com.mulsigye.app.feature.status.domain.StatusRepository
 import com.mulsigye.app.feature.status.domain.StatusResult
@@ -51,6 +52,8 @@ class RegionListViewModel(
     private val regionStore: RegionStore,
     private val statusRepository: StatusRepository,
     private val dispatcher: CoroutineDispatcher = Dispatchers.IO,
+    /** 오프라인 대비 저장본. 지역을 지울 때 그 지역 값도 함께 지운다(폴리시 약속). */
+    private val lastGoodStore: LastGoodStore? = null,
 ) : ViewModel() {
 
     // 시군 코드 → 이름 표시 상태. 원자적 update만 하므로 병렬 로드에도 안전하다.
@@ -128,7 +131,10 @@ class RegionListViewModel(
     }
 
     fun remove(sigunCode: String) {
-        viewModelScope.launch(dispatcher) { regionStore.removeRegion(sigunCode) }
+        viewModelScope.launch(dispatcher) {
+            regionStore.removeRegion(sigunCode)
+            lastGoodStore?.removeRegions(setOf(sigunCode))
+        }
     }
 
     /** 지역 순서 변경. 관리 모드의 드래그 재정렬·접근성 위/아래 이동에 쓴다. */
@@ -159,17 +165,25 @@ class RegionListViewModel(
         val codes = selected.value
         if (codes.isEmpty()) return
         selected.value = emptySet()
-        viewModelScope.launch(dispatcher) { regionStore.removeRegions(codes) }
+        viewModelScope.launch(dispatcher) {
+            regionStore.removeRegions(codes)
+            lastGoodStore?.removeRegions(codes)
+        }
     }
 
     class Factory(
         private val regionStore: RegionStore,
         private val statusRepository: StatusRepository,
+        private val lastGoodStore: LastGoodStore? = null,
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             require(modelClass.isAssignableFrom(RegionListViewModel::class.java))
-            return RegionListViewModel(regionStore, statusRepository) as T
+            return RegionListViewModel(
+                regionStore,
+                statusRepository,
+                lastGoodStore = lastGoodStore,
+            ) as T
         }
     }
 }

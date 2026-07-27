@@ -93,7 +93,7 @@ export function ConsentSheet({ onConsented }: ConsentSheetProps) {
         동의가 필요해요
       </h2>
       <p className={styles.sub}>
-        주소는 시군구와 대표 저수지를 정한 뒤에는 저장하지 않아요.
+        주소는 시군구와 대표 저수지를 정하는 데에만 쓰고, 정하고 나면 지워요.
       </p>
 
       <button

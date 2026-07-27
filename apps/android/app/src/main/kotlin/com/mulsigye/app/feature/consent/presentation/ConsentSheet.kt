@@ -121,7 +121,7 @@ fun ConsentSheetContent(
         )
         Spacer(Modifier.height(12.dp))
         Text(
-            text = "주소는 시군구와 대표 저수지를 정한 뒤에는 저장하지 않아요.",
+            text = "주소는 시군구와 대표 저수지를 정하는 데에만 쓰고, 정하고 나면 지워요.",
             style = MaterialTheme.typography.bodyLarge,
             color = Ink2,
         )

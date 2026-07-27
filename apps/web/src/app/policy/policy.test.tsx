@@ -48,6 +48,18 @@ describe("폴리시 화면 콘텐츠 가드", () => {
     expect(container.textContent).toMatch(/저장하지 않아요/);
   });
 
+  // 검색어는 GET 질의문자열에 실려 호스팅(Vercel) 접속 기록에 남는다. "어디에도 저장하지
+  // 않아요" 같은 절대 표현으로 되돌아가면 사실과 어긋나므로, 예외 고지를 회귀 가드로 둔다.
+  it("위치·개인정보 폴리시는 호스팅 접속 기록이 남는다는 예외를 밝힌다", () => {
+    for (const Page of [LocationPolicy, PrivacyPolicy]) {
+      const { container } = render(<Page />);
+      expect(container.textContent).toMatch(/접속 기록/);
+      expect(container.textContent).toMatch(/IP 주소/);
+      // 예외를 지우고 다시 절대 표현으로 돌아가는 것을 막는다.
+      expect(container.textContent).not.toMatch(/어디에도 저장하지 않아요/);
+    }
+  });
+
   // 회귀 방지: 상태·예측·코치 조회는 sigunCode를 /api/v1/*로 전송하므로,
   // 정책은 코드 미전송을 잘못 고지하면 안 되고 조회 전송을 밝혀야 한다.
   it("위치·개인정보 폴리시는 지역 코드가 조회에 전송됨을 밝히고 미전송 오고지가 없다", () => {

@@ -53,6 +53,27 @@ class LastGoodStore(
     suspend fun load(kind: String, key: String): LastGoodEntry? =
         decode(dataStore.data.first()[prefsKeyOf(kind)]).firstOrNull { it.key == key }
 
+    /**
+     * 한 지역의 저장본을 모두 지운다. 지역을 삭제하면 그 지역 값도 함께 사라져야 한다 —
+     * 폴리시에 "지역을 지우면 기기에 남은 기록이 사라져요"라고 적어 두었다.
+     *
+     * status는 "시군:시설", forecast는 "시군"을 키로 쓰므로 두 형태를 함께 지운다.
+     */
+    suspend fun removeRegions(sigunCodes: Set<String>) {
+        if (sigunCodes.isEmpty()) return
+        dataStore.edit { prefs ->
+            KINDS.forEach { kind ->
+                val prefsKey = prefsKeyOf(kind)
+                val kept = decode(prefs[prefsKey]).filterNot { entry ->
+                    sigunCodes.any { code ->
+                        entry.key == code || entry.key.startsWith("$code:")
+                    }
+                }
+                prefs[prefsKey] = json.encodeToString(kept)
+            }
+        }
+    }
+
     /** 저장본 전체 삭제(설정의 데이터 초기화에서 쓴다). */
     suspend fun clear() {
         dataStore.edit { prefs ->

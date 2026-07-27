@@ -207,7 +207,11 @@ private fun RegionsRoute(
     onStart: () -> Unit,
 ) {
     val vm: RegionListViewModel = viewModel(
-        factory = RegionListViewModel.Factory(container.regionStore, container.statusRepository),
+        factory = RegionListViewModel.Factory(
+            container.regionStore,
+            container.statusRepository,
+            container.lastGoodStore,
+        ),
     )
     val state by vm.uiState.collectAsStateWithLifecycle()
 
