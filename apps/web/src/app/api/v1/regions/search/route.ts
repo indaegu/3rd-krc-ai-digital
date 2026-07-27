@@ -7,7 +7,13 @@ import {
   beginRequest,
   errorJson,
   okJson,
+  tooManyRequestsJson,
 } from "../../../../../lib/api/respond.ts";
+import {
+  clientKey,
+  createRateLimiter,
+  type RateLimiter,
+} from "../../../../../lib/api/rate-limit.ts";
 import {
   searchJusoAddresses,
   type JusoDeps,
@@ -16,10 +22,25 @@ import {
 
 export const dynamic = "force-dynamic";
 
-const querySchema = z.string().trim().min(2).max(100);
+// 검색어 상한을 100 → 40으로 줄였다. 도로명주소는 40자를 넘길 일이 없고, 긴 문자열을
+// 그대로 상류로 보내면 승인키만 태운다.
+const querySchema = z.string().trim().min(2).max(40);
+
+/**
+ * 한 사람이 1분에 부를 수 있는 횟수. 디바운스(300ms) 뒤에도 한 번의 검색 세션에서
+ * 10~20회면 충분하므로 30회면 정상 사용을 막지 않는다.
+ */
+const SEARCH_LIMIT_PER_MINUTE = 30;
+
+const defaultLimiter = createRateLimiter({
+  limit: SEARCH_LIMIT_PER_MINUTE,
+  windowMs: 60_000,
+});
 
 type SearchHandlerDeps = {
   juso?: JusoDeps;
+  /** 테스트에서 갈아 끼운다. 기본은 모듈 수명 동안 유지되는 인스턴스별 계수기다. */
+  rateLimiter?: RateLimiter;
 };
 
 /**
@@ -109,6 +130,15 @@ const FAILURE_RESPONSE: Record<
 export function createSearchHandler(deps: SearchHandlerDeps = {}) {
   return async function handleSearch(request: Request): Promise<Response> {
     const context = beginRequest("/api/v1/regions/search");
+
+    // 승인키를 태우는 상류 호출 앞에서 먼저 막는다.
+    const verdict = (deps.rateLimiter ?? defaultLimiter).check(
+      clientKey(request),
+    );
+    if (!verdict.allowed) {
+      return tooManyRequestsJson(context, verdict.retryAfterSeconds);
+    }
+
     const rawQuery = new URL(request.url).searchParams.get("q") ?? "";
     const parsedQuery = querySchema.safeParse(rawQuery);
     if (!parsedQuery.success) {

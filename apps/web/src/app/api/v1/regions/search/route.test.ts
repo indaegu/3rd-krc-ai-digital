@@ -5,6 +5,7 @@ import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import type { ApiError, RegionSearchResponse } from "@mulsigye/contracts";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { createRateLimiter } from "../../../../../lib/api/rate-limit.ts";
 import { createSearchHandler } from "./route";
 
 const jusoFixture = readFileSync(
@@ -374,5 +375,46 @@ describe("구조화 로그", () => {
     expect(record.outcome).toBe("client_error");
     expect(record.fallback).toBe("INVALID_QUERY");
     expectNoAddressInLogs();
+  });
+});
+
+// 로그인이 없는 공개 경로라 누구나 부를 수 있다. 반복 호출로 도로명주소 승인키를
+// 태우면 다른 사용자가 지역을 등록하지 못한다.
+describe("속도 제한", () => {
+  it("상한을 넘으면 상류를 부르지 않고 429로 막는다", async () => {
+    const fetchImpl = vi.fn(async () =>
+      Promise.resolve(jusoResponse(jusoFixture)),
+    );
+    const handler = createSearchHandler({
+      juso: { fetchImpl, apiKey: "test-key" },
+      rateLimiter: createRateLimiter({ limit: 2, windowMs: 60_000 }),
+    });
+
+    await handler(searchRequest(QUERY));
+    await handler(searchRequest(QUERY));
+    const blocked = await handler(searchRequest(QUERY));
+
+    expect(blocked.status).toBe(429);
+    // 상류 호출은 두 번뿐이다 — 막힌 요청은 승인키를 쓰지 않는다.
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+    const body = (await blocked.json()) as ApiError;
+    expect(body.code).toBe("TOO_MANY_REQUESTS");
+    expect(body.retryable).toBe(true);
+    // 실제 시계라 남은 초는 창 안 위치에 따라 다르다 — 유효 범위만 확인한다.
+    const retryAfter = Number(blocked.headers.get("Retry-After"));
+    expect(retryAfter).toBeGreaterThanOrEqual(1);
+    expect(retryAfter).toBeLessThanOrEqual(60);
+  });
+
+  it("검색어가 40자를 넘으면 상류로 보내지 않는다", async () => {
+    const fetchImpl = vi.fn();
+    const handler = createSearchHandler({
+      juso: { fetchImpl, apiKey: "test-key" },
+    });
+
+    const response = await handler(searchRequest("가".repeat(41)));
+
+    expect(response.status).toBe(400);
+    expect(fetchImpl).not.toHaveBeenCalled();
   });
 });

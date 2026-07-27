@@ -8,8 +8,14 @@ import {
   beginRequest,
   errorJson,
   okJson,
+  tooManyRequestsJson,
   type RequestContext,
 } from "../../../../lib/api/respond.ts";
+import {
+  clientKey,
+  createRateLimiter,
+  type RateLimiter,
+} from "../../../../lib/api/rate-limit.ts";
 import {
   buildCoach,
   type CoachServiceDeps,
@@ -20,6 +26,21 @@ export const dynamic = "force-dynamic";
 const SIGUN_CODE_PATTERN = /^[0-9]{5}$/;
 const FAC_CODE_PATTERN = /^[0-9]{10}$/;
 
+/**
+ * 한 사람이 1분에 부를 수 있는 횟수. 클라이언트가 이미 캐시하므로 정상 사용은 지역당
+ * 몇 번뿐이다. LLM 예산을 태우는 경로라 일 단위 가드(예산·live miss 상한)와 별개로
+ * 분 단위 폭주를 여기서 먼저 끊는다.
+ */
+const COACH_LIMIT_PER_MINUTE = 20;
+
+const defaultLimiter = createRateLimiter({
+  limit: COACH_LIMIT_PER_MINUTE,
+  windowMs: 60_000,
+});
+
+/** 서비스 의존성에 속도 제한 주입점을 더한다(테스트에서 갈아 끼운다). */
+type CoachHandlerDeps = CoachServiceDeps & { rateLimiter?: RateLimiter };
+
 function unavailableResponse(context: RequestContext): Response {
   return errorJson(context, 503, {
     code: "COACH_UNAVAILABLE",
@@ -28,9 +49,17 @@ function unavailableResponse(context: RequestContext): Response {
   });
 }
 
-export function createCoachHandler(deps: CoachServiceDeps = {}) {
+export function createCoachHandler(deps: CoachHandlerDeps = {}) {
   return async function handleCoach(request: Request): Promise<Response> {
     const context = beginRequest("/api/v1/coach");
+
+    const verdict = (deps.rateLimiter ?? defaultLimiter).check(
+      clientKey(request),
+    );
+    if (!verdict.allowed) {
+      return tooManyRequestsJson(context, verdict.retryAfterSeconds);
+    }
+
     const params = new URL(request.url).searchParams;
     const sigunCode = params.get("sigunCode") ?? "";
     // 선택 저수지. 형식이 어긋나면 오류로 막지 않고 무시한다(코치 조회 자체는 계속돼야 한다).

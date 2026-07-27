@@ -33,11 +33,15 @@ export function beginRequest(route: string): RequestContext {
   return { route, requestId: newRequestId(), startedAt: Date.now() };
 }
 
-function headersFor(context: RequestContext): HeadersInit {
+function headersFor(
+  context: RequestContext,
+  extra: Record<string, string> = {},
+): Record<string, string> {
   return {
     "Cache-Control": NO_STORE,
     // 사용자가 문제를 알려올 때 로그 줄을 찾기 위한 값. 무작위이며 저장하지 않는다.
     "X-Request-Id": context.requestId,
+    ...extra,
   };
 }
 
@@ -82,7 +86,31 @@ export function errorJson(
   context: RequestContext,
   status: number,
   error: ApiError,
+  extraHeaders: Record<string, string> = {},
 ): Response {
   emit(context, status, { fallback: error.code });
-  return Response.json(error, { status, headers: headersFor(context) });
+  return Response.json(error, {
+    status,
+    headers: headersFor(context, extraHeaders),
+  });
+}
+
+/**
+ * 속도 제한 초과 응답. 다시 시도할 수 있는 상태이므로 retryable=true이고,
+ * 언제 다시 시도하면 되는지 Retry-After로 알려 준다.
+ */
+export function tooManyRequestsJson(
+  context: RequestContext,
+  retryAfterSeconds: number,
+): Response {
+  return errorJson(
+    context,
+    429,
+    {
+      code: "TOO_MANY_REQUESTS",
+      message: "요청이 너무 잦아요. 잠시 뒤 다시 시도해 주세요.",
+      retryable: true,
+    },
+    { "Retry-After": String(retryAfterSeconds) },
+  );
 }
