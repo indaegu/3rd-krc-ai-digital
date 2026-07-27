@@ -1,0 +1,13 @@
+# OpenAPI lint 설정.
+#
+# recommended-strict는 recommended의 경고를 전부 오류로 올린다. 경고를 경고로 두면
+# "2 warnings"가 늘 초록불 옆에 붙어 있다가 아무도 보지 않게 된다 — 계약 문서는
+# 클라이언트 두 개가 함께 읽는 단일 출처라 흐려지면 곤란하다.
+extends:
+  - recommended-strict
+
+rules:
+  # 서버 목록은 배포 환경마다 달라 계약에 박지 않는다(웹·Android가 각자 주입한다).
+  no-empty-servers: off
+  # 인증이 없는 공개 API다. 로그인·토큰을 만들지 않는 것이 제품 결정이다.
+  security-defined: off

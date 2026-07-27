@@ -3,6 +3,9 @@ info:
   title: Mulsigye API
   version: 1.0.0
   description: 수신호 웹과 Android가 함께 소비하는 버전 고정 API 계약
+  license:
+    name: MIT
+    identifier: MIT
 paths:
   /api/v1/health:
     get:
@@ -24,6 +27,8 @@ paths:
                     asOf: "2026-07-19T00:00:00.000Z"
                     sources: []
                     stale: false
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         "503":
           description: API 프로세스가 요청을 처리할 수 없음
           content:
@@ -101,6 +106,8 @@ paths:
                     code: INVALID_QUERY
                     message: 검색어를 두 글자 이상 입력해 주세요.
                     retryable: false
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         "503":
           description: >-
             도로명주소 API 쪽 문제. **`retryable`이 사유에 따라 다르다** —
@@ -798,6 +805,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         "503":
           description: 상태·예측 조회와 커밋 스냅샷 폴백이 모두 실패함 (retryable=true)
           content:
@@ -864,6 +873,29 @@ paths:
               schema:
                 $ref: "#/components/schemas/ApiError"
 components:
+  responses:
+    TooManyRequests:
+      description: >-
+        같은 클라이언트의 호출이 잦아 잠시 막았음. `Retry-After` 초 뒤에 다시 부르면 된다.
+        외부 승인키·LLM 예산을 태우는 경로를 지키기 위한 것이며, 계수는 서버 인스턴스마다
+        따로 세므로 전역 상한이 아니라 폭주 완충이다. 클라이언트는 `retryable=true`를 보고
+        재시도 안내를 띄운다.
+      headers:
+        Retry-After:
+          description: 다시 시도할 수 있을 때까지 남은 초
+          schema:
+            type: integer
+            minimum: 1
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ApiError"
+          examples:
+            tooManyRequests:
+              value:
+                code: TOO_MANY_REQUESTS
+                message: 요청이 너무 잦아요. 잠시 뒤 다시 시도해 주세요.
+                retryable: true
   schemas:
     HealthResponse:
       type: object
