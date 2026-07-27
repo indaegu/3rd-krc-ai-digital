@@ -2,6 +2,7 @@ package com.mulsigye.app.core.ui
 
 import java.time.Instant
 import java.time.ZoneId
+import java.time.temporal.ChronoUnit
 
 /**
  * 기준 시각 스탬프 문안. 웹 `formatAsOfStamp`/`stampText` 규칙과 동일하다.
@@ -29,4 +30,22 @@ object AsOfStamp {
 
     /** stale일 때의 지연 안내. observedOn은 관측 기준일(YYYY-MM-DD). */
     fun delayedText(observedOn: String): String = "$observedOn 기준 · 지연된 정보예요"
+
+    /**
+     * 통신이 끊겨 저장해 둔 값을 보여줄 때의 안내. cachedAt은 그 값을 받은 시각이다.
+     *
+     * "몇 시 기준"만 쓰면 방금 받은 값과 구분되지 않는다. 오늘 받은 값이면 시각을,
+     * 하루 이상 지났으면 며칠 전인지를 앞세워 얼마나 오래된 정보인지 바로 알게 한다.
+     */
+    fun offlineText(cachedAt: Instant, now: Instant): String {
+        val cachedDay = cachedAt.atZone(KST).toLocalDate()
+        val today = now.atZone(KST).toLocalDate()
+        val days = ChronoUnit.DAYS.between(cachedDay, today)
+        val whenText = when {
+            days <= 0L -> freshText(cachedAt).removeSuffix(" 기준")
+            days == 1L -> "어제"
+            else -> "${days}일 전"
+        }
+        return "$whenText 받은 정보예요 · 연결되면 새로 받아요"
+    }
 }

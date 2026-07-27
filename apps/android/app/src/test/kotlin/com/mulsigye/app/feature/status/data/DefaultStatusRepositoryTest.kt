@@ -1,7 +1,9 @@
 package com.mulsigye.app.feature.status.data
 
 import com.mulsigye.app.core.network.ApiClient
+import com.mulsigye.app.core.storage.LastGoodStore
 import com.mulsigye.app.core.testing.Fixtures
+import com.mulsigye.app.core.testing.InMemoryPreferencesDataStore
 import com.mulsigye.app.feature.status.data.remote.StatusApi
 import com.mulsigye.app.feature.status.domain.StatusResult
 import kotlinx.coroutines.test.runTest
@@ -16,9 +18,13 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
+/** 저장 시각 고정값(2026-07-20 09:00 KST). 오프라인 복구 여부를 결정적으로 판별한다. */
+private const val CACHED_AT_MILLIS = 1_753_056_000_000L
+
 class DefaultStatusRepositoryTest {
     private lateinit var server: MockWebServer
     private lateinit var repository: DefaultStatusRepository
+    private lateinit var lastGood: LastGoodStore
 
     @Before
     fun setUp() {
@@ -30,7 +36,8 @@ class DefaultStatusRepositoryTest {
             explicitNulls = false
         }
         val api = ApiClient.create(server.url("/").toString(), json).create(StatusApi::class.java)
-        repository = DefaultStatusRepository(api, json)
+        lastGood = LastGoodStore(InMemoryPreferencesDataStore(), clock = { CACHED_AT_MILLIS })
+        repository = DefaultStatusRepository(api, json, lastGood)
     }
 
     @After
@@ -189,4 +196,69 @@ class DefaultStatusRepositoryTest {
         assertEquals("NETWORK_UNAVAILABLE", r.code)
         assertTrue(r.retryable)
     }
+
+    // 저수지 옆은 음영지역이 많다. 통신이 끊겼다고 화면 전체가 오류로 바뀌면
+    // 직전에 보던 저수율조차 확인할 수 없다. 저장본이 있으면 그 값을 돌려준다.
+    @Test
+    fun fallsBackToLastGoodWhenNetworkFails() = runTest {
+        enqueue(200, Fixtures.read("status.ok.json"))
+        repository.load("44230")
+
+        server.shutdown()
+        val r = repository.load("44230") as StatusResult.Success
+
+        assertEquals(93.5, r.region.avgRatio, 0.0)
+        // 오프라인 안내를 띄울 근거 — 방금 받은 값과 반드시 구분된다.
+        assertEquals(CACHED_AT_MILLIS, r.cachedAt?.toEpochMilli())
+    }
+
+    @Test
+    fun freshResponseHasNoCachedAt() = runTest {
+        enqueue(200, Fixtures.read("status.ok.json"))
+        val r = repository.load("44230") as StatusResult.Success
+        assertNull(r.cachedAt)
+    }
+
+    @Test
+    fun fallsBackToLastGoodOnRetryableServerError() = runTest {
+        enqueue(200, Fixtures.read("status.ok.json"))
+        repository.load("44230")
+
+        enqueue(503, """{"code":"SERVICE_UNAVAILABLE","message":"잠시 후 다시 시도해요.","retryable":true}""")
+        val r = repository.load("44230") as StatusResult.Success
+
+        assertEquals(CACHED_AT_MILLIS, r.cachedAt?.toEpochMilli())
+    }
+
+    // 준비되지 않은 지역 같은 확정된 답(retryable=false)은 오래된 캐시로 덮지 않는다.
+    @Test
+    fun keepsNonRetryableFailureEvenWithCache() = runTest {
+        enqueue(200, Fixtures.read("status.ok.json"))
+        repository.load("44230")
+
+        enqueue(404, """{"code":"NOT_FOUND","message":"준비 중인 지역이에요.","retryable":false}""")
+        val r = repository.load("44230")
+
+        assertTrue(r is StatusResult.Failure)
+    }
+
+    // 사용자가 고른 저수지가 다르면 다른 캐시다 — 남의 저수지 값을 보여주면 안 된다.
+    @Test
+    fun cacheIsKeyedByRegionAndFacility() = runTest {
+        enqueue(200, Fixtures.read("status.ok.json"))
+        repository.load("44230")
+
+        server.shutdown()
+        val r = repository.load("44230", "4423010046")
+
+        assertTrue(r is StatusResult.Failure)
+    }
+
+    @Test
+    fun noCacheYieldsOriginalFailure() = runTest {
+        server.shutdown()
+        val r = repository.load("44230") as StatusResult.Failure
+        assertEquals("NETWORK_UNAVAILABLE", r.code)
+    }
+
 }

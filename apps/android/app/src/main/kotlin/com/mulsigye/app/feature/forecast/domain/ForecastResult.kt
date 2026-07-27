@@ -93,6 +93,11 @@ sealed interface ForecastResult {
         val asOf: Instant,
         val sources: List<String>,
         val stale: Boolean,
+        /**
+         * 통신이 끊겨 기기에 저장해 둔 마지막 정상 응답을 되돌려준 경우, 그 응답을 받은 시각.
+         * 방금 서버에서 받은 값이면 null이다. 화면은 이 값이 있을 때만 오프라인 안내를 띄운다.
+         */
+        val cachedAt: Instant? = null,
     ) : ForecastResult
 
     data class Failure(

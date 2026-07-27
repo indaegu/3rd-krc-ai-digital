@@ -3,6 +3,7 @@ package com.mulsigye.app.app
 import android.content.Context
 import androidx.datastore.preferences.preferencesDataStore
 import com.mulsigye.app.core.network.ApiClient
+import com.mulsigye.app.core.storage.LastGoodStore
 import com.mulsigye.app.core.storage.NotificationHistoryStore
 import com.mulsigye.app.core.storage.NotificationPrefsStore
 import com.mulsigye.app.core.storage.RegionStore
@@ -30,6 +31,9 @@ private val Context.regionDataStore by preferencesDataStore(name = "mulsigye_reg
 // 옵트인 로컬 알림 설정 전용 DataStore. RegionStore와 분리한다(지역 페이로드에 섞지 않는다).
 private val Context.notificationDataStore by preferencesDataStore(name = "mulsigye_notification_prefs")
 
+// 마지막 정상 응답 전용 DataStore. 지역·알림 설정과 섞지 않는다 — 언제든 통째로 비울 수 있어야 한다.
+private val Context.lastGoodDataStore by preferencesDataStore(name = "mulsigye_last_good")
+
 class AppContainer(
     context: Context,
     apiBaseUrl: String,
@@ -52,14 +56,17 @@ class AppContainer(
     val notificationHistoryStore: NotificationHistoryStore =
         NotificationHistoryStore(context.applicationContext.notificationDataStore)
 
+    // 통신이 끊겼을 때 직전 화면을 유지하기 위한 저장본. 공개 데이터 응답만 담는다.
+    val lastGoodStore: LastGoodStore = LastGoodStore(context.applicationContext.lastGoodDataStore)
+
     val regionRepository: RegionRepository =
         DefaultRegionRepository(retrofit.create(RegionApi::class.java), json)
 
     val statusRepository: StatusRepository =
-        DefaultStatusRepository(retrofit.create(StatusApi::class.java), json)
+        DefaultStatusRepository(retrofit.create(StatusApi::class.java), json, lastGoodStore)
 
     val forecastRepository: ForecastRepository =
-        DefaultForecastRepository(retrofit.create(ForecastApi::class.java), json)
+        DefaultForecastRepository(retrofit.create(ForecastApi::class.java), json, lastGoodStore)
 
     // 코치 캐시는 AppContainer(앱 수명)가 들고 있어 지역별 CoachViewModel 재생성에도 살아남는다.
     // 반복 진입 때 /api/v1/coach를 다시 부르지 않고 30분 TTL 안에서 성공 응답을 재사용한다.

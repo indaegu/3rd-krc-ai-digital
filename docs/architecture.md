@@ -121,6 +121,11 @@ apps/web browser UI + apps/android
 
 - 사용자 주소, 등록 지역, 동의 내역은 Supabase에 저장하지 않는다.
 - 웹은 `localStorage`, Android는 DataStore에 지역 코드·대표 시설 코드·동의 버전만 저장한다.
+- Android는 이와 별도로 `mulsigye_last_good` DataStore에 status·forecast의 마지막 성공 응답을
+  종류별 최대 8건 남긴다(`LastGoodStore`). 저수지 주변은 음영지역이 많아 통신이 끊기면
+  직전 화면조차 볼 수 없기 때문이다. 담기는 것은 공개 데이터 응답 원문뿐이며 주소·검색어·좌표는
+  들어가지 않는다. 재시도 가능한 실패(통신 두절·5xx)에서만 되돌려주고, 화면에는 오프라인 안내와
+  "언제 받은 값인지"를 함께 표시한다. 준비되지 않은 지역 같은 확정된 답은 캐시로 덮지 않는다.
 - Next.js 서버만 `SUPABASE_SECRET_KEY`로 접근한다. 클라이언트 번들에는 Supabase 키를 넣지 않는다.
 - 마이그레이션은 `infra/supabase/migrations/`에 추가하며 적용 순서를 되돌려 쓰지 않는다.
 
