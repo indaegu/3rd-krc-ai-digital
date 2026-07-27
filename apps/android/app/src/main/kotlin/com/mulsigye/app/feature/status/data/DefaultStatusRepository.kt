@@ -31,11 +31,15 @@ class DefaultStatusRepository(
     private val lastGood: LastGoodStore? = null,
 ) : StatusRepository {
 
-    override suspend fun load(sigunCode: String, facCode: String?): StatusResult {
+    override suspend fun load(
+        sigunCode: String,
+        facCode: String?,
+        allowCached: Boolean,
+    ): StatusResult {
         val result = fetch(sigunCode, facCode)
         // 통신 두절·서버 일시 장애처럼 다시 시도할 만한 실패에서만 저장본으로 되돌린다.
         // 준비되지 않은 지역 같은 확정된 답(retryable=false)은 캐시로 덮지 않는다.
-        if (result is StatusResult.Failure && result.retryable) {
+        if (allowCached && result is StatusResult.Failure && result.retryable) {
             cached(cacheKey(sigunCode, facCode))?.let { return it }
         }
         return result
@@ -49,14 +53,9 @@ class DefaultStatusRepository(
                 if (body.schemaVersion != "1") {
                     invalid()
                 } else {
-                    val success = body.toDomain(cachedAt = null)
                     // 매핑까지 성공한 응답만 남긴다 — 되살릴 수 없는 원문은 저장할 이유가 없다.
-                    lastGood?.save(
-                        kind = LastGoodStore.KIND_STATUS,
-                        key = cacheKey(sigunCode, facCode),
-                        payload = json.encodeToString(body),
-                    )
-                    success
+                    saveQuietly(cacheKey(sigunCode, facCode), body)
+                    body.toDomain(cachedAt = null)
                 }
             } else {
                 response.toApiFailure(json).let {
@@ -71,9 +70,34 @@ class DefaultStatusRepository(
             invalid()
         }
 
+    /**
+     * 저장에 실패해도 방금 받은 정상 응답을 버리지 않는다.
+     *
+     * DataStore 쓰기는 저장소가 가득 찼거나 파일이 잠겼을 때 IOException을 던진다. 이 예외가
+     * 위쪽 try로 새면 성공한 HTTP 응답이 "인터넷 연결을 확인해 주세요"로 뒤바뀐다.
+     */
+    private suspend fun saveQuietly(key: String, body: StatusResponseDto) {
+        try {
+            lastGood?.save(
+                kind = LastGoodStore.KIND_STATUS,
+                key = key,
+                payload = json.encodeToString(body),
+            )
+        } catch (_: IOException) {
+            // 다음 성공 응답 때 다시 남긴다.
+        } catch (_: SerializationException) {
+            // 직렬화할 수 없는 응답은 되살릴 수도 없으므로 저장을 건너뛴다.
+        }
+    }
+
     /** 저장본 → 도메인. 저장 당시 형식이 지금과 달라 매핑이 깨지면 캐시 없음으로 본다. */
     private suspend fun cached(key: String): StatusResult.Success? {
-        val entry = lastGood?.load(LastGoodStore.KIND_STATUS, key) ?: return null
+        // 읽기 실패도 "캐시 없음"이다 — 저장소 오류로 화면이 죽으면 안 된다.
+        val entry = try {
+            lastGood?.load(LastGoodStore.KIND_STATUS, key)
+        } catch (_: IOException) {
+            null
+        } ?: return null
         return runCatching {
             json.decodeFromString<StatusResponseDto>(entry.payload)
                 .takeIf { it.schemaVersion == "1" }

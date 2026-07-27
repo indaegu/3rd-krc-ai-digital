@@ -37,8 +37,16 @@ class WaterCheckWorker(
 
         // 저장된 선택 저수지를 함께 넘긴다 — 넘기지 않으면 알림이 메인 화면과 다른 저수지를
         // 말할 수 있다(주소 좁히기·이름 검색으로 고른 시설이 시군 기본값과 다를 수 있다).
+        //
+        // allowCached=false: 오프라인 저장본으로는 알림을 보내지 않는다. 며칠 전 물 사정을
+        // 오늘 일처럼 알리게 되고, 아래에서 단계 기준선까지 덮어써 나중에 실제로 나빠졌을 때의
+        // 알림을 삼켜 버린다. 화면은 저장본을 보여줘도 되지만 알림은 그렇지 않다.
         val status = when (
-            val result = container.statusRepository.load(region.sigunCode, region.facCode)
+            val result = container.statusRepository.load(
+                region.sigunCode,
+                region.facCode,
+                allowCached = false,
+            )
         ) {
             is StatusResult.Success -> result
             is StatusResult.Failure ->

@@ -7,6 +7,7 @@ import com.mulsigye.app.core.storage.LastGoodStore
 import com.mulsigye.app.core.storage.RegionStore
 import com.mulsigye.app.feature.status.domain.StatusRepository
 import com.mulsigye.app.feature.status.domain.StatusResult
+import java.io.IOException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
@@ -133,7 +134,7 @@ class RegionListViewModel(
     fun remove(sigunCode: String) {
         viewModelScope.launch(dispatcher) {
             regionStore.removeRegion(sigunCode)
-            lastGoodStore?.removeRegions(setOf(sigunCode))
+            clearCached(setOf(sigunCode))
         }
     }
 
@@ -167,7 +168,21 @@ class RegionListViewModel(
         selected.value = emptySet()
         viewModelScope.launch(dispatcher) {
             regionStore.removeRegions(codes)
+            clearCached(codes)
+        }
+    }
+
+    /**
+     * 지운 지역의 오프라인 저장본을 함께 정리한다.
+     *
+     * 저장소 쓰기 실패로 화면이 죽으면 안 된다 — 지역 삭제 자체는 이미 끝났고, 남은 저장본은
+     * 다음 삭제나 앱 데이터 초기화 때 정리된다.
+     */
+    private suspend fun clearCached(codes: Set<String>) {
+        try {
             lastGoodStore?.removeRegions(codes)
+        } catch (_: IOException) {
+            // 저장본 정리는 최선 노력이다.
         }
     }
 

@@ -2,6 +2,7 @@ package com.mulsigye.app.feature.forecast.data
 
 import com.mulsigye.app.core.network.ApiClient
 import com.mulsigye.app.core.storage.LastGoodStore
+import com.mulsigye.app.core.testing.FailingPreferencesDataStore
 import com.mulsigye.app.core.testing.Fixtures
 import com.mulsigye.app.core.testing.InMemoryPreferencesDataStore
 import com.mulsigye.app.feature.forecast.data.remote.ForecastApi
@@ -134,6 +135,38 @@ class DefaultForecastRepositoryTest {
     fun noCacheYieldsOriginalFailure() = runTest {
         server.shutdown()
         val r = repository.load("44230") as ForecastResult.Failure
+        assertEquals("NETWORK_UNAVAILABLE", r.code)
+    }
+
+
+    // 저장소 쓰기 실패가 정상 응답을 버리면 안 된다(status와 같은 규칙).
+    @Test
+    fun storageFailureDoesNotDiscardFreshResponse() = runTest {
+        val json = Json {
+            ignoreUnknownKeys = false
+            explicitNulls = false
+        }
+        val api = ApiClient.create(server.url("/").toString(), json).create(ForecastApi::class.java)
+        val failing = DefaultForecastRepository(api, json, LastGoodStore(FailingPreferencesDataStore()))
+
+        enqueue(200, Fixtures.read("forecast.ok.json"))
+        val r = failing.load("44230") as ForecastResult.Success
+
+        assertNull(r.cachedAt)
+    }
+
+    @Test
+    fun storageReadFailureFallsBackToOriginalFailure() = runTest {
+        val json = Json {
+            ignoreUnknownKeys = false
+            explicitNulls = false
+        }
+        val api = ApiClient.create(server.url("/").toString(), json).create(ForecastApi::class.java)
+        val failing = DefaultForecastRepository(api, json, LastGoodStore(FailingPreferencesDataStore()))
+
+        server.shutdown()
+        val r = failing.load("44230") as ForecastResult.Failure
+
         assertEquals("NETWORK_UNAVAILABLE", r.code)
     }
 

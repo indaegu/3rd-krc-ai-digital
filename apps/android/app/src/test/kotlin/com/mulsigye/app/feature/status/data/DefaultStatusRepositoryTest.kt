@@ -2,6 +2,7 @@ package com.mulsigye.app.feature.status.data
 
 import com.mulsigye.app.core.network.ApiClient
 import com.mulsigye.app.core.storage.LastGoodStore
+import com.mulsigye.app.core.testing.FailingPreferencesDataStore
 import com.mulsigye.app.core.testing.Fixtures
 import com.mulsigye.app.core.testing.InMemoryPreferencesDataStore
 import com.mulsigye.app.feature.status.data.remote.StatusApi
@@ -258,6 +259,61 @@ class DefaultStatusRepositoryTest {
     fun noCacheYieldsOriginalFailure() = runTest {
         server.shutdown()
         val r = repository.load("44230") as StatusResult.Failure
+        assertEquals("NETWORK_UNAVAILABLE", r.code)
+    }
+
+
+    // 백그라운드 알림은 저장본으로 판단하면 안 된다. 며칠 전 물 사정을 오늘 일처럼 알리고,
+    // 단계 기준선까지 덮어써 나중에 실제로 나빠졌을 때의 알림을 삼킨다(WaterCheckWorker).
+    @Test
+    fun allowCachedFalseKeepsFailureEvenWithCache() = runTest {
+        enqueue(200, Fixtures.read("status.ok.json"))
+        repository.load("44230")
+
+        server.shutdown()
+        val r = repository.load("44230", allowCached = false) as StatusResult.Failure
+
+        assertEquals("NETWORK_UNAVAILABLE", r.code)
+        assertTrue(r.retryable)
+    }
+
+    @Test
+    fun allowCachedFalseStillReturnsFreshResponse() = runTest {
+        enqueue(200, Fixtures.read("status.ok.json"))
+        val r = repository.load("44230", allowCached = false) as StatusResult.Success
+        assertNull(r.cachedAt)
+    }
+
+    // 저장소 쓰기 실패가 정상 응답을 "인터넷 연결을 확인해 주세요"로 뒤바꾸면 안 된다.
+    @Test
+    fun storageFailureDoesNotDiscardFreshResponse() = runTest {
+        val json = Json {
+            ignoreUnknownKeys = true
+            explicitNulls = false
+        }
+        val api = ApiClient.create(server.url("/").toString(), json).create(StatusApi::class.java)
+        val failing = DefaultStatusRepository(api, json, LastGoodStore(FailingPreferencesDataStore()))
+
+        enqueue(200, Fixtures.read("status.ok.json"))
+        val r = failing.load("44230") as StatusResult.Success
+
+        assertEquals(93.5, r.region.avgRatio, 0.0)
+        assertNull(r.cachedAt)
+    }
+
+    // 저장소 읽기 실패는 "캐시 없음"이다 — 예외가 새어 나가 화면이 죽으면 안 된다.
+    @Test
+    fun storageReadFailureFallsBackToOriginalFailure() = runTest {
+        val json = Json {
+            ignoreUnknownKeys = true
+            explicitNulls = false
+        }
+        val api = ApiClient.create(server.url("/").toString(), json).create(StatusApi::class.java)
+        val failing = DefaultStatusRepository(api, json, LastGoodStore(FailingPreferencesDataStore()))
+
+        server.shutdown()
+        val r = failing.load("44230") as StatusResult.Failure
+
         assertEquals("NETWORK_UNAVAILABLE", r.code)
     }
 

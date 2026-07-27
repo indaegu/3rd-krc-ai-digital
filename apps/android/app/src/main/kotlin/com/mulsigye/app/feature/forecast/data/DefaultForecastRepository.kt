@@ -50,13 +50,8 @@ class DefaultForecastRepository(
                 if (body.schemaVersion != "1") {
                     invalid()
                 } else {
-                    val success = body.toDomain(cachedAt = null)
-                    lastGood?.save(
-                        kind = LastGoodStore.KIND_FORECAST,
-                        key = sigunCode,
-                        payload = json.encodeToString(body),
-                    )
-                    success
+                    saveQuietly(sigunCode, body)
+                    body.toDomain(cachedAt = null)
                 }
             } else {
                 response.toApiFailure(json).let {
@@ -71,9 +66,29 @@ class DefaultForecastRepository(
             invalid()
         }
 
+    /** 저장 실패가 방금 받은 정상 응답을 버리게 두지 않는다(status와 같은 규칙). */
+    private suspend fun saveQuietly(sigunCode: String, body: ForecastResponseDto) {
+        try {
+            lastGood?.save(
+                kind = LastGoodStore.KIND_FORECAST,
+                key = sigunCode,
+                payload = json.encodeToString(body),
+            )
+        } catch (_: IOException) {
+            // 다음 성공 응답 때 다시 남긴다.
+        } catch (_: SerializationException) {
+            // 직렬화할 수 없는 응답은 되살릴 수도 없으므로 저장을 건너뛴다.
+        }
+    }
+
     /** 저장본 → 도메인. 저장 당시 형식이 지금과 달라 매핑이 깨지면 캐시 없음으로 본다. */
     private suspend fun cached(sigunCode: String): ForecastResult.Success? {
-        val entry = lastGood?.load(LastGoodStore.KIND_FORECAST, sigunCode) ?: return null
+        // 읽기 실패도 "캐시 없음"이다 — 저장소 오류로 화면이 죽으면 안 된다.
+        val entry = try {
+            lastGood?.load(LastGoodStore.KIND_FORECAST, sigunCode)
+        } catch (_: IOException) {
+            null
+        } ?: return null
         return runCatching {
             json.decodeFromString<ForecastResponseDto>(entry.payload)
                 .takeIf { it.schemaVersion == "1" }

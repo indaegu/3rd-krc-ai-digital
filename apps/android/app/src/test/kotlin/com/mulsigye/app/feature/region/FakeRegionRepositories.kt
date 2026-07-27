@@ -95,7 +95,11 @@ class FakeStatusRepository : StatusRepository {
     var lastFacCode: String? = null
         private set
 
-    override suspend fun load(sigunCode: String, facCode: String?): StatusResult {
+    override suspend fun load(
+        sigunCode: String,
+        facCode: String?,
+        allowCached: Boolean,
+    ): StatusResult {
         loadCount += 1
         lastFacCode = facCode
         return results[sigunCode] ?: requireNotNull(default)
