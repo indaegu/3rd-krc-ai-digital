@@ -491,8 +491,8 @@ class Stage5GateTest : RobolectricComposeTest() {
         assertNull(normalDto.reach.targetStage)
 
         // MAE는 model 메타 실값(하드코딩 금지 회귀 방지).
-        assertEquals(1.9168, watchDto.model.mae7, 0.0)
-        assertEquals(2.8337, watchDto.model.mae14, 0.0)
+        assertEquals(1.8493, watchDto.model.mae7, 0.0)
+        assertEquals(3.0463, watchDto.model.mae14, 0.0)
         // 밴드는 forecast.low/high 그대로(임의 산식 없음).
         val firstBand = watchDto.forecast.first()
         assertEquals(67.8, firstBand.low, 0.0)

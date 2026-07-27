@@ -74,8 +74,8 @@ function makeForecast(overrides: {
     model: {
       name: "naive",
       version: "pred-v1",
-      mae7: 1.9168,
-      mae14: 2.8337,
+      mae7: 1.8493,
+      mae14: 3.0463,
       bandMethod: "residual_quantile_p25_p75_regional",
     },
     officialOutlook: null,

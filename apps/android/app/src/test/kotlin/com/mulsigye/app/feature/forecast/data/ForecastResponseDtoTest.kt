@@ -30,8 +30,8 @@ class ForecastResponseDtoTest {
         assertEquals(18, d.reach.days)
         assertEquals("care", d.reach.targetStage?.code)
         assertEquals("naive", d.model.name)
-        assertEquals(1.9168, d.model.mae7, 0.0)
-        assertEquals(2.8337, d.model.mae14, 0.0)
+        assertEquals(1.8493, d.model.mae7, 0.0)
+        assertEquals(3.0463, d.model.mae14, 0.0)
         assertEquals("watch", d.officialOutlook?.current?.code)
         assertEquals("care", d.officialOutlook?.outlook1m?.code)
     }
