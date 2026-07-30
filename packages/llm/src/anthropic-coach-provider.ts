@@ -36,10 +36,13 @@ export type AnthropicCoachProviderOptions = {
 };
 
 /**
- * claude-opus-4-7 구조화 출력 호출 어댑터(미연결).
+ * Claude 구조화 출력 호출 어댑터. 기본 모델은 constants.ts의 ANTHROPIC_MODEL이며
+ * 운영에서는 환경변수로 덮어쓸 수 있다.
+ *
  * - 캐시·lock·예산 가드 없이 공개 Route Handler에 연결하지 않는다(packages/llm AGENTS.md).
- * - temperature/top_p/top_k/thinking은 절대 전달하지 않는다(Opus 4.7은 400으로 거절).
- * - 모든 실패는 throw — 정적 코치 폴백 결정은 호출자 몫이다. 로그를 남기지 않는다.
+ * - temperature/top_p/top_k/thinking은 전달하지 않는다. 필요하지 않을 뿐 아니라 모델에
+ *   따라 400으로 거절된다(예: thinking의 budget_tokens는 최신 모델에서 거절된다).
+ * - 모든 실패는 throw다. 정적 코치 폴백 결정은 호출자 몫이며 여기서 로그를 남기지 않는다.
  */
 export class AnthropicCoachProvider implements CoachProvider {
   private readonly client: CoachMessagesClient;

@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -61,11 +62,29 @@ fun CoachCard(
         Spacer(Modifier.height(16.dp))
         when (state) {
             is CoachUiState.Loading -> {
-                Text(
-                    text = "코치가 설명을 준비하고 있어요…",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = Ink3,
-                )
+                // 무엇을 기다리는지, 얼마나 걸리는지 함께 알린다. 글자만 두면 멈춘 화면과
+                // 구분되지 않아 사용자가 앱이 죽은 줄 알고 나간다.
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        strokeWidth = 2.5.dp,
+                        color = Blue,
+                    )
+                    Spacer(Modifier.width(10.dp))
+                    Column {
+                        Text(
+                            text = "수신호 코치가 안내를 만들고 있어요",
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = Ink,
+                        )
+                        Text(
+                            text = "우리 지역 자료로 새로 쓰는 중이라 10초쯤 걸릴 수 있어요",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Ink3,
+                        )
+                    }
+                }
             }
 
             is CoachUiState.Error -> {

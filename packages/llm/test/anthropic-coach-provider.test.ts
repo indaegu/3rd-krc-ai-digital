@@ -7,7 +7,11 @@ import {
   type CoachMessagesClient,
 } from "../src/anthropic-coach-provider.js";
 import { PROMPT_VERSION, buildCoachPrompt } from "../src/coach-prompt.js";
-import { LLM_TIMEOUT_MS } from "../src/constants.js";
+import {
+  ANTHROPIC_MODEL,
+  LLM_MAX_TOKENS,
+  LLM_TIMEOUT_MS,
+} from "../src/constants.js";
 import type { CoachFactPacket } from "../src/types.js";
 
 const facts: CoachFactPacket = {
@@ -102,8 +106,9 @@ describe("AnthropicCoachProvider", () => {
     expect(create).toHaveBeenCalledTimes(1);
     const [params, options] = create.mock.calls[0]!;
 
-    expect(params.model).toBe("claude-opus-4-7");
-    expect(params.max_tokens).toBe(256);
+    expect(params.model).toBe(ANTHROPIC_MODEL);
+    // 값을 리터럴로 박으면 상수를 올렸을 때 여기만 조용히 낡는다.
+    expect(params.max_tokens).toBe(LLM_MAX_TOKENS);
     expect(params.output_config).toEqual({
       effort: "low",
       format: {
