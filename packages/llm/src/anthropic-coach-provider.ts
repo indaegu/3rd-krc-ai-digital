@@ -33,6 +33,13 @@ export type AnthropicCoachProviderOptions = {
   /** 테스트용 DI. 없으면 apiKey로 실제 클라이언트를 만든다(동기 재시도 0회). */
   client?: CoachMessagesClient;
   apiKey?: string;
+  /**
+   * 부를 모델. 호출자가 환경변수로 정한 값을 그대로 넘긴다.
+   *
+   * 캐시 키와 사용량 기록은 호출자가 정한 모델명으로 남으므로, 여기서 다른 모델을
+   * 부르면 기록과 실제가 어긋난다. 생략하면 constants의 기본값을 쓴다.
+   */
+  model?: string;
 };
 
 /**
@@ -46,11 +53,13 @@ export type AnthropicCoachProviderOptions = {
  */
 export class AnthropicCoachProvider implements CoachProvider {
   private readonly client: CoachMessagesClient;
+  private readonly model: string;
 
   constructor(options: AnthropicCoachProviderOptions = {}) {
     this.client =
       options.client ??
       new Anthropic({ apiKey: options.apiKey, maxRetries: 0 });
+    this.model = options.model ?? ANTHROPIC_MODEL;
   }
 
   async generate(facts: CoachFactPacket): Promise<GeneratedCoachCopy> {
@@ -58,7 +67,7 @@ export class AnthropicCoachProvider implements CoachProvider {
 
     const response = await this.client.messages.create(
       {
-        model: ANTHROPIC_MODEL,
+        model: this.model,
         max_tokens: LLM_MAX_TOKENS,
         output_config: {
           effort: "low",

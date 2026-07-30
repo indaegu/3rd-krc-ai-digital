@@ -1,10 +1,12 @@
 // coach-guards 테스트 — KST 일일 한도·앱 레벨 2단계 예산·generation lock.
 // 실 Supabase 미호출(인메모리 대역). 예산 원자성은 예약행 insert → 합산 → 초과 시 회수.
+import { LLM_TIMEOUT_MS } from "@mulsigye/llm";
 import { describe, expect, it } from "vitest";
 import {
   checkDailyLiveMissLimit,
   claimGenerationLock,
   LIVE_MISS_RESERVATION_USD,
+  LOCK_TTL_MS,
   releaseGenerationLock,
   releaseReservation,
   reserveBudget,
@@ -177,11 +179,35 @@ describe("claimGenerationLock / releaseGenerationLock", () => {
     expect(r.acquired).toBe(true);
   });
 
-  it("releaseGenerationLock은 lock을 제거한다", async () => {
+  it("releaseGenerationLock은 자기가 잡은 lock을 제거한다", async () => {
     const client = createFakeCoachSupabase();
-    await claimGenerationLock(client, KEY, { now: NOW });
-    await releaseGenerationLock(client, KEY);
+    const lock = await claimGenerationLock(client, KEY, { now: NOW });
+    await releaseGenerationLock(client, KEY, lock.lockedUntil);
     expect(client.tables["coach_generation_locks"] ?? []).toHaveLength(0);
+  });
+
+  // 첫 요청이 늦게 끝나 남의 lock을 지우면 세 번째 요청까지 Claude를 부른다.
+  it("남이 인수한 lock은 지우지 않는다", async () => {
+    const client = createFakeCoachSupabase();
+    const mine = await claimGenerationLock(client, KEY, { now: NOW });
+
+    // 내 lock이 만료된 뒤 다른 요청이 인수한다.
+    const later = new Date(NOW.getTime() + LOCK_TTL_MS + 1_000);
+    const theirs = await claimGenerationLock(client, KEY, { now: later });
+    expect(theirs.acquired).toBe(true);
+    expect(theirs.lockedUntil).not.toBe(mine.lockedUntil);
+
+    // 뒤늦게 끝난 내가 해제해도 남의 lock은 남아 있어야 한다.
+    await releaseGenerationLock(client, KEY, mine.lockedUntil);
+    expect(client.tables["coach_generation_locks"] ?? []).toHaveLength(1);
+
+    await releaseGenerationLock(client, KEY, theirs.lockedUntil);
+    expect(client.tables["coach_generation_locks"] ?? []).toHaveLength(0);
+  });
+
+  // provider 타임아웃(20초)보다 짧으면 생성 도중에 lock이 풀려 Claude가 겹쳐 불린다.
+  it("lock TTL은 provider 타임아웃보다 길다", () => {
+    expect(LOCK_TTL_MS).toBeGreaterThan(LLM_TIMEOUT_MS);
   });
 
   it("Supabase 오류는 throw한다", async () => {

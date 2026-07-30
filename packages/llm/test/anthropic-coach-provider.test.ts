@@ -223,4 +223,25 @@ describe("AnthropicCoachProvider", () => {
       new AnthropicCoachProvider({ client }).generate(facts),
     ).rejects.toThrow();
   });
+  // 캐시 키와 사용량 기록은 호출자가 정한 모델명으로 남는다. 여기서 다른 모델을 부르면
+  // Sonnet이 쓴 글이 Opus로 저장돼 롤백도, 원인 추적도 되지 않는다.
+  it("호출자가 준 모델을 그대로 부른다", async () => {
+    const { client, create } = makeClient(textResponse(validCopy));
+    const provider = new AnthropicCoachProvider({
+      client,
+      model: "claude-opus-4-7",
+    });
+
+    await provider.generate(facts);
+
+    expect(create.mock.calls[0]![0].model).toBe("claude-opus-4-7");
+  });
+
+  it("모델을 주지 않으면 기본값을 쓴다", async () => {
+    const { client, create } = makeClient(textResponse(validCopy));
+
+    await new AnthropicCoachProvider({ client }).generate(facts);
+
+    expect(create.mock.calls[0]![0].model).toBe(ANTHROPIC_MODEL);
+  });
 });
