@@ -10,8 +10,17 @@ import type { CoachSupabaseClient } from "./coach-cache.ts";
 export const LIVE_MISS_RESERVATION_USD = 0.02;
 export const DEFAULT_DAILY_LIVE_MISS_LIMIT = 20;
 export const DEFAULT_CONTEST_BUDGET_USD = 5;
-/** generation lock TTL — 8초 timeout + 검증·저장 여유(설계 spec 대비 15초). */
-export const LOCK_TTL_MS = 15_000;
+/**
+ * generation lock TTL.
+ *
+ * provider 타임아웃(20초)보다 반드시 길어야 한다. 짧으면 첫 요청이 아직 Claude를
+ * 기다리는 동안 lock이 만료돼 두 번째 요청이 인수하고, Claude를 동시에 두 번 부른다.
+ * 공모전 예산이 상한 5달러라 중복 호출은 그대로 손해다.
+ *
+ * 라우트 maxDuration이 30초라 요청 자체가 그보다 오래 살 수 없으므로 같은 값으로 둔다
+ * (타임아웃 20초 + 검증·캐시 저장까지 모두 이 안에서 끝난다).
+ */
+export const LOCK_TTL_MS = 30_000;
 
 /** UTC 시각 → 해당 KST 달력일의 시작(00:00 KST)을 UTC ISO로. */
 function kstDayStartIso(now: Date): string {
@@ -144,7 +153,7 @@ export async function claimGenerationLock(
   client: CoachSupabaseClient,
   cacheKey: string,
   input: { now: Date; ttlMs?: number },
-): Promise<{ acquired: boolean }> {
+): Promise<{ acquired: boolean; lockedUntil: string }> {
   const nowIso = input.now.toISOString();
   const lockedUntil = new Date(
     input.now.getTime() + (input.ttlMs ?? LOCK_TTL_MS),
@@ -154,7 +163,7 @@ export async function claimGenerationLock(
     .from("coach_generation_locks")
     .insert([{ cache_key: cacheKey, locked_until: lockedUntil }]);
   if (inserted.error === null) {
-    return { acquired: true };
+    return { acquired: true, lockedUntil };
   }
 
   // insert 충돌 — 만료된 lock이면 인수(조건부 update), 아니면 미획득.
@@ -167,19 +176,28 @@ export async function claimGenerationLock(
   if (takeover.error !== null) {
     throw new Error(`generation lock 실패: ${takeover.error.message}`);
   }
-  return { acquired: (takeover.data?.length ?? 0) > 0 };
+  return { acquired: (takeover.data?.length ?? 0) > 0, lockedUntil };
 }
 
-/** lock 해제(best-effort delete). */
+/**
+ * lock 해제(best-effort delete). **자기가 잡은 lock만** 지운다.
+ *
+ * 조건 없이 지우면, 내 lock이 만료돼 다른 요청이 인수한 뒤에 내가 뒤늦게 끝나면서
+ * 남의 lock을 지워 버린다. 그러면 세 번째 요청까지 들어와 Claude를 또 부른다.
+ * claim이 써 넣은 locked_until을 소유 표식으로 삼아 그 값이 그대로일 때만 지운다
+ * (스키마를 늘리지 않고 소유권을 확인하는 방법이다).
+ */
 export async function releaseGenerationLock(
   client: CoachSupabaseClient,
   cacheKey: string,
+  lockedUntil: string,
 ): Promise<void> {
   try {
     await client
       .from("coach_generation_locks")
       .delete()
-      .eq("cache_key", cacheKey);
+      .eq("cache_key", cacheKey)
+      .eq("locked_until", lockedUntil);
   } catch {
     // 해제 실패해도 lock은 TTL로 만료된다.
   }

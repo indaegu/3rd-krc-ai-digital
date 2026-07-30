@@ -23,6 +23,15 @@ import {
 
 export const dynamic = "force-dynamic";
 
+/**
+ * 서버리스 실행 상한(초). 상류 조회 2~4초 + LLM 20초를 합쳐도 남도록 잡는다.
+ *
+ * 이 값을 두지 않으면 플랫폼 기본값(10초)에서 잘려, 정상 생성 중이던 요청이 끊기고
+ * 사용자는 이유 없이 정적 코치를 받는다. 정적 폴백 경로는 상류 조회만 하므로 이
+ * 상한과 무관하게 빠르게 끝난다.
+ */
+export const maxDuration = 30;
+
 const SIGUN_CODE_PATTERN = /^[0-9]{5}$/;
 const FAC_CODE_PATTERN = /^[0-9]{10}$/;
 

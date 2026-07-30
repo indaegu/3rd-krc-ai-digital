@@ -247,6 +247,8 @@ async function runLivePipeline(
 
   // 1) 캐시 조회 → hit이면 mode "cache". 2) 일일 한도. (Supabase 오류는 cache_unavailable.)
   let reservationId: number | null = null;
+  /** 내가 잡은 lock의 locked_until. 해제할 때 소유 확인에 쓴다(남의 lock을 지우지 않게). */
+  let heldLockedUntil: string | null = null;
   try {
     const cached = await getCachedCoach(client, cacheKey, now);
     if (cached !== null) {
@@ -280,6 +282,7 @@ async function runLivePipeline(
       }
       return buildStaticBody(assembly, "generation_in_progress");
     }
+    heldLockedUntil = lock.lockedUntil;
   } catch {
     // getCachedCoach·한도·예약·lock 어느 단계든 Supabase 장애 → 정적, Claude 미호출.
     if (reservationId !== null) {
@@ -334,7 +337,11 @@ async function runLivePipeline(
     await settleUsage(client, heldReservation, { resultCode: reason });
     return buildStaticBody(assembly, reason);
   } finally {
-    await releaseGenerationLock(client, cacheKey);
+    // 내가 잡은 lock일 때만 지운다. 조건 없이 지우면 내 lock이 만료된 뒤 인수한
+    // 다른 요청의 lock까지 없애 Claude가 또 불린다.
+    if (heldLockedUntil !== null) {
+      await releaseGenerationLock(client, cacheKey, heldLockedUntil);
+    }
   }
 }
 
@@ -346,12 +353,17 @@ function defaultCreateClient(): CoachSupabaseClient {
 
 /** live일 때만 지연 생성 — 비활성/키 없음 경로에서는 SDK를 아예 구성하지 않는다. */
 function defaultProvider(env: CoachLlmEnv): CoachProvider {
-  // liveEnabled 게이트가 ANTHROPIC_API_KEY 존재를 이미 보장하지만, 타입상 좁혀 전달한다.
-  return new AnthropicCoachProvider(
-    env.ANTHROPIC_API_KEY !== undefined
-      ? { apiKey: env.ANTHROPIC_API_KEY }
-      : {},
-  );
+  // 캐시 키와 사용량 기록은 env.ANTHROPIC_MODEL을 쓰는데 provider에 넘기지 않으면
+  // 실제로 부른 모델과 기록된 모델이 어긋난다(Sonnet이 쓴 글이 Opus로 저장된다).
+  // 환경변수로 모델을 되돌리는 것도 불가능해지므로 같은 값을 그대로 넘긴다.
+  return new AnthropicCoachProvider({
+    ...(env.ANTHROPIC_API_KEY === undefined
+      ? {}
+      : { apiKey: env.ANTHROPIC_API_KEY }),
+    ...(env.ANTHROPIC_MODEL === undefined
+      ? {}
+      : { model: env.ANTHROPIC_MODEL }),
+  });
 }
 
 /**

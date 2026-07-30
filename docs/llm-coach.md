@@ -5,7 +5,7 @@
 
 ## 고정 결정
 
-- Anthropic Claude API의 `claude-opus-4-7`을 사용한다.
+- Anthropic Claude API의 `claude-sonnet-5`를 사용한다(환경변수 `ANTHROPIC_MODEL`로 덮어쓸 수 있다).
 - 추론은 Anthropic에 있고 Vercel Next.js 서버가 호출을 오케스트레이션한다.
 - 웹과 Android는 `/api/v1/coach`만 소비하며 Anthropic을 직접 호출하지 않는다.
 - Claude Max는 로컬 개발·수동 평가·사전 생성에만 사용한다.
@@ -37,7 +37,7 @@ Claude는 숫자를 추가하지 않는 짧은 헤드라인·요약·행동 이�
 유일한 출처다. CoachPolicy `selectActions(stage, highWaterNotice)`는 항상 정확히
 3개를 결정적 순서로 고르고, 만수위 참고면 배수로 점검이 1순위가 된다.
 `AnthropicCoachProvider`와 프롬프트 `coach-v1`(`coach-prompt.ts`)도 packages/llm에
-있지만 **어떤 공개 라우트에도 연결되어 있지 않다**. 어댑터는 `claude-opus-4-7` +
+있지만 **어떤 공개 라우트에도 연결되어 있지 않다**. 어댑터는 `claude-sonnet-5` +
 구조화 출력(`output_config.format` JSON Schema, effort low, 256 tokens, 8,000ms,
 재시도 0회)만 호출하고 temperature/top_p/top_k/thinking은 전달하지 않는다.
 refusal·max_tokens·검증 실패를 포함한 모든 실패는 throw이며 폴백 결정은 호출자
@@ -102,7 +102,7 @@ Vercel 프로젝트 → Settings → Environment Variables. **Environment는 Pro
 | `ANTHROPIC_API_KEY` | 발급받은 키 | Sensitive로 표시 |
 | `LLM_CONTEST_BUDGET_USD` | `5` | 생략 시 기본 5 |
 | `LLM_DAILY_LIVE_MISS_LIMIT` | `20` | 생략 시 기본 20 |
-| `ANTHROPIC_MODEL` | 생략 | 생략하면 `claude-opus-4-7` |
+| `ANTHROPIC_MODEL` | 생략 | 생략하면 `claude-sonnet-5` |
 
 키는 저장소·릴리스·이슈·PR 어디에도 올리지 않는다. `.env` 파일을 만들어 커밋하지 않는다.
 
@@ -153,7 +153,7 @@ curl.exe -s "https://3rd-krc-ai-digital-web.vercel.app/api/v1/coach?sigunCode=44
 ## 보호된 실계약 테스트
 
 기본 CI와 `pnpm test`는 실키 없이 mock으로 통과하며 live 테스트는 skip된다.
-실 `claude-opus-4-7` 계약 테스트는 명시적으로만 실행한다(1회 비용 약 USD 0.01).
+실 모델 계약 테스트는 명시적으로만 실행한다(1회 비용 약 USD 0.01).
 
 ```powershell
 $env:LLM_CONTRACT_TEST = '1'   # 실키는 .env.local에서 읽어 환경변수로만 전달
@@ -167,7 +167,7 @@ pnpm --filter @mulsigye/llm test test/anthropic-live.contract.test.ts
 (출력 256 tokens 상한 도달)로 검증 전 실패했다. 이에 coach-v1 프롬프트에 출력
 분량 지시(headline 15자 안팎·summary 60자 안팎·reason 40자 안팎)를 추가했고,
 같은 날 실호출 1회가 약 4.4초에 성공해 validator 통과·행동 ID 보존을 확인했다 —
-설계 spec 17절 1항(실 `claude-opus-4-7` 구조화 출력 고정 사례 1개 성공) 충족.
+설계 spec 17절 1항(실 모델 구조화 출력 고정 사례 1개 성공) 충족.
 
 ## 보안과 로그
 

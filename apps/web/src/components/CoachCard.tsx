@@ -59,11 +59,20 @@ export function CoachCard({ state, onRetry }: CoachCardProps) {
 
   if (state.kind === "loading") {
     return (
-      <Card className={styles.card} aria-hidden="true">
+      // 종전에는 카드 전체가 aria-hidden이라 스크린리더 사용자는 아무 안내도 못 받았다.
+      // 기다리는 중이라는 것은 오히려 꼭 읽어 줘야 하는 정보다.
+      <Card className={styles.card} aria-busy="true">
         <CoachHeader />
-        <div className={styles.loading}>
-          <span className={styles.loadingText}>
-            코치가 설명을 준비하고 있어요…
+        <div className={styles.loading} role="status">
+          <span className={styles.spinner} aria-hidden="true" />
+          <span className={styles.loadingBody}>
+            <b className={styles.loadingText}>
+              수신호 코치가 안내를 만들고 있어요
+            </b>
+            {/* 처음 만드는 경우에만 오래 걸린다(같은 상황은 이후 저장해 두고 바로 보여준다). */}
+            <span className={styles.loadingHint}>
+              우리 지역 자료로 새로 쓰는 중이라 10초쯤 걸릴 수 있어요
+            </span>
           </span>
         </div>
       </Card>

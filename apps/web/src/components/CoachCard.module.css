@@ -126,12 +126,51 @@
 }
 
 .loading {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
   padding: 8px 0 2px;
 }
 
+.loadingBody {
+  display: grid;
+  gap: 2px;
+}
+
 .loadingText {
+  color: var(--ink);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.loadingHint {
   color: var(--ink3);
   font-size: 0.9375rem;
+}
+
+/* 도는 표시 — 글자만 있으면 멈춘 화면과 구분되지 않는다. 모션을 줄인 사용자에게는
+   회전을 멈추고 테두리만 남긴다(정지해도 "기다리는 중"은 글자가 말해 준다). */
+.spinner {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin-top: 3px;
+  border: 2.5px solid var(--blue-soft);
+  border-top-color: var(--blue);
+  border-radius: 50%;
+  animation: coach-spin 0.9s linear infinite;
+}
+
+@keyframes coach-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation: none;
+  }
 }
 
 .errorMessage {

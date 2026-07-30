@@ -144,3 +144,28 @@ describe("CoachCard 수신호 코치 카드", () => {
     expectNoChatAffordance(container);
   });
 });
+
+// 코치는 실패해도 정적으로 200을 주지만, 생성에는 몇 초가 걸린다. 그동안 화면이 조용하면
+// 사용자는 앱이 멈춘 줄 알고 나간다.
+describe("CoachCard 생성 중 안내", () => {
+  it("무엇을 기다리는지와 얼마나 걸리는지 알려준다", () => {
+    render(<CoachCard state={{ kind: "loading" }} onRetry={() => undefined} />);
+
+    expect(
+      screen.getByText("수신호 코치가 안내를 만들고 있어요"),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/10초쯤 걸릴 수 있어요/)).toBeInTheDocument();
+  });
+
+  it("기다리는 중임을 스크린리더에도 알린다", () => {
+    const { container } = render(
+      <CoachCard state={{ kind: "loading" }} onRetry={() => undefined} />,
+    );
+
+    // 종전에는 카드 전체가 aria-hidden이라 아무 안내도 읽히지 않았다.
+    expect(
+      container.querySelector("[aria-hidden='true'][class*='card']"),
+    ).toBeNull();
+    expect(screen.getByRole("status")).toHaveTextContent("만들고 있어요");
+  });
+});
