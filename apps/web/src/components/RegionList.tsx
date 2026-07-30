@@ -39,12 +39,27 @@ const LOADING_NAME: NameState = { kind: "loading" };
 /** 길게 누르기로 인정하는 시간. 스크롤하다 잘못 들어가지 않을 만큼 길게 잡는다. */
 const LONG_PRESS_MS = 500;
 
+/** 페이지가 CTA를 판단하는 데 필요한 것들. 저장소만으로는 이름 로딩 여부를 알 수 없다. */
+export interface RegionListStatus {
+  /** 등록된 지역이 하나라도 있는지. */
+  hasRegions: boolean;
+  /**
+   * 지금 선택된 지역의 이름을 아직 불러오는 중인지.
+   *
+   * 이 상태로 메인에 들어가면 지역 이름 자리가 빈 채로 화면이 열리고, 조회가 실패했을
+   * 때는 빈 화면에서 오류를 만난다. 여기서 기다렸다 들어가는 편이 낫다.
+   */
+  currentLoading: boolean;
+}
+
 interface RegionListProps {
   /** 저장소가 바뀔 때마다(마운트 포함) 호출한다. 페이지가 CTA 노출 판단에 쓴다. */
   onStoreChange?: (store: RegionStore) => void;
+  /** 저장소 또는 이름 로딩 상태가 바뀔 때마다 호출한다. */
+  onStatusChange?: (status: RegionListStatus) => void;
 }
 
-export function RegionList({ onStoreChange }: RegionListProps) {
+export function RegionList({ onStoreChange, onStatusChange }: RegionListProps) {
   const [store, setStore] = useState<RegionStore | null>(null);
   const [names, setNames] = useState<Record<string, NameState>>({});
   const [manageMode, setManageMode] = useState(false);
@@ -53,13 +68,27 @@ export function RegionList({ onStoreChange }: RegionListProps) {
   /** 확인 시트가 지울 대상. null이면 시트가 닫혀 있다. 한 건도 여러 건도 같은 흐름을 쓴다. */
   const [pendingDelete, setPendingDelete] = useState<string[] | null>(null);
   const onStoreChangeRef = useRef(onStoreChange);
+  const onStatusChangeRef = useRef(onStatusChange);
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // 길게 눌러 관리 모드로 들어간 직후의 click은 선택으로 치지 않는다.
   const longPressFiredRef = useRef(false);
 
   useEffect(() => {
     onStoreChangeRef.current = onStoreChange;
-  }, [onStoreChange]);
+    onStatusChangeRef.current = onStatusChange;
+  }, [onStoreChange, onStatusChange]);
+
+  // 선택된 지역의 이름이 준비됐는지는 store와 names가 함께 바뀔 때마다 다시 판단한다.
+  useEffect(() => {
+    if (store === null) return;
+    const current = store.regions[store.currentIndex];
+    onStatusChangeRef.current?.({
+      hasRegions: store.regions.length > 0,
+      currentLoading:
+        current !== undefined &&
+        (names[current.sigunCode] ?? LOADING_NAME).kind === "loading",
+    });
+  }, [store, names]);
 
   // facCode: 저장된 선택 저수지. 넘기지 않으면 목록이 시군 기본 저수지 이름을 보여줘
   // 메인 화면과 달라진다(사용자가 다른 저수지를 골랐을 때).

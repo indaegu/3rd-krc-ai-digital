@@ -8,13 +8,18 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { ConsentSheet } from "../../components/ConsentSheet";
-import { RegionList } from "../../components/RegionList";
+import { RegionList, type RegionListStatus } from "../../components/RegionList";
 import { CtaButton } from "../../components/ui/CtaButton";
 import styles from "./page.module.css";
 
+const INITIAL_STATUS: RegionListStatus = {
+  hasRegions: false,
+  currentLoading: false,
+};
+
 export default function RegionsPage() {
   const router = useRouter();
-  const [hasRegions, setHasRegions] = useState(false);
+  const [status, setStatus] = useState<RegionListStatus>(INITIAL_STATUS);
 
   return (
     <main className={styles.main}>
@@ -28,9 +33,7 @@ export default function RegionsPage() {
         </p>
       </header>
 
-      <RegionList
-        onStoreChange={(store) => setHasRegions(store.regions.length > 0)}
-      />
+      <RegionList onStatusChange={setStatus} />
 
       <Link href="/regions/add" className={styles.addLink}>
         <span>지역 추가하기</span>
@@ -39,8 +42,16 @@ export default function RegionsPage() {
         </span>
       </Link>
 
-      {hasRegions ? (
-        <CtaButton onClick={() => router.push("/")}>시작하기</CtaButton>
+      {status.hasRegions ? (
+        <>
+          {/* 이름을 아직 못 받은 지역으로 들어가면 메인이 빈 채로 열린다. 여기서 기다린다. */}
+          <CtaButton
+            onClick={() => router.push("/")}
+            disabled={status.currentLoading}
+          >
+            {status.currentLoading ? "지역을 불러오는 중이에요…" : "시작하기"}
+          </CtaButton>
+        </>
       ) : null}
     </main>
   );

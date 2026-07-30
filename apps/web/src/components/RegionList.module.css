@@ -12,11 +12,18 @@
   align-items: center;
   min-height: 60px;
   padding-right: 8px;
+  /* 선택되면 색만 바뀌도록 투명 테두리를 미리 깔아 둔다(칸이 밀리지 않게). */
+  border: 1.6px solid transparent;
   border-radius: var(--r-card);
   background: var(--gray50);
 }
 
+/* 지금 보고 있는 지역 한 곳 — 프로토타입 `.region-row.sel`과 같은 규격이다.
+   배경 톤 차이(gray50 #f9fafb → blue-tint #e8f3ff)만으로는 밝은 곳에서 구분이 약해,
+   맨 위 줄의 "기본 주소지" 배지와 함께 두 곳이 선택된 것처럼 읽혔다. 테두리를 되살려
+   선택된 한 줄을 분명히 한다. */
 .itemCurrent {
+  border-color: var(--blue);
   background: var(--blue-tint);
 }
 
@@ -52,7 +59,8 @@
   font-size: 1.0625rem;
 }
 
-/* "기본 주소지" 배지 — 선택된 행이 blue-tint라 배경을 흰색으로 두어야 라벨로 읽힌다. */
+/* "기본 주소지" 배지 — 선택된 행이 blue-tint라 배경을 흰색으로 두어야 라벨로 읽힌다
+   (docs/design-system.md · Android PrimaryBadge와 같은 규격). */
 .badge {
   padding: 3px 8px;
   border-radius: 6px;

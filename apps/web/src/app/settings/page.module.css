@@ -1,5 +1,9 @@
 .main {
   display: grid;
+  /* 화면보다 내용이 짧으면 grid가 남는 높이를 각 줄에 나눠 늘린다(align-content 기본값
+     stretch). 그러면 목록이 화면 끝까지 벌어져 설정 항목 사이가 손가락 몇 개만큼 뜬다.
+     내용 높이 그대로 위에서부터 쌓는다. */
+  align-content: start;
   gap: 16px;
   width: min(100% - 32px, 560px);
   min-height: 100dvh;

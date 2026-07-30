@@ -430,3 +430,75 @@ describe("RegionList 다중 선택 삭제", () => {
     ).toBeDisabled();
   });
 });
+
+// 맨 위 줄에는 "기본 주소지" 배지가 늘 붙어 있어, 다른 줄을 고르면 두 곳이 표시된 것처럼
+// 읽혔다. 선택은 한 곳뿐임을 글자로도 못 박는다.
+describe("RegionList 선택 표시", () => {
+  it("선택 표시는 한 줄에만 붙고, 기본 주소지 배지와 별개다", async () => {
+    seedStore([REGION_A, REGION_B], 1);
+    stubStatusFetch();
+
+    const { container } = render(<RegionList />);
+    await screen.findByRole("button", { name: /차황/ });
+
+    // 선택된 줄은 하나뿐이다(테두리·배경을 입히는 클래스 기준).
+    const current = container.querySelectorAll("li[class*='itemCurrent']");
+    expect(current).toHaveLength(1);
+    expect(current[0]?.textContent).toContain("산청군");
+    // 기본 주소지 배지는 맨 위 줄의 설명이라 선택과 다른 줄일 수 있다.
+    expect(screen.getAllByText("기본 주소지")).toHaveLength(1);
+    expect(current[0]?.textContent).not.toContain("기본 주소지");
+  });
+
+  it("선택을 옮기면 표시도 함께 옮겨간다", async () => {
+    seedStore([REGION_A, REGION_B], 0);
+    stubStatusFetch();
+
+    const { container } = render(<RegionList />);
+    const second = await screen.findByRole("button", { name: /차황/ });
+    fireEvent.click(second);
+
+    const current = container.querySelectorAll("li[class*='itemCurrent']");
+    expect(current).toHaveLength(1);
+    expect(current[0]?.textContent).toContain("산청군");
+  });
+});
+
+// 이름을 아직 못 받은 지역으로 메인에 들어가면 지역 이름 자리가 빈 채로 화면이 열린다.
+describe("RegionList 상태 보고", () => {
+  it("이름 로딩 중에는 currentLoading이 참이고, 받으면 거짓이 된다", async () => {
+    seedStore([REGION_A, REGION_B], 0);
+    stubStatusFetch();
+
+    const seen: { hasRegions: boolean; currentLoading: boolean }[] = [];
+    render(<RegionList onStatusChange={(status) => seen.push(status)} />);
+
+    // 첫 보고는 아직 이름을 못 받은 상태다.
+    await waitFor(() => expect(seen.length).toBeGreaterThan(0));
+    expect(seen[0]).toEqual({ hasRegions: true, currentLoading: true });
+
+    await screen.findByRole("button", { name: /탑정/ });
+    await waitFor(() =>
+      expect(seen[seen.length - 1]).toEqual({
+        hasRegions: true,
+        currentLoading: false,
+      }),
+    );
+  });
+
+  it("조회에 실패한 지역은 기다리게 두지 않는다", async () => {
+    seedStore([REGION_A], 0);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() => Promise.reject(new Error("network"))),
+    );
+
+    const seen: { hasRegions: boolean; currentLoading: boolean }[] = [];
+    render(<RegionList onStatusChange={(status) => seen.push(status)} />);
+
+    // 실패도 결론이다 — 계속 막아 두면 영영 시작할 수 없다.
+    await waitFor(() =>
+      expect(seen[seen.length - 1]?.currentLoading).toBe(false),
+    );
+  });
+});
