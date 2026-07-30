@@ -278,11 +278,6 @@ export function RegionList({ onStoreChange, onStatusChange }: RegionListProps) {
                     {isPrimary ? (
                       <span className={styles.badge}>기본 주소지</span>
                     ) : null}
-                    {isCurrent ? (
-                      <span className={styles.currentMark}>
-                        <span aria-hidden="true">✓</span> 지금 보는 곳
-                      </span>
-                    ) : null}
                   </span>
                 ) : (
                   <span className={styles.rowMain}>

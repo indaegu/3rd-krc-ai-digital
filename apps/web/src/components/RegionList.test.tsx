@@ -434,30 +434,33 @@ describe("RegionList 다중 선택 삭제", () => {
 // 맨 위 줄에는 "기본 주소지" 배지가 늘 붙어 있어, 다른 줄을 고르면 두 곳이 표시된 것처럼
 // 읽혔다. 선택은 한 곳뿐임을 글자로도 못 박는다.
 describe("RegionList 선택 표시", () => {
-  it("'지금 보는 곳' 표시는 선택된 한 줄에만 붙는다", async () => {
+  it("선택 표시는 한 줄에만 붙고, 기본 주소지 배지와 별개다", async () => {
     seedStore([REGION_A, REGION_B], 1);
     stubStatusFetch();
 
-    render(<RegionList />);
+    const { container } = render(<RegionList />);
     await screen.findByRole("button", { name: /차황/ });
 
-    expect(screen.getAllByText("지금 보는 곳")).toHaveLength(1);
-    // 기본 주소지 배지는 맨 위 줄의 설명이지 선택 표시가 아니다 — 둘이 다른 줄일 수 있다.
+    // 선택된 줄은 하나뿐이다(테두리·배경을 입히는 클래스 기준).
+    const current = container.querySelectorAll("li[class*='itemCurrent']");
+    expect(current).toHaveLength(1);
+    expect(current[0]?.textContent).toContain("산청군");
+    // 기본 주소지 배지는 맨 위 줄의 설명이라 선택과 다른 줄일 수 있다.
     expect(screen.getAllByText("기본 주소지")).toHaveLength(1);
+    expect(current[0]?.textContent).not.toContain("기본 주소지");
   });
 
   it("선택을 옮기면 표시도 함께 옮겨간다", async () => {
     seedStore([REGION_A, REGION_B], 0);
     stubStatusFetch();
 
-    render(<RegionList />);
+    const { container } = render(<RegionList />);
     const second = await screen.findByRole("button", { name: /차황/ });
     fireEvent.click(second);
 
-    const marks = screen.getAllByText("지금 보는 곳");
-    expect(marks).toHaveLength(1);
-    // 산청군 줄 안에 있어야 한다.
-    expect(marks[0]?.closest("li")?.textContent).toContain("산청군");
+    const current = container.querySelectorAll("li[class*='itemCurrent']");
+    expect(current).toHaveLength(1);
+    expect(current[0]?.textContent).toContain("산청군");
   });
 });
 

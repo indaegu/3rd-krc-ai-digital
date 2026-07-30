@@ -12,29 +12,19 @@
   align-items: center;
   min-height: 60px;
   padding-right: 8px;
+  /* 선택되면 색만 바뀌도록 투명 테두리를 미리 깔아 둔다(칸이 밀리지 않게). */
+  border: 1.6px solid transparent;
   border-radius: var(--r-card);
   background: var(--gray50);
 }
 
-/* 지금 보고 있는 지역 한 곳.
-   배경 톤 차이(gray50 #f9fafb → blue-tint #e8f3ff)만으로는 구분이 약하다. 게다가 맨 위
-   줄에는 "기본 주소지" 배지가 늘 붙어 있어, 다른 줄을 고르면 배지 줄과 선택 줄이 함께
-   표시돼 두 곳이 선택된 것처럼 읽힌다. 왼쪽 굵은 띠와 글머리 표시로 "한 곳"을 못 박는다. */
+/* 지금 보고 있는 지역 한 곳 — 프로토타입 `.region-row.sel`과 같은 규격이다.
+   배경 톤 차이(gray50 #f9fafb → blue-tint #e8f3ff)만으로는 밝은 곳에서 구분이 약해,
+   맨 위 줄의 "기본 주소지" 배지와 함께 두 곳이 선택된 것처럼 읽혔다. 테두리를 되살려
+   선택된 한 줄을 분명히 한다. */
 .itemCurrent {
-  position: relative;
+  border-color: var(--blue);
   background: var(--blue-tint);
-  box-shadow: inset 4px 0 0 0 var(--blue);
-}
-
-/* "지금 보는 곳" 표시 — 선택된 줄에만 붙는다. 배지와 형태를 달리해 역할이 섞이지 않게 한다. */
-.currentMark {
-  display: inline-flex;
-  gap: 4px;
-  align-items: center;
-  color: var(--blue-deep);
-  font-size: 0.8125rem;
-  font-weight: 700;
-  white-space: nowrap;
 }
 
 .selectButton {
@@ -69,14 +59,13 @@
   font-size: 1.0625rem;
 }
 
-/* "기본 주소지" 배지 — 이 줄이 목록 맨 위(콜드 스타트 기본값)라는 **설명**이지 선택 표시가
-   아니다. 채운 배경을 쓰면 선택 표시와 무게가 같아져 헷갈리므로 테두리만 있는 칩으로 둔다. */
+/* "기본 주소지" 배지 — 선택된 행이 blue-tint라 배경을 흰색으로 두어야 라벨로 읽힌다
+   (docs/design-system.md · Android PrimaryBadge와 같은 규격). */
 .badge {
-  padding: 2px 7px;
-  border: 1px solid var(--gray200);
+  padding: 3px 8px;
   border-radius: 6px;
-  background: transparent;
-  color: var(--ink3);
+  background: var(--bg);
+  color: var(--blue-deep);
   font-size: 0.75rem;
   font-weight: 600;
 }

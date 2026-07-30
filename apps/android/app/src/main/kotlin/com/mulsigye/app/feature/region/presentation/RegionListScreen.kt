@@ -1,5 +1,6 @@
 package com.mulsigye.app.feature.region.presentation
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
@@ -463,6 +464,10 @@ private fun RegionRow(
             ),
         shape = RoundedCornerShape(12.dp),
         color = if (selected) BlueTint else Gray50,
+        // 배경 톤 차이만으로는 밝은 곳에서 구분이 약하다. 맨 위 줄의 "기본 주소지" 배지와
+        // 함께 두 곳이 선택된 것처럼 읽히므로 테두리로 선택된 한 줄을 분명히 한다
+        // (프로토타입 .region-row.sel · 웹 .itemCurrent와 같은 규격).
+        border = if (selected) BorderStroke(1.6.dp, Blue) else null,
     ) {
         Row(
             modifier = Modifier
