@@ -31,6 +31,7 @@
 
 - [ ] 참가신청서 (PDF/JPG)
 - [ ] 기획서 (hwp/hwpx · 10페이지 이내 · 서비스 URL/QR 기재, Android 설치 링크/QR은 본문에 포함)
+      → 쪽별 초안: [submission-proposal-draft.md](submission-proposal-draft.md)
 - [ ] 서명된 Android release APK를 별도 URL에서 설치 확인 (공식 메일 첨부물은 아님)
 - [ ] 개인정보 수집·이용 동의서 (PDF/JPG · 팀원 전원 서명)
 - [ ] 지식재산권 이용 동의서 (PDF/JPG · 팀원 전원 서명)

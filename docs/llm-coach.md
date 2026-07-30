@@ -53,8 +53,9 @@ refusal·max_tokens·검증 실패를 포함한 모든 실패는 throw이며 폴
 탄다. 두 조건 중 하나라도 아니면 Anthropic을 구성조차 하지 않고 정적 코치 200
 (`mode: "static"`, `cacheHit: false`, `fallbackReason: "disabled"`)을 반환한다.
 **현재 프로덕션 기본값은 `LLM_ENABLED=false`**라 공개 경로는 Anthropic을 호출하지
-않으며, 활성화는 Task 9 머지 후 Vercel Production env(`LLM_ENABLED=true` +
-`ANTHROPIC_API_KEY`, Preview 미주입)를 사람이 설정하는 별도 조치다. 클라이언트는
+않으며, 활성화는 Vercel Production env(`LLM_ENABLED=true` + `ANTHROPIC_API_KEY`,
+Preview 미주입)를 사람이 설정하는 별도 조치다 — 절차는 아래
+[프로덕션 활성화 절차](#프로덕션-활성화-절차-사람-작업) 절에 있다. 클라이언트는
 mode로 화면 구조를 바꾸지 않는다.
 
 - 사실 조립: `apps/web/src/lib/coach/coach-context.ts`가 status·forecast 결과를
@@ -84,6 +85,70 @@ mode로 화면 구조를 바꾸지 않는다.
   HTTP 200으로 반환하고, `@anthropic-ai/sdk` 스텁 카운터로 호출 0회를 단언한다.
   live 파이프라인 분기·캐시·lock·예산·폴백은 `src/lib/coach`의 자동 테스트가
   전부 mock·스텁으로 덮으며 실 Anthropic/Supabase를 호출하지 않는다.
+
+## 프로덕션 활성화 절차 (사람 작업)
+
+키를 다루는 단계라 사람이 직접 수행한다. 아래 순서를 그대로 따르고, 어느 단계든 확인이
+실패하면 6단계(되돌리기)로 간다.
+
+### 1. 넣을 환경변수
+
+Vercel 프로젝트 → Settings → Environment Variables. **Environment는 Production만 선택한다**
+(Preview·Development에 키를 넣으면 프리뷰 배포마다 실키를 태운다).
+
+| 이름 | 값 | 비고 |
+|---|---|---|
+| `LLM_ENABLED` | `true` | 이 값이 문자열 `"true"`가 아니면 정적 코치로 남는다 |
+| `ANTHROPIC_API_KEY` | 발급받은 키 | Sensitive로 표시 |
+| `LLM_CONTEST_BUDGET_USD` | `5` | 생략 시 기본 5 |
+| `LLM_DAILY_LIVE_MISS_LIMIT` | `20` | 생략 시 기본 20 |
+| `ANTHROPIC_MODEL` | 생략 | 생략하면 `claude-opus-4-7` |
+
+키는 저장소·릴리스·이슈·PR 어디에도 올리지 않는다. `.env` 파일을 만들어 커밋하지 않는다.
+
+### 2. 재배포
+
+환경변수는 **새 배포에만 적용된다.** Deployments → 최신 Production 배포 → Redeploy.
+"Use existing Build Cache"는 꺼도 되고 켜도 된다(코드 변경이 없으므로).
+
+### 3. 활성화 확인
+
+```powershell
+curl.exe -s "https://3rd-krc-ai-digital-web.vercel.app/api/v1/coach?sigunCode=44230"
+```
+
+- `fallbackReason`이 `"disabled"`에서 **사라지면(`null`) 또는 다른 값으로 바뀌면** 활성화됐다.
+- `mode`가 `"llm"`이면 실제 생성, `"cache"`면 캐시 재사용이다.
+- `mode`가 `"static"`이고 `fallbackReason`이 `"disabled"`면 **환경변수가 적용되지 않았다** —
+  Environment 선택(Production)과 재배포 여부를 다시 본다.
+
+### 4. 실패 경로 확인 (중요)
+
+활성화의 목적은 live 경로를 보여주는 것이지만, 심사 중 장애가 나도 화면이 유지돼야 한다.
+아래를 확인한다.
+
+- 같은 지역을 두 번 부르면 두 번째는 `mode: "cache"`다(30일 캐시가 도는지).
+- 다른 시군 몇 곳을 불러도 행동이 항상 3개다.
+- `fallbackReason`이 `budget_exceeded`·`daily_limit`으로 바뀌어도 HTTP 200이고 행동 3개다.
+  (일부러 만들지 말고, 값이 그렇게 나올 때 화면이 멀쩡한지만 본다.)
+
+### 5. 비용 확인
+
+- Anthropic 콘솔 Usage에서 누적 비용이 예산(USD 5) 안인지 본다.
+- Supabase `llm_usage` 테이블에 호출별 토큰·비용·결과 코드가 쌓인다. 앱 레벨 가드가
+  이 테이블을 근거로 예산을 예약하므로, 여기가 비어 있으면 가드가 동작하지 않는 것이다.
+- 예산이 소진되면 자동으로 정적 코치로 떨어진다. 화면은 그대로 동작한다.
+
+### 6. 되돌리기
+
+`LLM_ENABLED`를 `false`로 바꾸고 재배포한다. 키는 지우지 않아도 된다 — 두 조건이 모두
+참일 때만 live로 가므로 이 한 값만으로 즉시 정적 코치로 돌아간다. 코드 변경도, 배포
+롤백도 필요 없다.
+
+### 심사 기간 주의
+
+- 발표심사(2026-09-10)까지 이 환경변수를 지우지 않는다.
+- 제출 전·발표 7일 전·발표 전날에 3단계 확인을 한 번씩 다시 한다.
 
 ## 보호된 실계약 테스트
 
