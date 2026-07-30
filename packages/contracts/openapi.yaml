@@ -4,8 +4,10 @@ info:
   version: 1.0.0
   description: 수신호 웹과 Android가 함께 소비하는 버전 고정 API 계약
   license:
-    name: MIT
-    identifier: MIT
+    # 공개 라이선스를 두지 않는다. "모든 권리 보유"에 해당하는 SPDX identifier가 없으므로
+    # 권리 관계를 적어 둔 저장소 문서를 url로 가리킨다(identifier와 url은 함께 쓸 수 없다).
+    name: 저작권자 보유 · 공개 라이선스 없음
+    url: https://github.com/indaegu/3rd-krc-ai-digital/blob/main/README.md
 paths:
   /api/v1/health:
     get:
