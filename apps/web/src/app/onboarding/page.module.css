@@ -61,6 +61,11 @@
   overflow-x: auto;
   list-style: none;
   scroll-snap-type: x mandatory;
+  /* 가로 스크롤 막대를 감춘다. 데스크톱에서 슬라이드 아래에 막대가 걸쳐 보여 화면이
+     잘린 것처럼 읽힌다. 넘길 수 있다는 신호는 아래 표시점(누르면 이동)이 담당하므로
+     막대를 지워도 이동 수단이 사라지지 않는다. */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
   /* 좌우 끝 페이드 마스크 — 캐러셀 가장자리를 부드럽게 흐린다(edgeFade). */
   -webkit-mask-image: linear-gradient(
     90deg,
@@ -76,6 +81,10 @@
     #000 calc(100% - 20px),
     transparent 100%
   );
+}
+
+.carousel::-webkit-scrollbar {
+  display: none;
 }
 
 .slide {
